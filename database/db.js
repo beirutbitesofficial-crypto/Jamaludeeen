@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -97,6 +98,17 @@ const setSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUE
   ['hero_sub_ar', 'عطور فاخرة توصل لجميع أنحاء لبنان'],
 ].forEach(([k, v]) => setSetting.run(k, v));
 
+// Ensure a fresh production database always has an administrator.
+// Hostinger deployments do not run the seed script automatically.
+const adminCount = db.prepare(`SELECT COUNT(*) AS count FROM admins`).get().count;
+if (adminCount === 0) {
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const passwordHash = bcrypt.hashSync(password, 10);
+  db.prepare(`INSERT INTO admins (username, password) VALUES (?, ?)`).run(username, passwordHash);
+  console.log(`Initial administrator created: ${username}`);
+}
+
 module.exports = db;
 
 try {
@@ -107,3 +119,4 @@ try {
 try {
   db.exec(`ALTER TABLE products ADD COLUMN brand_category_id INTEGER REFERENCES brand_categories(id) ON DELETE SET NULL`);
 } catch (_) { /* column already exists */ }
+
