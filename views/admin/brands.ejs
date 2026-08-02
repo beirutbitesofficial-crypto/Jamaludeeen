@@ -1,0 +1,146 @@
+<%- include('../partials/admin-header', { title: 'Brands' }) %>
+
+<div class="admin-page">
+  <div class="admin-page__header">
+    <h1 class="admin-page__title">🏷️ Brands <span class="count-badge"><%= brands.length %></span></h1>
+    <button class="btn btn--primary" onclick="document.getElementById('newBrandModal').style.display='flex'">+ Add Brand</button>
+  </div>
+
+  <% if (brands.length) { %>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Logo</th>
+          <th>Name</th>
+          <th>Arabic Name</th>
+          <th>Type</th>
+          <th>Categories</th>
+          <th>Upload Logo</th>
+          <th>Manage Categories</th>
+          <th>Edit</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% brands.forEach(b => { %>
+        <tr>
+          <td>
+            <% if (b.logo_path) { %>
+              <img src="<%= b.logo_path %>" class="table-thumb" style="object-fit:contain" alt=""/>
+            <% } else { %>
+              <div class="table-thumb table-thumb--empty">🏷️</div>
+            <% } %>
+          </td>
+          <td><strong><%= b.name %></strong></td>
+          <td dir="rtl"><%= b.name_ar || '—' %></td>
+          <td><span class="badge badge--<%= b.type === 'khaleeji' ? 'unisex' : 'men' %>"><%= b.type %></span></td>
+          <td><%= b.cat_count %> categories</td>
+          <td>
+            <form method="POST" action="/admin/brands/<%= b.id %>/logo" enctype="multipart/form-data">
+              <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:.75rem">
+                <input type="file" name="logo" accept="image/jpeg,image/png,image/webp" style="display:none"
+                       onchange="this.form.submit()"/>
+                📷 Upload
+              </label>
+            </form>
+          </td>
+          <td>
+            <a href="/admin/brands/<%= b.id %>/categories" class="btn-sm">Categories</a>
+          </td>
+          <td>
+            <button class="btn-sm btn-edit-brand"
+              data-id="<%= b.id %>"
+              data-name="<%= b.name %>"
+              data-name-ar="<%= b.name_ar || '' %>"
+              data-type="<%= b.type %>">Edit</button>
+          </td>
+          <td>
+            <form method="POST" action="/admin/brands/<%= b.id %>/delete"
+                  onsubmit="return confirm('Delete this brand and all its categories? Products will NOT be deleted.')">
+              <button type="submit" class="btn-sm btn-sm--danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty-state" style="padding:48px 0">
+    <p class="empty-state__icon">🏷️</p>
+    <h3>No brands yet</h3>
+    <p>Click "Add Brand" to get started.</p>
+  </div>
+  <% } %>
+</div>
+
+<!-- Add Brand Modal -->
+<div class="modal" id="newBrandModal" style="display:none">
+  <div class="modal__box">
+    <h3>Add New Brand</h3>
+    <form action="/admin/brands/new" method="POST">
+      <div class="form-group">
+        <label class="form-label">Brand Name (English) *</label>
+        <input type="text" name="name" class="form-input" required placeholder="e.g. Dior"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brand Name (Arabic)</label>
+        <input type="text" name="name_ar" class="form-input" dir="rtl" placeholder="ديور"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="type" class="form-input">
+          <option value="western">International (Western)</option>
+          <option value="khaleeji">Arabic / Khaleeji</option>
+        </select>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--outline" onclick="document.getElementById('newBrandModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Create Brand</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Brand Modal -->
+<div class="modal" id="editBrandModal" style="display:none">
+  <div class="modal__box">
+    <h3>Edit Brand</h3>
+    <form id="editBrandForm" method="POST">
+      <div class="form-group">
+        <label class="form-label">Brand Name (English) *</label>
+        <input type="text" name="name" id="editBrandName" class="form-input" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brand Name (Arabic)</label>
+        <input type="text" name="name_ar" id="editBrandNameAr" class="form-input" dir="rtl"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="type" id="editBrandType" class="form-input">
+          <option value="western">International (Western)</option>
+          <option value="khaleeji">Arabic / Khaleeji</option>
+        </select>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--outline" onclick="document.getElementById('editBrandModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">💾 Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-edit-brand').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('editBrandName').value   = btn.dataset.name;
+    document.getElementById('editBrandNameAr').value = btn.dataset.nameAr;
+    document.getElementById('editBrandType').value   = btn.dataset.type;
+    document.getElementById('editBrandForm').action  = `/admin/brands/${btn.dataset.id}/edit`;
+    document.getElementById('editBrandModal').style.display = 'flex';
+  });
+});
+</script>
+
+<%- include('../partials/admin-footer') %>

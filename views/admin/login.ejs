@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login | JAMALUDEEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/admin.css"/>
+</head>
+<body class="admin-login-body">
+  <div class="login-card">
+    <h1 class="login-card__title">JAMALUDEEN</h1>
+    <p class="login-card__sub">Admin Panel</p>
+
+    <% if (error_msg && error_msg.length) { %>
+    <div class="alert alert--error"><%= error_msg[0] %></div>
+    <% } %>
+
+    <form action="/admin/login" method="POST" class="login-form">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-input" required autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-input" required autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn btn--primary btn--full">Login</button>
+    </form>
+
+    <a href="/" class="login-card__back">← Back to Store</a>
+  </div>
+</body>
+</html>

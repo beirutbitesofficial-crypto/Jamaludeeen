@@ -1,0 +1,138 @@
+<%- include('../partials/admin-header', { title: 'Products' }) %>
+
+<div class="admin-page">
+  <div class="admin-page__header">
+    <h1 class="admin-page__title">Products <span class="count-badge"><%= pagination.total %></span></h1>
+    <button class="btn btn--primary" onclick="document.getElementById('newProductModal').style.display='flex'">+ Add Product</button>
+  </div>
+
+  <div class="alert alert--success" style="margin-bottom:14px;display:block;background:#f7f4ed;color:#3a3326;border:1px solid #e7dcc7">
+    Local categories (Men/Women/Unisex): use <strong>Apply Category Default</strong> to set one shared price + image for all products in that category.
+    Brand products stay per-item.
+  </div>
+
+  <!-- Filters -->
+  <form method="GET" action="/admin/products" class="admin-filters">
+    <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="Search name or brand..." class="filter-input"/>
+    <select name="category" class="filter-select">
+      <option value="">All Categories</option>
+      <option value="men" <%= filters.category === 'men' ? 'selected' : '' %>>Men</option>
+      <option value="women" <%= filters.category === 'women' ? 'selected' : '' %>>Women</option>
+      <option value="unisex" <%= filters.category === 'unisex' ? 'selected' : '' %>>Unisex</option>
+    </select>
+    <select name="type" class="filter-select">
+      <option value="">All Product Types</option>
+      <option value="local" <%= filters.type === 'local' ? 'selected' : '' %>>Shared category products</option>
+      <option value="brand" <%= filters.type === 'brand' ? 'selected' : '' %>>Individual brand products</option>
+    </select>
+    <select name="brand" class="filter-select">
+      <option value="">All Brands</option>
+      <% brandsList.forEach(b => { %>
+      <option value="<%= b %>" <%= filters.brand === b ? 'selected' : '' %>><%= b %></option>
+      <% }) %>
+    </select>
+    <button type="submit" class="btn btn--primary">Search</button>
+    <a href="/admin/products" class="btn btn--outline">Clear</a>
+  </form>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Image</th>
+          <th>Name</th>
+          <th>Brand</th>
+          <th>Category</th>
+          <th>Price (LBP)</th>
+          <th>Stock</th>
+          <th>Featured</th>
+          <th>Category Default</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(p => { %>
+        <tr class="<%= !p.in_stock ? 'row--oos' : '' %>">
+          <td><%= p.id %></td>
+          <td>
+            <% if (p.image_path) { %>
+              <img src="<%= p.image_path %>" class="table-thumb" alt=""/>
+            <% } else { %>
+              <div class="table-thumb table-thumb--empty">✦</div>
+            <% } %>
+          </td>
+          <td><strong><%= p.name_en %></strong></td>
+          <td><%= p.brand %></td>
+          <td><span class="badge badge--<%= p.category %>"><%= p.category %></span></td>
+          <td><%= p.price ? p.price.toLocaleString() : '<span class="muted">—</span>' %></td>
+          <td><span class="dot dot--<%= p.in_stock ? 'green' : 'red' %>"><%= p.in_stock ? 'Yes' : 'No' %></span></td>
+          <td><span class="dot dot--<%= p.featured ? 'green' : 'gray' %>"><%= p.featured ? 'Yes' : 'No' %></span></td>
+          <td>
+            <% if (p.type === 'local') { %>
+              <form method="POST" action="/admin/products/<%= p.id %>/apply-local-default" onsubmit="return confirm('Apply this product\'s price and image to all local <%= p.category %> products?')">
+                <button type="submit" class="btn-sm">Apply <%= p.category %></button>
+              </form>
+            <% } else { %>
+              <span class="muted">Brand item</span>
+            <% } %>
+          </td>
+          <td><a href="/admin/products/<%= p.id %>/edit" class="btn-sm">Edit</a></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.totalPages > 1) { %>
+  <div class="pagination">
+    <% if (pagination.page > 1) { %>
+    <a href="/admin/products?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">← Prev</a>
+    <% } %>
+    <span class="pagination__info">Page <%= pagination.page %> / <%= pagination.totalPages %></span>
+    <% if (pagination.page < pagination.totalPages) { %>
+    <a href="/admin/products?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn">Next →</a>
+    <% } %>
+  </div>
+  <% } %>
+</div>
+
+<!-- New Product Modal -->
+<div class="modal" id="newProductModal" style="display:none">
+  <div class="modal__box">
+    <h3>Add New Product</h3>
+    <form action="/admin/products/new" method="POST">
+      <div class="form-group">
+        <label class="form-label">Name (English) *</label>
+        <input type="text" name="name_en" class="form-input" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select name="category" class="form-input" required>
+          <option value="men">Men</option>
+          <option value="women">Women</option>
+          <option value="unisex">Unisex</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catalog Section *</label>
+        <select name="type" class="form-input" required>
+          <option value="local">Men / Women / Unisex (shared image and price)</option>
+          <option value="brand">Brands (individual image and price)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brand *</label>
+        <input type="text" name="brand" class="form-input" required value="Other"/>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--outline" onclick="document.getElementById('newProductModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Create & Edit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/admin-footer') %>

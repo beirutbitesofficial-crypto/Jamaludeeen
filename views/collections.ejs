@@ -1,0 +1,65 @@
+<%- include('partials/header', { title: title }) %>
+
+<div class="brands-page">
+  <div class="container">
+
+    <div class="page-header">
+      <p class="page-header__eyebrow">THE HOUSE DIRECTORY</p>
+      <h1 class="page-header__title"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></h1>
+      <p class="page-header__intro">Explore a considered edit of international and Khaleeji fragrance houses.</p>
+      <nav class="collection-tabs" aria-label="Catalog categories">
+        <a href="/shop/men"><%= t.men %></a>
+        <a href="/shop/women"><%= t.women %></a>
+        <a href="/shop/unisex"><%= t.unisex %></a>
+        <a href="/collections" class="active">Brands</a>
+      </nav>
+    </div>
+
+    <!-- International Brands -->
+    <% if (western.length) { %>
+    <section class="brands-section">
+      <h2 class="brands-section__title"><%= t.western_brands %></h2>
+      <div class="brands-grid">
+        <% western.forEach(b => { %>
+        <a href="/collections/<%= b.id %>" class="brand-card">
+          <% if (b.logo_path) { %>
+            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
+          <% } %>
+          <div class="brand-card__name"><%= b.name %></div>
+          <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
+        </a>
+        <% }) %>
+      </div>
+    </section>
+    <% } %>
+
+    <!-- Arabic & Khaleeji Brands -->
+    <% if (khaleeji.length) { %>
+    <section class="brands-section">
+      <h2 class="brands-section__title"><%= t.khaleeji_brands %></h2>
+      <div class="brands-grid">
+        <% khaleeji.forEach(b => { %>
+        <a href="/collections/<%= b.id %>" class="brand-card brand-card--khaleeji">
+          <% if (b.logo_path) { %>
+            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
+          <% } %>
+          <div class="brand-card__name"><%= b.name %></div>
+          <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
+        </a>
+        <% }) %>
+      </div>
+    </section>
+    <% } %>
+
+    <% if (!western.length && !khaleeji.length) { %>
+    <div class="empty-state">
+      <p class="empty-state__icon">✦</p>
+      <h3><%= lang === 'ar' ? 'لا توجد ماركات بعد' : 'No brands yet' %></h3>
+      <p><%= lang === 'ar' ? 'سيتم إضافة الماركات قريباً' : 'Brands will be added soon' %></p>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<%- include('partials/footer') %>

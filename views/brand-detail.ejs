@@ -1,0 +1,51 @@
+<%- include('partials/header', { title: title }) %>
+
+<div class="brands-page">
+  <div class="container">
+
+    <a href="/collections" class="back-link"><%= lang === 'ar' ? '→ الماركات' : '← Brands' %></a>
+
+    <!-- Brand header -->
+    <div class="page-header" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <% if (brand.logo_path) { %>
+        <img src="<%= brand.logo_path %>" alt="<%= brand.name %>" style="max-height:64px;object-fit:contain"/>
+      <% } %>
+      <h1 class="page-header__title"><%= brand.name %></h1>
+      <% if (brand.name_ar) { %><p style="color:var(--gray-600);font-size:.9rem;direction:rtl"><%= brand.name_ar %></p><% } %>
+    </div>
+
+    <!-- Categories grid -->
+    <% if (categories.length) { %>
+    <div class="brand-cats-grid">
+      <% categories.forEach(cat => { %>
+      <a href="/collections/<%= brand.id %>/category/<%= cat.id %>" class="brand-cat-card">
+        <div class="brand-cat-card__image">
+          <% if (cat.image_path) { %>
+            <img src="<%= cat.image_path %>" alt="<%= cat.name_en %>"/>
+          <% } else { %>
+            <div class="brand-cat-card__placeholder"><span>✦</span></div>
+          <% } %>
+          <div class="brand-cat-card__overlay"></div>
+        </div>
+        <div class="brand-cat-card__body">
+          <h3 class="brand-cat-card__name"><%= cat.name_en %></h3>
+          <% if (cat.name_ar) { %><p class="brand-cat-card__name-ar"><%= cat.name_ar %></p><% } %>
+          <p class="brand-cat-card__count"><%= cat.product_count %> <%= t.products %></p>
+          <span class="brand-cat-card__cta"><%= t.shop_now %> →</span>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <p class="empty-state__icon">✦</p>
+      <h3><%= lang === 'ar' ? 'لا توجد تصنيفات بعد' : 'No categories yet' %></h3>
+      <p><%= lang === 'ar' ? 'سيتم إضافة التصنيفات قريباً' : 'Categories will be added soon' %></p>
+      <a href="/collections" class="btn btn--outline" style="margin-top:20px"><%= lang === 'ar' ? '→ الماركات' : '← Back to Brands' %></a>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,148 @@
+<%- include('../partials/admin-header', { title: 'Edit: ' + product.name_en }) %>
+
+<div class="admin-page">
+  <div class="admin-page__header">
+    <div>
+      <a href="/admin/products" class="back-link">← Back to Products</a>
+      <h1 class="admin-page__title"><%= product.name_en %></h1>
+      <p class="admin-page__sub">
+        <span class="badge badge--<%= product.category %>"><%= product.category %></span>
+        &nbsp; <%= product.brand %>
+      </p>
+    </div>
+    <a href="/shop/item/<%= product.id %>" target="_blank" class="btn btn--outline btn--sm">View on Store ↗</a>
+  </div>
+
+  <div class="edit-layout">
+
+    <!-- Left: image upload -->
+    <div class="edit-image-panel">
+      <h3 class="panel-title">Product Image</h3>
+      <% if (product.type === 'local') { %>
+      <p class="form-hint" style="margin-bottom:14px">Shared <strong><%= product.category %></strong> image. Updating it here updates every product in this section.</p>
+      <% } else { %>
+      <p class="form-hint" style="margin-bottom:14px">Individual brand-product image.</p>
+      <% } %>
+
+      <div class="image-preview" id="imagePreview">
+        <% if (product.image_path) { %>
+          <img src="<%= product.image_path %>" alt="<%= product.name_en %>" id="currentImg"/>
+        <% } else { %>
+          <div class="image-placeholder" id="imgPlaceholder">
+            <span>✦</span>
+            <p>No image yet</p>
+          </div>
+        <% } %>
+      </div>
+
+      <form action="/admin/products/<%= product.id %>/image" method="POST" enctype="multipart/form-data" id="imageForm">
+        <label class="upload-btn">
+          📷 Choose Image
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
+                 onchange="previewImage(this); this.form.submit()"/>
+        </label>
+        <p class="upload-hint">JPG / PNG / WebP — max 5 MB</p>
+      </form>
+
+      <% if (product.image_path) { %>
+      <form action="/admin/products/<%= product.id %>/delete-image" method="POST" style="margin-top:8px">
+        <button type="submit" class="btn btn--outline btn--sm btn--danger"
+                onclick="return confirm('Remove this image?')">✕ Remove Image</button>
+      </form>
+      <% } %>
+    </div>
+
+    <!-- Right: details form -->
+    <div class="edit-details-panel">
+      <h3 class="panel-title">Product Details</h3>
+
+      <form action="/admin/products/<%= product.id %>" method="POST" enctype="multipart/form-data">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Price (LBP)</label>
+            <input type="number" name="price" class="form-input form-input--lg"
+                   value="<%= product.price !== null ? product.price : '' %>"
+                   placeholder="e.g. 450000" step="1000" min="0"/>
+            <p class="form-hint"><%= product.type === 'local' ? `Shared ${product.category} price — saving updates every product in this section.` : 'Individual product price. Leave empty = "Price coming soon".' %></p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Arabic Name (اختياري)</label>
+          <input type="text" name="name_ar" class="form-input" dir="rtl"
+                 value="<%= product.name_ar || '' %>" placeholder="الاسم بالعربية"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description (English)</label>
+          <textarea name="description_en" class="form-input form-textarea" rows="4"
+                    placeholder="Describe the fragrance..."><%= product.description_en || '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">وصف (عربي)</label>
+          <textarea name="description_ar" class="form-input form-textarea" rows="4" dir="rtl"
+                    placeholder="وصف العطر..."><%= product.description_ar || '' %></textarea>
+        </div>
+
+        <div class="form-row form-row--toggles">
+          <div class="form-group">
+            <label class="form-label">In Stock</label>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" name="in_stock" value="1" <%= product.in_stock ? 'checked' : '' %>/>
+                <span class="toggle__slider"></span>
+              </label>
+              <span class="toggle-label"><%= product.in_stock ? 'Available' : 'Out of Stock' %></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Featured on Home</label>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" name="featured" value="1" <%= product.featured ? 'checked' : '' %>/>
+                <span class="toggle__slider"></span>
+              </label>
+              <span class="toggle-label"><%= product.featured ? 'Featured' : 'Not Featured' %></span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--lg">💾 Save Changes</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function previewImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('imagePreview').innerHTML =
+        `<img src="${e.target.result}" alt="preview" id="currentImg"/>`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+// Convert checkboxes to hidden inputs so unchecked = 0
+document.querySelectorAll('form').forEach(form => {
+  form.addEventListener('submit', () => {
+    ['in_stock','featured'].forEach(name => {
+      const cb = form.querySelector(`input[name="${name}"]`);
+      if (cb && cb.type === 'checkbox') {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        hidden.value = cb.checked ? '1' : '0';
+        cb.name = '_' + name; // disable original
+        form.appendChild(hidden);
+      }
+    });
+  });
+});
+</script>
+
+<%- include('../partials/admin-footer') %>

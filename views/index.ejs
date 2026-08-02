@@ -1,0 +1,159 @@
+<%- include('partials/header', { title: 'Home' }) %>
+
+<!-- Hero -->
+<section class="hero"<% if (settings.banner_image) { %> style="background-image:url('<%= settings.banner_image %>'); background-size:cover; background-position:center;"<% } %>>
+  <div class="hero__bg"<% if (settings.banner_image) { %> style="display:none"<% } %>></div>
+  <% if (settings.banner_image) { %><div style="position:absolute;inset:0;background:rgba(0,0,0,.52);z-index:0"></div><% } %>
+  <div class="hero__content">
+    <span class="hero__eyebrow"><%= lang === 'ar' ? 'جمال الدين — لبنان' : 'JAMALUDEEN — LEBANON' %></span>
+    <h1 class="hero__title">
+      <%= settings.hero_title_en && lang !== 'ar' ? settings.hero_title_en : (settings.hero_title_ar || t.tagline) %>
+    </h1>
+    <span class="hero__divider"></span>
+    <p class="hero__sub">
+      <%= settings.hero_sub_en && lang !== 'ar' ? settings.hero_sub_en : (settings.hero_sub_ar || t.free_delivery) %>
+    </p>
+    <div class="hero__cta">
+      <a href="/shop/men" class="btn btn--primary btn--lg"><%= t.shop_now %></a>
+      <a href="/collections" class="btn btn--outline btn--lg"><%= t.brands %></a>
+    </div>
+  </div>
+  <div class="hero__scroll">
+    <div class="hero__scroll-line"></div>
+    <span><%= lang === 'ar' ? 'تصفح' : 'Scroll' %></span>
+  </div>
+</section>
+
+<!-- Category Cards -->
+<section class="categories section">
+  <div class="container">
+    <div class="categories__grid">
+
+      <a href="/shop/men" class="category-card category-card--men">
+        <div class="category-card__bg"<% if (settings.men_image) { %> style="background-image:url('<%= settings.men_image %>');background-size:cover;background-position:center"<% } %>></div>
+        <div class="category-card__gradient"></div>
+        <div class="category-card__content">
+          <div class="category-card__icon">♟</div>
+          <h3 class="category-card__title"><%= t.men_perfumes %></h3>
+          <p class="category-card__count"><%= stats.men %> <%= t.products %></p>
+          <span class="category-card__cta"><%= t.shop_now %> →</span>
+        </div>
+      </a>
+
+      <a href="/shop/women" class="category-card category-card--women">
+        <div class="category-card__bg"<% if (settings.women_image) { %> style="background-image:url('<%= settings.women_image %>');background-size:cover;background-position:center"<% } %>></div>
+        <div class="category-card__gradient"></div>
+        <div class="category-card__content">
+          <div class="category-card__icon">✦</div>
+          <h3 class="category-card__title"><%= t.women_perfumes %></h3>
+          <p class="category-card__count"><%= stats.women %> <%= t.products %></p>
+          <span class="category-card__cta"><%= t.shop_now %> →</span>
+        </div>
+      </a>
+
+      <a href="/shop/unisex" class="category-card category-card--unisex">
+        <div class="category-card__bg"<% if (settings.unisex_image) { %> style="background-image:url('<%= settings.unisex_image %>');background-size:cover;background-position:center"<% } %>></div>
+        <div class="category-card__gradient"></div>
+        <div class="category-card__content">
+          <div class="category-card__icon">◈</div>
+          <h3 class="category-card__title"><%= t.unisex_perfumes %></h3>
+          <p class="category-card__count"><%= stats.unisex %> <%= t.products %></p>
+          <span class="category-card__cta"><%= t.shop_now %> →</span>
+        </div>
+      </a>
+
+      <a href="/collections" class="category-card category-card--brands">
+        <div class="category-card__bg category-card__bg--brands"></div>
+        <div class="category-card__gradient"></div>
+        <div class="category-card__content">
+          <div class="category-card__icon">J</div>
+          <h3 class="category-card__title"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></h3>
+          <p class="category-card__count"><%= stats.brands %> <%= t.products %></p>
+          <span class="category-card__cta"><%= t.shop_now %> &rarr;</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- Featured Products -->
+<% if (featured.length) { %>
+<section class="featured section">
+  <div class="container">
+    <div class="section__header">
+      <h2 class="section__title"><%= lang === 'ar' ? 'مختارات مميزة' : 'Featured Perfumes' %></h2>
+      <a href="/shop/men" class="section__link"><%= t.view_all %> →</a>
+    </div>
+    <div class="products-grid">
+      <% featured.forEach(p => { %>
+      <%- include('partials/product-card', { p }) %>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- Delivery Banner -->
+<section class="delivery-banner">
+  <div class="container">
+    <div class="delivery-banner__inner">
+      <div class="delivery-banner__item">
+        <span class="delivery-banner__icon">🚚</span>
+        <div>
+          <strong><%= lang === 'ar' ? 'توصيل لجميع لبنان' : 'All Over Lebanon' %></strong>
+          <p><%= lang === 'ar' ? 'نوصل لجميع المحافظات' : 'We deliver to all regions' %></p>
+        </div>
+      </div>
+      <div class="delivery-banner__item">
+        <span class="delivery-banner__icon">💳</span>
+        <div>
+          <strong><%= lang === 'ar' ? 'دفع آمن' : 'Secure Payment' %></strong>
+          <p><%= lang === 'ar' ? 'كاش أو بيويش موني' : 'Cash on Delivery & ByWhish' %></p>
+        </div>
+      </div>
+      <div class="delivery-banner__item">
+        <span class="delivery-banner__icon">✦</span>
+        <div>
+          <strong><%= lang === 'ar' ? 'عطور أصيلة' : 'Authentic Perfumes' %></strong>
+          <p><%= lang === 'ar' ? 'ماركات عالمية وعربية' : 'Global & Arabic brands' %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Brands teaser -->
+<section class="brands-teaser section">
+  <div class="container">
+    <div class="section__header">
+      <h2 class="section__title"><%= t.brands %></h2>
+      <a href="/collections" class="section__link"><%= t.view_all %> →</a>
+    </div>
+    <p class="brands-teaser__sub"><%= lang === 'ar' ? 'نحمل أشهر الماركات العالمية والخليجية' : 'We carry the finest international and Khaleeji brands' %></p>
+    <div class="brands-teaser__logos">
+      <% brands.forEach(b => { %>
+      <a href="/collections?brand=<%= encodeURIComponent(b) %>" class="brand-pill"><%= b %></a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<!-- Best Sellers -->
+<% if (bestSellers && bestSellers.length) { %>
+<section class="featured section" style="background:var(--white)">
+  <div class="container">
+    <div class="section__header">
+      <h2 class="section__title"><%= lang === 'ar' ? '🔥 الأكثر مبيعاً' : '🔥 Best Sellers' %></h2>
+      <a href="/collections" class="section__link"><%= t.view_all %> →</a>
+    </div>
+    <div class="products-grid">
+      <% bestSellers.forEach(p => { %>
+      <%- include('partials/product-card', { p }) %>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,43 @@
+<div class="product-card">
+  <a href="/shop/item/<%= p.id %>" class="product-card__image-link">
+    <div class="product-card__image">
+      <% if (p.image_path) { %>
+        <img src="<%= p.image_path %>" alt="<%= p.name_en %>" loading="lazy"/>
+      <% } else { %>
+        <div class="product-card__placeholder">
+          <span>✦</span>
+        </div>
+      <% } %>
+      <div class="product-card__overlay">
+        <span class="product-card__overlay-text"><%= lang === 'ar' ? 'عرض' : 'View' %></span>
+      </div>
+      <% if (!p.in_stock) { %>
+        <span class="product-card__badge product-card__badge--oos"><%= t.out_of_stock %></span>
+      <% } %>
+    </div>
+  </a>
+  <!-- Wishlist heart -->
+  <button class="btn-wishlist" data-id="<%= p.id %>" title="Save to Wishlist" aria-label="Wishlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  </button>
+  <div class="product-card__body">
+    <p class="product-card__brand"><%= p.brand %></p>
+    <a href="/shop/item/<%= p.id %>"><h3 class="product-card__name"><%= p.name_en %></h3></a>
+    <div class="product-card__footer">
+      <% if (p.price) { %>
+        <span class="product-card__price price-display" data-lbp="<%= p.price %>"><%= p.price.toLocaleString() %> LBP</span>
+      <% } else { %>
+        <span class="product-card__price product-card__price--na"><%= t.price_not_set %></span>
+      <% } %>
+      <% if (p.in_stock && p.price) { %>
+        <form action="/cart/add" method="POST">
+          <input type="hidden" name="productId" value="<%= p.id %>"/>
+          <input type="hidden" name="qty" value="1"/>
+          <button type="submit" class="btn-add-cart" title="<%= t.add_to_cart %>">+</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+</div>

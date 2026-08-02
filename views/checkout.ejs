@@ -1,0 +1,104 @@
+<%- include('partials/header', { title: t.checkout }) %>
+
+<div class="checkout-page">
+  <div class="container">
+    <h1 class="page-title"><%= t.checkout %></h1>
+
+    <div class="checkout-layout">
+
+      <!-- Form -->
+      <form class="checkout-form" action="/checkout" method="POST">
+
+        <div class="checkout-section">
+          <h2 class="checkout-section__title"><%= t.customer_info %></h2>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label"><%= t.full_name %> *</label>
+              <input type="text" name="name" class="form-input" required placeholder="<%= lang === 'ar' ? 'الاسم الكامل' : 'Full Name' %>"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label"><%= t.phone %> *</label>
+              <input type="tel" name="phone" class="form-input" required placeholder="+961 70 000 000"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"><%= t.address %> *</label>
+            <input type="text" name="address" class="form-input" required placeholder="<%= lang === 'ar' ? 'العنوان التفصيلي' : 'Street, Building, Floor...' %>"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"><%= t.city %> *</label>
+            <input type="text" name="city" class="form-input" required placeholder="<%= lang === 'ar' ? 'المدينة / المنطقة' : 'City / Region' %>"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"><%= t.notes %></label>
+            <textarea name="notes" class="form-input form-textarea" rows="3" placeholder="<%= lang === 'ar' ? 'أي ملاحظات إضافية...' : 'Any special instructions...' %>"></textarea>
+          </div>
+        </div>
+
+        <!-- Payment -->
+        <div class="checkout-section">
+          <h2 class="checkout-section__title"><%= t.payment_method %></h2>
+          <div class="payment-options">
+
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="cod" required checked/>
+              <div class="payment-option__body">
+                <strong>💵 <%= t.cash_on_delivery %></strong>
+                <p><%= t.cod_desc %></p>
+              </div>
+            </label>
+
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="whish"/>
+              <div class="payment-option__body">
+                <strong>📱 <%= t.bywhish_money %></strong>
+                <p><%= t.whish_desc %></p>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--full btn--lg"><%= t.place_order %></button>
+      </form>
+
+      <!-- Order summary -->
+      <aside class="checkout-summary">
+        <h3 class="cart-summary__title"><%= t.order_summary %></h3>
+        <div class="checkout-items">
+          <% items.forEach(item => { %>
+          <div class="checkout-item">
+            <div class="checkout-item__image">
+              <% if (item.image_path) { %><img src="<%= item.image_path %>" alt="<%= item.name_en %>"/>
+              <% } else { %><div class="checkout-item__placeholder">✦</div><% } %>
+              <span class="checkout-item__qty"><%= item.qty %></span>
+            </div>
+            <div class="checkout-item__info">
+              <p class="checkout-item__name"><%= item.name_en %></p>
+              <p class="checkout-item__brand"><%= item.brand %></p>
+            </div>
+            <span class="checkout-item__price"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</span>
+          </div>
+          <% }) %>
+        </div>
+        <div class="cart-summary__row">
+          <span><%= t.subtotal %></span><span><%= subtotal.toLocaleString() %> LBP</span>
+        </div>
+        <div class="cart-summary__row">
+          <span><%= t.delivery_fee %></span>
+          <span><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></span>
+        </div>
+        <div class="cart-summary__row cart-summary__row--total">
+          <span><%= t.total %></span><span><%= total.toLocaleString() %> LBP</span>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

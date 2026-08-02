@@ -1,0 +1,103 @@
+<%- include('partials/header', { title: 'Wishlist' }) %>
+
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-header__title"><%= lang === 'ar' ? '♡ المفضلة' : '♡ Wishlist' %></h1>
+    <span class="page-header__count" id="wishlistHeader"></span>
+  </div>
+
+  <div id="wishlistEmpty" style="display:none">
+    <div class="empty-state">
+      <div class="empty-state__icon">♡</div>
+      <h3><%= lang === 'ar' ? 'قائمة المفضلة فارغة' : 'Your wishlist is empty' %></h3>
+      <p><%= lang === 'ar' ? 'اضغط على القلب على أي عطر لحفظه هنا' : 'Tap the heart on any perfume to save it here' %></p>
+      <a href="/shop/men" class="btn btn--primary" style="margin-top:20px"><%= lang === 'ar' ? 'تصفح العطور' : 'Browse Perfumes' %></a>
+    </div>
+  </div>
+
+  <div id="wishlistGrid" class="products-grid" style="padding-bottom:80px"></div>
+</div>
+
+<script>
+(function() {
+  const WISHLIST_KEY = 'jm_wishlist';
+  const lang = '<%= lang %>';
+
+  function getIds() {
+    try { return JSON.parse(localStorage.getItem(WISHLIST_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function removeFromWishlist(id) {
+    const ids = getIds().filter(x => x !== String(id));
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(ids));
+    document.getElementById('item-' + id)?.remove();
+    updateHeader(ids.length);
+    if (ids.length === 0) {
+      document.getElementById('wishlistEmpty').style.display = '';
+      document.getElementById('wishlistGrid').style.display = 'none';
+    }
+  }
+
+  function updateHeader(count) {
+    const el = document.getElementById('wishlistHeader');
+    if (el) el.textContent = count + (lang === 'ar' ? ' عطر' : ' perfumes');
+    document.querySelectorAll('.wishlist-count').forEach(b => {
+      b.textContent = count;
+      b.style.display = count > 0 ? 'flex' : 'none';
+    });
+  }
+
+  function renderCard(p) {
+    const price = p.price
+      ? (window.currencyFmt ? window.currencyFmt(p.price) : p.price.toLocaleString() + ' LBP')
+      : (lang === 'ar' ? 'السعر قريباً' : 'Price coming soon');
+    const img = p.image_path
+      ? `<img src="${p.image_path}" alt="${p.name_en}" loading="lazy"/>`
+      : `<div class="product-card__placeholder"><span>✦</span></div>`;
+
+    return `
+    <div class="product-card" id="item-${p.id}">
+      <a href="/shop/item/${p.id}" class="product-card__image-link">
+        <div class="product-card__image">${img}
+          <div class="product-card__overlay"><span class="product-card__overlay-text">${lang === 'ar' ? 'عرض' : 'View'}</span></div>
+        </div>
+      </a>
+      <button class="btn-wishlist active" data-id="${p.id}" title="Remove" onclick="removeFromWishlist(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </button>
+      <div class="product-card__body">
+        <p class="product-card__brand">${p.brand || ''}</p>
+        <a href="/shop/item/${p.id}"><h3 class="product-card__name">${p.name_en}</h3></a>
+        <div class="product-card__footer">
+          <span class="product-card__price${!p.price ? ' product-card__price--na' : ''}${p.price ? ' price-display' : ''}" ${p.price ? `data-lbp="${p.price}"` : ''}>${price}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const ids = getIds();
+  if (!ids.length) {
+    document.getElementById('wishlistEmpty').style.display = '';
+    return;
+  }
+
+  updateHeader(ids.length);
+
+  fetch('/api/products?ids=' + ids.join(','))
+    .then(r => r.json())
+    .then(products => {
+      if (!products.length) {
+        document.getElementById('wishlistEmpty').style.display = '';
+        return;
+      }
+      document.getElementById('wishlistGrid').innerHTML = products.map(renderCard).join('');
+      // expose removeFromWishlist to onclick
+      window.removeFromWishlist = removeFromWishlist;
+    });
+})();
+</script>
+
+<%- include('partials/footer') %>

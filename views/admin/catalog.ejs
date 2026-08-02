@@ -1,0 +1,63 @@
+<%- include('../partials/admin-header', { title: 'Catalog Categories' }) %>
+
+<div class="admin-page catalog-admin">
+  <div class="admin-page__header">
+    <div>
+      <p class="admin-kicker">STORE STRUCTURE</p>
+      <h1 class="admin-page__title">Catalog Categories</h1>
+      <p class="admin-page__sub">Manage the four sections customers see in the main navigation.</p>
+    </div>
+    <a href="/" target="_blank" class="btn btn--outline">View Store</a>
+  </div>
+
+  <div class="catalog-grid">
+    <% categories.forEach(cat => { %>
+    <article class="catalog-tile catalog-tile--<%= cat.key %>">
+      <div class="catalog-tile__media" <% if (cat.image) { %>style="background-image:url('<%= cat.image %>')"<% } %>>
+        <span class="catalog-tile__label">SHARED CATALOG</span>
+      </div>
+      <div class="catalog-tile__body">
+        <div class="catalog-tile__top">
+          <h2><%= cat.key[0].toUpperCase() + cat.key.slice(1) %></h2>
+          <span class="count-badge"><%= cat.count %> products</span>
+        </div>
+        <p>Every product in this section uses one shared image and one shared price.</p>
+        <div class="catalog-tile__meta">
+          <span>Shared price</span>
+          <strong><%= cat.price ? Number(cat.price).toLocaleString() + ' LBP' : 'Not set' %></strong>
+        </div>
+        <div class="catalog-tile__actions">
+          <a href="/admin/products?type=local&category=<%= cat.key %>" class="btn btn--primary">Manage Products</a>
+          <a href="/admin/images#<%= cat.key %>" class="btn btn--outline">Image</a>
+          <a href="/admin/prices" class="btn btn--outline">Price</a>
+        </div>
+      </div>
+    </article>
+    <% }) %>
+
+    <article class="catalog-tile catalog-tile--brands">
+      <div class="catalog-tile__media catalog-tile__media--brands">
+        <span class="catalog-tile__label">INDIVIDUAL CATALOG</span>
+        <span class="catalog-tile__monogram">J</span>
+      </div>
+      <div class="catalog-tile__body">
+        <div class="catalog-tile__top">
+          <h2>Brands</h2>
+          <span class="count-badge"><%= brandStats.count %> products</span>
+        </div>
+        <p>Each brand product keeps its own image and price, independently.</p>
+        <div class="catalog-tile__meta">
+          <span>Active brands</span>
+          <strong><%= brandStats.brands %></strong>
+        </div>
+        <div class="catalog-tile__actions">
+          <a href="/admin/products?type=brand" class="btn btn--primary">Manage Products</a>
+          <a href="/admin/brands" class="btn btn--outline">Manage Brands</a>
+          <a href="/admin/images" class="btn btn--outline">Images</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+
+<%- include('../partials/admin-footer') %>

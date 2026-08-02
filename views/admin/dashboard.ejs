@@ -1,0 +1,93 @@
+<%- include('../partials/admin-header', { title: 'Dashboard' }) %>
+
+<div class="admin-page">
+  <h1 class="admin-page__title">Dashboard</h1>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__value"><%= stats.products.toLocaleString() %></div>
+      <div class="stat-card__label">Total Products</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value"><%= stats.orders.toLocaleString() %></div>
+      <div class="stat-card__label">Total Orders</div>
+    </div>
+    <div class="stat-card stat-card--highlight" id="pendingStatCard">
+      <div class="stat-card__value" id="pendingCount"><%= stats.pending %></div>
+      <div class="stat-card__label">Pending Orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value"><%= stats.revenue.toLocaleString() %> LBP</div>
+      <div class="stat-card__label">Total Revenue</div>
+    </div>
+  </div>
+
+  <!-- New order alert banner (hidden by default, shown by JS) -->
+  <div id="newOrderAlert" style="display:none; background:#c9a96e; color:#fff; padding:14px 20px; border-radius:4px; margin-bottom:20px; font-weight:600; cursor:pointer"
+       onclick="window.location='/admin/orders?status=pending'">
+    🔔 New order received! Click to view →
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <a href="/admin/catalog" class="quick-btn">Catalog Categories</a>
+    <a href="/admin/products" class="quick-btn">📦 Manage Products</a>
+    <a href="/admin/prices" class="quick-btn">💰 Bulk Prices</a>
+    <a href="/admin/images" class="quick-btn">🖼️ Images</a>
+    <a href="/admin/orders" class="quick-btn">📋 View Orders</a>
+    <a href="/admin/orders?status=pending" class="quick-btn quick-btn--highlight">⏳ Pending (<span id="pendingBadge"><%= stats.pending %></span>)</a>
+    <a href="/admin/settings" class="quick-btn">⚙️ Settings</a>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="admin-section">
+    <div class="admin-section__header">
+      <h2>Recent Orders</h2>
+      <a href="/admin/orders" class="link-more">View all →</a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Customer</th>
+            <th>City</th>
+            <th>Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!recentOrders.length) { %>
+          <tr><td colspan="8" class="empty-row">No orders yet</td></tr>
+          <% } %>
+          <% recentOrders.forEach(o => { %>
+          <tr>
+            <td><strong><%= o.order_number %></strong></td>
+            <td><%= o.customer_name %></td>
+            <td><%= o.customer_city %></td>
+            <td><%= o.total.toLocaleString() %> LBP</td>
+            <td><span class="badge-pay badge-pay--<%= o.payment_method %>"><%= o.payment_method === 'cod' ? '💵 COD' : '📱 Whish' %></span></td>
+            <td><span class="badge-status badge-status--<%= o.status %>"><%= o.status %></span></td>
+            <td><%= new Date(o.created_at).toLocaleDateString() %></td>
+            <td><a href="/admin/orders/<%= o.id %>" class="btn-sm">View</a></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Best Sellers (from order data) -->
+  <div class="admin-section" id="bestSellersSection" style="display:none">
+    <div class="admin-section__header">
+      <h2>🔥 Best Sellers</h2>
+    </div>
+    <div id="bestSellersList"></div>
+  </div>
+</div>
+
+<%- include('../partials/admin-footer') %>

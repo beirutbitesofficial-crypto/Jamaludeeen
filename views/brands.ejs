@@ -1,0 +1,46 @@
+<%- include('partials/header', { title: t.brands }) %>
+
+<div class="brands-page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-header__title"><%= t.brands %></h1>
+    </div>
+
+    <!-- International Brands -->
+    <section class="brands-section">
+      <h2 class="brands-section__title"><%= t.western_brands %></h2>
+      <div class="brands-grid">
+        <% western.forEach(b => { %>
+        <a href="/shop?brand=<%= encodeURIComponent(b.name) %>" class="brand-card">
+          <% if (b.logo_path) { %>
+            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
+          <% } else { %>
+            <div class="brand-card__name"><%= b.name %></div>
+            <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
+          <% } %>
+        </a>
+        <% }) %>
+      </div>
+    </section>
+
+    <!-- Khaleeji / Arabic Brands -->
+    <section class="brands-section">
+      <h2 class="brands-section__title"><%= t.khaleeji_brands %></h2>
+      <div class="brands-grid">
+        <% khaleeji.forEach(b => { %>
+        <a href="/shop?brand=<%= encodeURIComponent(b.name) %>" class="brand-card brand-card--khaleeji">
+          <% if (b.logo_path) { %>
+            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
+          <% } else { %>
+            <div class="brand-card__name"><%= b.name %></div>
+            <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
+          <% } %>
+        </a>
+        <% }) %>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<%- include('partials/footer') %>

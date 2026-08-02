@@ -1,0 +1,142 @@
+<%- include('../partials/admin-header', { title: title }) %>
+
+<div class="admin-page">
+  <div class="admin-page__header">
+    <div>
+      <a href="/admin/brands/<%= brand.id %>/categories" class="back-link">← <%= brand.name %> Categories</a>
+      <h1 class="admin-page__title"><%= category.name_en %> — Products</h1>
+      <p class="admin-page__sub">Manage which products appear in this category</p>
+    </div>
+    <a href="/collections/<%= brand.id %>/category/<%= category.id %>" target="_blank" class="btn btn--outline btn--sm">View on Store ↗</a>
+  </div>
+
+  <section class="admin-section category-product-create">
+    <div class="admin-section__header">
+      <div>
+        <h2>Add Product to <%= category.name_en %></h2>
+        <p class="form-hint">Created directly inside <strong><%= brand.name %> / <%= category.name_en %></strong>, with its own image and price.</p>
+      </div>
+    </div>
+    <form method="POST" action="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products/new" enctype="multipart/form-data" class="category-product-form">
+      <div class="form-group">
+        <label class="form-label">Product Name *</label>
+        <input type="text" name="name_en" class="form-input" required placeholder="Product name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Arabic Name</label>
+        <input type="text" name="name_ar" class="form-input" dir="rtl" placeholder="اسم المنتج"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Collection</label>
+        <select name="category" class="form-input">
+          <option value="men">Men</option>
+          <option value="women">Women</option>
+          <option value="unisex" selected>Unisex</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price (LBP)</label>
+        <input type="number" name="price" class="form-input" min="0" step="1000" placeholder="450000"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product Image</label>
+        <input type="file" name="image" class="form-input" accept="image/jpeg,image/png,image/webp"/>
+      </div>
+      <div class="form-group category-product-form__submit">
+        <button type="submit" class="btn btn--primary">+ Create Product</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="edit-layout" style="gap:32px">
+
+    <!-- Left: assigned products -->
+    <div style="flex:1">
+      <h3 class="panel-title" style="margin-bottom:16px">Products in this Category (<%= assigned.length %>)</h3>
+
+      <% if (assigned.length) { %>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+          <tbody>
+            <% assigned.forEach(p => { %>
+            <tr>
+              <td>
+                <% if (p.image_path) { %>
+                  <img src="<%= p.image_path %>" class="table-thumb"/>
+                <% } else { %>
+                  <div class="table-thumb table-thumb--empty">✦</div>
+                <% } %>
+              </td>
+              <td><strong><%= p.name_en %></strong></td>
+              <td><%= p.price ? p.price.toLocaleString() + ' LBP' : '—' %></td>
+              <td><span class="dot dot--<%= p.in_stock ? 'green' : 'red' %>"><%= p.in_stock ? 'Yes' : 'No' %></span></td>
+              <td>
+                <a href="/admin/products/<%= p.id %>/edit" class="btn-sm">Edit</a>
+                <form method="POST" action="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products/remove"
+                      style="display:inline"
+                      onsubmit="return confirm('Remove from category?')">
+                  <input type="hidden" name="product_id" value="<%= p.id %>"/>
+                  <button type="submit" class="btn-sm btn-sm--danger">Remove</button>
+                </form>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+      <div class="empty-state" style="padding:32px 0">
+        <p>No products in this category yet. Add some from the right →</p>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Right: add unassigned products -->
+    <div style="flex:1">
+      <h3 class="panel-title" style="margin-bottom:16px">Available Products (<%= unassigned.length %>)</h3>
+      <p class="form-hint" style="margin-bottom:12px">These products are not assigned to any category yet.</p>
+
+      <% if (unassigned.length) { %>
+      <form method="POST" action="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products/add">
+        <div class="table-wrap" style="max-height:500px;overflow-y:auto">
+          <table class="admin-table">
+            <thead><tr><th><input type="checkbox" id="checkAll"/></th><th>Image</th><th>Name</th><th>Price</th></tr></thead>
+            <tbody>
+              <% unassigned.forEach(p => { %>
+              <tr>
+                <td><input type="checkbox" name="product_ids" value="<%= p.id %>" class="row-check"/></td>
+                <td>
+                  <% if (p.image_path) { %>
+                    <img src="<%= p.image_path %>" class="table-thumb"/>
+                  <% } else { %>
+                    <div class="table-thumb table-thumb--empty">✦</div>
+                  <% } %>
+                </td>
+                <td><strong><%= p.name_en %></strong></td>
+                <td><%= p.price ? p.price.toLocaleString() + ' LBP' : '—' %></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <button type="submit" class="btn btn--primary" style="margin-top:16px">+ Add Selected to Category</button>
+      </form>
+      <% } else { %>
+      <div class="empty-state" style="padding:32px 0">
+        <p>All products are already assigned to categories.</p>
+        <a href="/admin/products" class="btn btn--outline" style="margin-top:12px">+ Create New Product</a>
+      </div>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.getElementById('checkAll')?.addEventListener('change', function() {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+});
+</script>
+
+<%- include('../partials/admin-footer') %>

@@ -1,0 +1,66 @@
+<%- include('partials/header', { title: title }) %>
+
+<div class="shop-page">
+  <div class="container">
+
+    <a href="/collections/<%= brand.id %>" class="back-link"><%= lang === 'ar' ? '→ ' + brand.name : '← ' + brand.name %></a>
+
+    <div class="page-header">
+      <h1 class="page-header__title"><%= category.name_en %></h1>
+      <% if (category.name_ar) { %><p style="color:var(--gray-600);font-size:.9rem;direction:rtl"><%= category.name_ar %></p><% } %>
+      <p class="page-header__count"><%= pagination.total %> <%= t.products %></p>
+    </div>
+
+    <div class="shop-layout">
+
+      <!-- Sidebar: search only -->
+      <aside class="shop-sidebar" id="shopSidebar">
+        <div class="shop-sidebar__inner">
+          <h3 class="shop-sidebar__title"><%= t.filter %></h3>
+          <form method="GET" action="/collections/<%= brand.id %>/category/<%= category.id %>" id="filterForm">
+            <div class="filter-group">
+              <label class="filter-label"><%= lang === 'ar' ? 'بحث' : 'Search' %></label>
+              <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="filter-input"/>
+            </div>
+            <button type="submit" class="btn btn--primary btn--full"><%= t.filter %></button>
+            <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline btn--full" style="margin-top:8px"><%= lang === 'ar' ? 'مسح' : 'Clear' %></a>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Products grid -->
+      <main class="shop-main">
+        <button class="shop-filter-toggle" id="filterToggle">☰ <%= t.filter %></button>
+
+        <% if (!products.length) { %>
+        <div class="empty-state">
+          <p class="empty-state__icon">✦</p>
+          <h3><%= t.no_products %></h3>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline"><%= lang === 'ar' ? 'مسح الفلتر' : 'Clear filters' %></a>
+        </div>
+        <% } else { %>
+        <div class="products-grid">
+          <% products.forEach(p => { %>
+          <%- include('partials/product-card', { p }) %>
+          <% }) %>
+        </div>
+
+        <% if (pagination.totalPages > 1) { %>
+        <div class="pagination">
+          <% if (pagination.page > 1) { %>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">← <%= t.prev %></a>
+          <% } %>
+          <span class="pagination__info"><%= t.page %> <%= pagination.page %> <%= t.of %> <%= pagination.totalPages %></span>
+          <% if (pagination.page < pagination.totalPages) { %>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn"><%= t.next_page %> →</a>
+          <% } %>
+        </div>
+        <% } %>
+        <% } %>
+      </main>
+
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

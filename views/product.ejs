@@ -1,0 +1,79 @@
+<%- include('partials/header', { title: product.name_en }) %>
+
+<div class="product-page">
+  <div class="container">
+    <a href="/shop/<%= product.category %>" class="back-link"><%= t.back_to_shop %></a>
+
+    <div class="product-detail">
+
+      <!-- Image -->
+      <div class="product-detail__image">
+        <% if (product.image_path) { %>
+          <img src="<%= product.image_path %>" alt="<%= product.name_en %>"/>
+        <% } else { %>
+          <div class="product-detail__placeholder"><span>✦</span></div>
+        <% } %>
+      </div>
+
+      <!-- Info -->
+      <div class="product-detail__info">
+        <span class="product-detail__category badge badge--<%= product.category %>">
+          <%= product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex %>
+        </span>
+        <h1 class="product-detail__name"><%= product.name_en %></h1>
+        <% if (product.name_ar) { %><p class="product-detail__name-ar"><%= product.name_ar %></p><% } %>
+        <p class="product-detail__brand"><%= t.brand %>: <strong><%= product.brand %></strong></p>
+
+        <% if (product.description_en || product.description_ar) { %>
+        <div class="product-detail__desc">
+          <% if (lang !== 'ar' && product.description_en) { %><p><%= product.description_en %></p><% } %>
+          <% if (lang === 'ar' && product.description_ar) { %><p><%= product.description_ar %></p>
+          <% } else if (product.description_en) { %><p><%= product.description_en %></p><% } %>
+        </div>
+        <% } %>
+
+        <div class="product-detail__price-row">
+          <% if (product.price) { %>
+            <span class="product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
+          <% } else { %>
+            <span class="product-detail__price product-detail__price--na"><%= t.price_not_set %></span>
+          <% } %>
+          <span class="product-detail__stock <%= product.in_stock ? 'in-stock' : 'out-stock' %>">
+            <%= product.in_stock ? t.in_stock : t.out_of_stock %>
+          </span>
+        </div>
+
+        <% if (product.in_stock && product.price) { %>
+        <form action="/cart/add" method="POST" class="product-detail__cart-form">
+          <input type="hidden" name="productId" value="<%= product.id %>"/>
+          <div class="qty-row">
+            <label><%= t.qty %>:</label>
+            <input type="number" name="qty" value="1" min="1" max="99" class="qty-input"/>
+          </div>
+          <button type="submit" class="btn btn--primary btn--full"><%= t.add_to_cart %></button>
+        </form>
+        <% } else if (!product.in_stock) { %>
+        <div class="product-detail__oos-msg"><%= t.out_of_stock %></div>
+        <% } else { %>
+        <div class="product-detail__oos-msg"><%= t.price_not_set %></div>
+        <% } %>
+      </div>
+
+    </div><!-- end product-detail -->
+
+    <!-- Related products -->
+    <% if (related.length) { %>
+    <section class="related-products">
+      <h2 class="section__title"><%= lang === 'ar' ? 'منتجات مشابهة' : 'You Might Also Like' %></h2>
+      <div class="products-grid">
+        <% related.forEach(p => { %>
+        <%- include('partials/product-card', { p }) %>
+        <% }) %>
+      </div>
+    </section>
+    <% } %>
+
+  </div>
+</div>
+
+<%- include('partials/footer') %>
