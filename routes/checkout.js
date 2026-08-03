@@ -14,6 +14,32 @@ function generateOrderNumber() {
   return `JM-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+const ORDER_WHATSAPP_NUMBER = '96176927146';
+
+function buildWhatsAppOrderMessage({ orderNumber, name, phone, address, city, paymentMethod, notes, items, subtotal, deliveryFee, total }) {
+  const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Paid / Whish Money';
+  const lines = [
+    'NEW ORDER - JAMALUDEEN',
+    `Order: ${orderNumber}`,
+    '',
+    `Customer: ${name}`,
+    `Phone: ${phone}`,
+    `Address: ${address}, ${city}`,
+    `Payment: ${paymentLabel}`,
+    '',
+    'Products:',
+    ...items.map((item, index) =>
+      `${index + 1}. ${item.name_en} x${item.qty} - ${((item.price || 0) * item.qty).toLocaleString()} LBP`
+    ),
+    '',
+    `Subtotal: ${subtotal.toLocaleString()} LBP`,
+    `Delivery: ${deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : 'Free'}`,
+    `TOTAL: ${total.toLocaleString()} LBP`,
+  ];
+  if (notes?.trim()) lines.push('', `Notes: ${notes.trim()}`);
+  return lines.join('\\n');
+}
+
 // GET /checkout
 router.get('/', (req, res) => {
   const cart = req.session.cart || [];
@@ -90,8 +116,22 @@ router.post('/', (req, res) => {
   const orderId = placeOrder();
   req.session.cart = [];
   req.session.lastOrder = { orderNumber, orderId, paymentMethod: payment_method, total, whishNumber: settings.whish_number };
+  const whatsappMessage = buildWhatsAppOrderMessage({
+    orderNumber,
+    name: name.trim(),
+    phone: phone.trim(),
+    address: address.trim(),
+    city: city.trim(),
+    paymentMethod: payment_method,
+    notes,
+    items,
+    subtotal,
+    deliveryFee,
+    total,
+  });
+  const whatsappUrl = `https://wa.me/${ORDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`;
 
-  res.redirect('/checkout/success');
+  res.redirect(whatsappUrl);
 });
 
 // GET /checkout/success
