@@ -5,12 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title><%= title %> | Admin · JAMALUDEEN</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/admin.css?v=20260803-2" type="text/css"/>
+  <link rel="stylesheet" href="/css/admin.css?v=20260803-3" type="text/css"/>
 </head>
 <body class="admin-body">
 
-<aside class="admin-sidebar">
-  <div class="admin-sidebar__logo">JAMALUDEEN</div>
+<header class="admin-mobile-bar">
+  <button type="button" class="admin-menu-toggle" id="adminMenuToggle" aria-label="Open admin menu" aria-controls="adminSidebar" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="/admin/dashboard" class="admin-mobile-bar__logo">JAMALUDEEN</a>
+  <a href="/" target="_blank" class="admin-mobile-bar__store" aria-label="View store">Store</a>
+</header>
+<button type="button" class="admin-sidebar-overlay" id="adminSidebarOverlay" aria-label="Close admin menu"></button>
+
+<aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
+  <div class="admin-sidebar__brand-row">
+    <div class="admin-sidebar__logo">JAMALUDEEN</div>
+    <button type="button" class="admin-sidebar__close" id="adminMenuClose" aria-label="Close admin menu">&times;</button>
+  </div>
   <nav class="admin-nav">
     <a href="/admin/catalog" class="admin-nav__link">Catalog Categories</a>
     <a href="/admin/dashboard" class="admin-nav__link">📊 Dashboard</a>
