@@ -10,6 +10,27 @@ document.querySelectorAll('.modal').forEach(modal => {
   });
 });
 
+// Responsive admin navigation
+(function () {
+  const sidebar = document.getElementById('adminSidebar');
+  const toggle = document.getElementById('adminMenuToggle');
+  const close = document.getElementById('adminMenuClose');
+  const overlay = document.getElementById('adminSidebarOverlay');
+  if (!sidebar || !toggle || !overlay) return;
+  function setMenu(open) {
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('admin-menu-open', open);
+  }
+  toggle.addEventListener('click', () => setMenu(!sidebar.classList.contains('open')));
+  close?.addEventListener('click', () => setMenu(false));
+  overlay.addEventListener('click', () => setMenu(false));
+  sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') setMenu(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 700) setMenu(false); });
+})();
+
 // ── Live Order Notifications ──────────────────────────────────────────────────
 (function () {
   const LAST_ID_KEY = 'jm_lastOrderId';
