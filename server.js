@@ -12,8 +12,21 @@ const PORT = process.env.PORT || 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files. Explicit mounts and headers keep Hostinger/CDN from serving
+// stale HTML or treating stylesheets as generic downloads.
+const publicDir = path.join(__dirname, 'public');
+app.use('/css', express.static(path.join(publicDir, 'css'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+    }
+  }
+}));
+app.use('/js', express.static(path.join(publicDir, 'js'), {
+  setHeaders: res => res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate')
+}));
+app.use(express.static(publicDir));
 
 // Body parsing
 app.use(express.urlencoded({ extended: true }));
