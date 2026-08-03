@@ -42,6 +42,14 @@
         <label class="form-label">Product Image</label>
         <input type="file" name="image" class="form-input" accept="image/jpeg,image/png,image/webp"/>
       </div>
+      <div class="form-group category-product-form__description">
+        <label class="form-label">Description</label>
+        <textarea name="description_en" class="form-input form-textarea" rows="3" placeholder="Fragrance notes, size and product details..."></textarea>
+      </div>
+      <div class="form-group category-product-form__description">
+        <label class="form-label">Arabic Description</label>
+        <textarea name="description_ar" class="form-input form-textarea" rows="3" dir="rtl" placeholder="وصف المنتج..."></textarea>
+      </div>
       <div class="form-group category-product-form__submit">
         <button type="submit" class="btn btn--primary">+ Create Product</button>
       </div>
@@ -87,7 +95,7 @@
       </div>
       <% } else { %>
       <div class="empty-state" style="padding:32px 0">
-        <p>No products in this category yet. Add some from the right →</p>
+        <p>No products in this category yet. Use the form above to create the first product.</p>
       </div>
       <% } %>
     </div>
