@@ -255,7 +255,7 @@ router.post('/products/new', adminAuth, (req, res) => {
   const validType = type === 'brand' ? 'brand' : 'local';
   const info = db.prepare(`INSERT INTO products (name_en, category, brand, type) VALUES (?, ?, ?, ?)`)
                   .run(name_en.trim(), category, brand.trim(), validType);
-  res.redirect(`/admin/products/${info.lastInsertRowid}/edit`);
+  res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
 });
 
 // POST apply local category defaults from one product (price + image)
@@ -511,8 +511,9 @@ router.post('/brands/new', adminAuth, (req, res) => {
   if (!name?.trim()) { req.flash('error', 'Brand name required.'); return res.redirect('/admin/brands'); }
   const validType = ['western','khaleeji'].includes(type) ? type : 'western';
   try {
-    db.prepare(`INSERT INTO brands (name, name_ar, type) VALUES (?, ?, ?)`).run(name.trim(), name_ar?.trim() || null, validType);
-    req.flash('success', 'Brand added.');
+    const info = db.prepare(`INSERT INTO brands (name, name_ar, type) VALUES (?, ?, ?)`).run(name.trim(), name_ar?.trim() || null, validType);
+    req.flash('success', 'Brand created. Now add its first category.');
+    return res.redirect(`/admin/brands/${info.lastInsertRowid}/categories`);
   } catch (e) {
     req.flash('error', 'Brand name already exists.');
   }
@@ -588,10 +589,10 @@ router.post('/brands/:brandId/categories/new', adminAuth, (req, res) => {
     req.flash('error', 'Category name is required.');
     return res.redirect(`/admin/brands/${brand.id}/categories`);
   }
-  db.prepare(`INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, ?, ?)`)
+  const info = db.prepare(`INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, ?, ?)`)
     .run(brand.id, name_en.trim(), name_ar?.trim() || null, parseInt(sort_order) || 0);
-  req.flash('success', 'Category created.');
-  res.redirect(`/admin/brands/${brand.id}/categories`);
+  req.flash('success', 'Category created. Now add products to it.');
+  res.redirect(`/admin/brands/${brand.id}/categories/${info.lastInsertRowid}/products`);
 });
 
 // POST /admin/brands/:brandId/categories/:catId/edit
@@ -671,9 +672,21 @@ router.post('/brands/:brandId/categories/:catId/products/new', adminAuth, upload
   const imagePath = req.file ? `/uploads/products/${req.file.filename}` : null;
   const info = db.prepare(`
     INSERT INTO products
-      (name_en, name_ar, category, brand, type, price, image_path, brand_category_id, in_stock)
-    VALUES (?, ?, ?, ?, 'brand', ?, ?, ?, ?)
-  `).run(name, req.body.name_ar?.trim() || null, gender, brand.name, price, imagePath, categoryRow.id, req.body.in_stock === '0' ? 0 : 1);
+      (name_en, name_ar, category, brand, type, price, image_path, brand_category_id,
+       description_en, description_ar, in_stock)
+    VALUES (?, ?, ?, ?, 'brand', ?, ?, ?, ?, ?, ?)
+  `).run(
+    name,
+    req.body.name_ar?.trim() || null,
+    gender,
+    brand.name,
+    price,
+    imagePath,
+    categoryRow.id,
+    req.body.description_en?.trim() || null,
+    req.body.description_ar?.trim() || null,
+    req.body.in_stock === '0' ? 0 : 1
+  );
 
   req.flash('success', `${name} was added to ${categoryRow.name_en}.`);
   res.redirect(`/admin/products/${info.lastInsertRowid}/edit`);
