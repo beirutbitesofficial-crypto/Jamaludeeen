@@ -6,7 +6,9 @@ require('dotenv').config();
 const Database = require('better-sqlite3');
 const path    = require('path');
 
-const db = new Database(path.join(__dirname, '../data/store.db'));
+const db = require.main === module
+  ? new Database(path.join(__dirname, '../data/store.db'))
+  : null;
 
 const DEMO_PRICE = 50000; // 50,000 LBP demo price
 
@@ -343,6 +345,10 @@ const MEN = [
   { n: "Zara Night",                           brand: "Zara" },
 ];
 
+module.exports = { MEN };
+
+if (require.main === module) {
+
 // ── Ensure brand exists ───────────────────────────────────
 const khaleejiSet = new Set(['Lattafa','Rasasi','Arabian Oud','Ajmal','Fakher']);
 const getBrandId = db.prepare('SELECT id FROM brands WHERE name = ?');
@@ -357,17 +363,16 @@ function ensureBrand(name) {
 // ── Run in a transaction ──────────────────────────────────
 const run = db.transaction(() => {
   // 1. Remove old men's products
-  const del = db.prepare("DELETE FROM products WHERE category = 'men'").run();
+  const del = db.prepare("DELETE FROM products WHERE category = 'men' AND type = 'local'").run();
   console.log(`  ✓ Removed ${del.changes} old men's products`);
 
   // 2. Ensure all brands exist
-  const brandsSeen = new Set(MEN.map(p => p.brand));
-  for (const b of brandsSeen) ensureBrand(b);
+  // Local Men products must not create or modify storefront Brand records.
 
   // 3. Insert new products
   const ins = db.prepare(`
-    INSERT INTO products (name_en, category, brand, price, in_stock, featured)
-    VALUES (?, 'men', ?, ?, 1, 0)
+    INSERT INTO products (name_en, category, brand, type, price, in_stock, featured)
+    VALUES (?, 'men', ?, 'local', ?, 1, 0)
   `);
   for (const p of MEN) ins.run(p.n, p.brand, DEMO_PRICE);
   console.log(`  ✓ Inserted ${MEN.length} men's products`);
@@ -385,3 +390,4 @@ console.log('\nReplacing men\'s products...');
 run();
 console.log('\n✅ Done! Open http://localhost:3000/shop?category=men to verify.\n');
 db.close();
+}
