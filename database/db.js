@@ -120,3 +120,23 @@ try {
   db.exec(`ALTER TABLE products ADD COLUMN brand_category_id INTEGER REFERENCES brand_categories(id) ON DELETE SET NULL`);
 } catch (_) { /* column already exists */ }
 
+// One-time production synchronization for local Men inventory only.
+const MEN_CATALOG_VERSION = '2026-08-05-v1';
+const menCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='men_catalog_version'`).get()?.value;
+if (menCatalogVersion !== MEN_CATALOG_VERSION) {
+  const { MEN } = require('./replace-men');
+  const configuredPrice = db.prepare(`SELECT value FROM settings WHERE key='local_price_men'`).get()?.value;
+  const sharedPrice = configuredPrice !== undefined && configuredPrice !== '' ? Number(configuredPrice) : 50000;
+  const synchronizeMen = db.transaction(() => {
+    db.prepare(`DELETE FROM products WHERE category='men' AND type='local'`).run();
+    const insert = db.prepare(`
+      INSERT INTO products
+        (name_en, category, brand, type, price, image_path, brand_category_id, in_stock, featured)
+      VALUES (?, 'men', ?, 'local', ?, NULL, NULL, 1, 0)
+    `);
+    for (const product of MEN) insert.run(product.n, product.brand, sharedPrice);
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('men_catalog_version', ?)`).run(MEN_CATALOG_VERSION);
+  });
+  synchronizeMen();
+  console.log(`Men catalog synchronized: ${MEN.length} local products.`);
+}
