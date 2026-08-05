@@ -4,9 +4,9 @@
   <div class="container">
 
     <div class="page-header">
-      <p class="page-header__eyebrow"><%= lang === 'ar' ? 'Ø¯Ù„ÙŠÙ„ Ø¯ÙˆØ± Ø§Ù„Ø¹Ø·ÙˆØ±' : 'THE HOUSE DIRECTORY' %></p>
-      <h1 class="page-header__title"><%= lang === 'ar' ? 'Ø§Ù„Ù…Ø§Ø±ÙƒØ§Øª' : 'Brands' %></h1>
-      <p class="page-header__intro"><%= lang === 'ar' ? 'Ø§ÙƒØªØ´Ù Ù…Ø¬Ù…ÙˆØ¹ØªÙ†Ø§ Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© Ù…Ù† Ø£Ø´Ù‡Ø± Ø¯ÙˆØ± Ø§Ù„Ø¹Ø·ÙˆØ± Ø§Ù„Ø¹Ø§Ù„Ù…ÙŠØ© ÙˆØ§Ù„Ø®Ù„ÙŠØ¬ÙŠØ©.' : 'Explore a considered edit of international and Khaleeji fragrance houses.' %></p>
+      <p class="page-header__eyebrow"><%= lang === 'ar' ? 'دليل دور العطور' : 'THE HOUSE DIRECTORY' %></p>
+      <h1 class="page-header__title"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></h1>
+      <p class="page-header__intro"><%= lang === 'ar' ? 'اكتشف مجموعتنا المختارة من أشهر دور العطور العالمية والخليجية.' : 'Explore a considered edit of international and Khaleeji fragrance houses.' %></p>
       <nav class="collection-tabs" aria-label="Catalog categories">
         <a href="/shop/men"><%= t.men %></a>
         <a href="/shop/women"><%= t.women %></a>
@@ -53,9 +53,9 @@
 
     <% if (!western.length && !khaleeji.length) { %>
     <div class="empty-state">
-      <p class="empty-state__icon">âœ¦</p>
-      <h3><%= lang === 'ar' ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø§Ø±ÙƒØ§Øª Ø¨Ø¹Ø¯' : 'No brands yet' %></h3>
-      <p><%= lang === 'ar' ? 'Ø³ÙŠØªÙ… Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ù…Ø§Ø±ÙƒØ§Øª Ù‚Ø±ÙŠØ¨Ø§Ù‹' : 'Brands will be added soon' %></p>
+      <p class="empty-state__icon">✦</p>
+      <h3><%= lang === 'ar' ? 'لا توجد ماركات بعد' : 'No brands yet' %></h3>
+      <p><%= lang === 'ar' ? 'سيتم إضافة الماركات قريباً' : 'Brands will be added soon' %></p>
     </div>
     <% } %>
 
@@ -63,4 +63,3 @@
 </div>
 
 <%- include('partials/footer') %>
-
