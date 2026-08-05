@@ -140,3 +140,24 @@ if (menCatalogVersion !== MEN_CATALOG_VERSION) {
   synchronizeMen();
   console.log(`Men catalog synchronized: ${MEN.length} local products.`);
 }
+
+// One-time production synchronization for local Women inventory only.
+const WOMEN_CATALOG_VERSION = '2026-08-05-v1';
+const womenCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='women_catalog_version'`).get()?.value;
+if (womenCatalogVersion !== WOMEN_CATALOG_VERSION) {
+  const { WOMEN } = require('./replace-women');
+  const configuredPrice = db.prepare(`SELECT value FROM settings WHERE key='local_price_women'`).get()?.value;
+  const sharedPrice = configuredPrice !== undefined && configuredPrice !== '' ? Number(configuredPrice) : 50000;
+  const synchronizeWomen = db.transaction(() => {
+    db.prepare(`DELETE FROM products WHERE category='women' AND type='local'`).run();
+    const insert = db.prepare(`
+      INSERT INTO products
+        (name_en, category, brand, type, price, image_path, brand_category_id, in_stock, featured)
+      VALUES (?, 'women', ?, 'local', ?, NULL, NULL, 1, 0)
+    `);
+    for (const product of WOMEN) insert.run(product.n, product.brand, sharedPrice);
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('women_catalog_version', ?)`).run(WOMEN_CATALOG_VERSION);
+  });
+  synchronizeWomen();
+  console.log(`Women catalog synchronized: ${WOMEN.length} local products.`);
+}
