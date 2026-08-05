@@ -37,7 +37,7 @@ function buildWhatsAppOrderMessage({ orderNumber, name, phone, address, city, pa
     `TOTAL: ${total.toLocaleString()} LBP`,
   ];
   if (notes?.trim()) lines.push('', `Notes: ${notes.trim()}`);
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 // GET /checkout
