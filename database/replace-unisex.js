@@ -5,7 +5,9 @@
 const Database = require('better-sqlite3');
 const path     = require('path');
 
-const db = new Database(path.join(__dirname, '../data/store.db'));
+const db = require.main === module
+  ? new Database(path.join(__dirname, '../data/store.db'))
+  : null;
 
 const DEMO_PRICE = 50000;
 
@@ -270,6 +272,10 @@ const UNISEX = [
   { n: "Zanbak",                              brand: "Other" },
 ];
 
+module.exports = { UNISEX };
+
+if (require.main === module) {
+
 const khaleejiSet = new Set(['Lattafa', 'Rasasi', 'Arabian Oud', 'Ajmal', 'Asdaaf', 'Ard Al Zaafaran', 'Swiss Arabian']);
 
 const insertBrand   = db.prepare("INSERT OR IGNORE INTO brands (name, type) VALUES (?, ?)");
@@ -284,10 +290,7 @@ const run = db.transaction(() => {
   const del = db.prepare("DELETE FROM products WHERE category='unisex' AND type='local'").run();
   console.log(`  ✓ Removed ${del.changes} old unisex products`);
 
-  const brandsSeen = new Set(UNISEX.map(p => p.brand));
-  for (const b of brandsSeen) {
-    insertBrand.run(b, khaleejiSet.has(b) ? 'khaleeji' : 'western');
-  }
+  // Local Unisex products must not create or modify storefront Brand records.
 
   for (const p of UNISEX) insertProduct.run(p.n, p.brand, DEMO_PRICE);
   console.log(`  ✓ Inserted ${UNISEX.length} unisex products`);
@@ -296,3 +299,5 @@ const run = db.transaction(() => {
 
 run();
 console.log('\n✅ Done! Open http://localhost:3000/shop?category=unisex to verify.');
+db.close();
+}
