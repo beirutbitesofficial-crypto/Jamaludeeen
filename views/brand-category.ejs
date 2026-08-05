@@ -19,24 +19,24 @@
           <h3 class="shop-sidebar__title"><%= t.filter %></h3>
           <form method="GET" action="/collections/<%= brand.id %>/category/<%= category.id %>" id="filterForm">
             <div class="filter-group">
-              <label class="filter-label"><%= lang === 'ar' ? 'Ø¨Ø­Ø«' : 'Search' %></label>
+              <label class="filter-label"><%= lang === 'ar' ? 'بحث' : 'Search' %></label>
               <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="filter-input"/>
             </div>
             <button type="submit" class="btn btn--primary btn--full"><%= t.filter %></button>
-            <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline btn--full" style="margin-top:8px"><%= lang === 'ar' ? 'Ù…Ø³Ø­' : 'Clear' %></a>
+            <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline btn--full" style="margin-top:8px"><%= lang === 'ar' ? 'مسح' : 'Clear' %></a>
           </form>
         </div>
       </aside>
 
       <!-- Products grid -->
       <main class="shop-main">
-        <button class="shop-filter-toggle" id="filterToggle">â˜° <%= t.filter %></button>
+        <button class="shop-filter-toggle" id="filterToggle">☰ <%= t.filter %></button>
 
         <% if (!products.length) { %>
         <div class="empty-state">
-          <p class="empty-state__icon">âœ¦</p>
+          <p class="empty-state__icon">✦</p>
           <h3><%= t.no_products %></h3>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline"><%= lang === 'ar' ? 'Ù…Ø³Ø­ Ø§Ù„ÙÙ„ØªØ±' : 'Clear filters' %></a>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline"><%= lang === 'ar' ? 'مسح الفلتر' : 'Clear filters' %></a>
         </div>
         <% } else { %>
         <div class="products-grid">
@@ -48,11 +48,11 @@
         <% if (pagination.totalPages > 1) { %>
         <div class="pagination">
           <% if (pagination.page > 1) { %>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">â† <%= t.prev %></a>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">← <%= t.prev %></a>
           <% } %>
           <span class="pagination__info"><%= t.page %> <%= pagination.page %> <%= t.of %> <%= pagination.totalPages %></span>
           <% if (pagination.page < pagination.totalPages) { %>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn"><%= t.next_page %> â†’</a>
+          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn"><%= t.next_page %> →</a>
           <% } %>
         </div>
         <% } %>
@@ -64,4 +64,3 @@
 </div>
 
 <%- include('partials/footer') %>
-
