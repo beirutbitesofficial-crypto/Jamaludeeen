@@ -93,9 +93,9 @@ const setSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUE
   ['store_address', process.env.STORE_ADDRESS || 'Lebanon'],
   ['delivery_fee', '0'],
   ['hero_title_en', 'Discover Your Signature Scent'],
-  ['hero_title_ar', 'Ø§ÙƒØªØ´Ù Ø¹Ø·Ø±Ùƒ Ø§Ù„Ù…Ù…ÙŠØ²'],
+  ['hero_title_ar', 'اكتشف عطرك المميز'],
   ['hero_sub_en', 'Premium perfumes delivered all over Lebanon'],
-  ['hero_sub_ar', 'Ø¹Ø·ÙˆØ± ÙØ§Ø®Ø±Ø© ØªÙˆØµÙ„ Ù„Ø¬Ù…ÙŠØ¹ Ø£Ù†Ø­Ø§Ø¡ Ù„Ø¨Ù†Ø§Ù†'],
+  ['hero_sub_ar', 'عطور فاخرة توصل لجميع أنحاء لبنان'],
 ].forEach(([k, v]) => setSetting.run(k, v));
 
 // Ensure a fresh production database always has an administrator.
@@ -115,7 +115,7 @@ try {
   db.exec(`ALTER TABLE products ADD COLUMN type TEXT NOT NULL DEFAULT 'local' CHECK(type IN ('local','brand'))`);
 } catch (_) { /* column already exists */ }
 
-// â”€â”€ Runtime migrations (safe, idempotent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Runtime migrations (safe, idempotent) ─────────────────────────────────────
 try {
   db.exec(`ALTER TABLE products ADD COLUMN brand_category_id INTEGER REFERENCES brand_categories(id) ON DELETE SET NULL`);
 } catch (_) { /* column already exists */ }
@@ -193,3 +193,15 @@ if (brandCatalogVersion !== BRAND_CATALOG_VERSION) {
   console.log(`Brand catalog synchronized: ${result.products} products in ${result.brands} brands.`);
 }
 
+// Repair Arabic homepage copy that was stored with broken deployment encoding.
+const ARABIC_COPY_VERSION = '2026-08-05-v1';
+const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;
+if (arabicCopyVersion !== ARABIC_COPY_VERSION) {
+  const repairArabicCopy = db.transaction(() => {
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('hero_title_ar', ?)`).run('اكتشف عطرك المميز');
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('hero_sub_ar', ?)`).run('عطور فاخرة توصل لجميع أنحاء لبنان');
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('arabic_copy_version', ?)`).run(ARABIC_COPY_VERSION);
+  });
+  repairArabicCopy();
+  console.log('Arabic homepage copy encoding repaired.');
+}
