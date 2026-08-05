@@ -7,16 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/style.css?v=20260803-2" type="text/css"/>
+  <link rel="stylesheet" href="/css/style.css?v=20260805-3" type="text/css"/>
 </head>
 <body>
 
 <!-- Flash messages -->
 <% if (success_msg && success_msg.length) { %>
-<div class="flash flash--success"><%= success_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">✕</button></div>
+<div class="flash flash--success"><%= success_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">âœ•</button></div>
 <% } %>
 <% if (error_msg && error_msg.length) { %>
-<div class="flash flash--error"><%= error_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">✕</button></div>
+<div class="flash flash--error"><%= error_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">âœ•</button></div>
 <% } %>
 
 <!-- Mobile nav overlay -->
@@ -46,7 +46,7 @@
       <li><a href="/shop/men"><%= t.men %></a></li>
       <li><a href="/shop/women"><%= t.women %></a></li>
       <li><a href="/shop/unisex"><%= t.unisex %></a></li>
-      <li><a href="/collections"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></a></li>
+      <li><a href="/collections"><%= lang === 'ar' ? 'Ø§Ù„Ù…Ø§Ø±ÙƒØ§Øª' : 'Brands' %></a></li>
       <li><a href="/contact"><%= t.contact %></a></li>
     </ul>
 
@@ -55,7 +55,7 @@
       <!-- Language toggle -->
       <form action="/set-lang" method="POST" class="lang-form">
         <button type="submit" name="lang" value="<%= lang === 'ar' ? 'en' : 'ar' %>" class="btn-lang">
-          <%= lang === 'ar' ? 'EN' : 'عربي' %>
+          <%= lang === 'ar' ? 'EN' : 'Ø¹Ø±Ø¨ÙŠ' %>
         </button>
       </form>
 
@@ -86,3 +86,4 @@
 
   </div>
 </nav>
+
