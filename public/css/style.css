@@ -42,10 +42,18 @@ ul { list-style: none; }
 input, textarea, select { font-family: inherit; font-size: inherit; }
 
 /* RTL tweaks */
-[dir="rtl"] .back-link::before { content: '→'; margin-inline-end: 6px; margin-inline-start: 0; }
+.back-link::before { content: '←'; margin-inline-end: 6px; }
+[dir="rtl"] .back-link::before { content: '→'; }
 [dir="rtl"] .section__link { direction: rtl; }
 [dir="rtl"] .navbar__links { flex-direction: row-reverse; }
 [dir="rtl"] .cart-item { direction: rtl; }
+[dir="rtl"] .page-header, [dir="rtl"] .section__header { text-align:right; }
+[dir="rtl"] .product-card__brand, [dir="rtl"] .product-card__name,
+[dir="rtl"] .product-card__price, [dir="rtl"] .brand-card__name,
+[dir="rtl"] .brand-cat-card__name { direction:ltr; unicode-bidi:isolate; }
+[dir="rtl"] .product-card__brand, [dir="rtl"] .product-card__name { text-align:left; }
+[dir="rtl"] .product-card__footer { direction:ltr; }
+[dir="rtl"] .navbar__right { direction:ltr; }
 
 /* ─ Utilities ──────────────────────────────────────────── */
 .container { max-width: 1320px; margin: 0 auto; padding: 0 28px; }
@@ -396,13 +404,7 @@ body.nav-open { overflow: hidden; }
 .product-card__body { padding: 16px 18px 20px; }
 .product-card__brand { font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
 .product-card__name { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 400; margin-bottom: 14px; line-height: 1.3; }
-.product-card__name:hover { opacity: .7; }
-.product-card__footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.product-card__price { font-weight: 600; font-size: .8rem; letter-spacing: .03em; }
-.product-card__price--na { color: var(--gray-400); font-weight: 400; font-size: .74rem; font-style: italic; }
-
-/* ─ Delivery Banner ─────────────────────────────────────── */
-.delive…2462 tokens truncated…rder-bottom: 1px solid var(--gray-200); }
+.product…2583 tokens truncated…rder-bottom: 1px solid var(--gray-200); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .form-group { margin-bottom: 20px; }
 .form-label { display: block; font-size: .66rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; color: var(--gray-800); }
