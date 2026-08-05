@@ -1,90 +1,42 @@
 <%- include('partials/header', { title: 'Contact' }) %>
 
-<div class="contact-page">
+<div class="contact-page contact-page--luxury">
   <div class="container">
-    <div class="page-header">
-      <h1 class="page-header__title"><%= t.contact %></h1>
-    </div>
+    <header class="contact-hero reveal">
+      <p class="page-header__eyebrow"><%= lang === 'ar' ? 'نحن هنا لخدمتكم' : 'PERSONAL SERVICE' %></p>
+      <h1><%= lang === 'ar' ? 'تواصل معنا' : 'Let’s find your signature scent' %></h1>
+      <p><%= lang === 'ar' ? 'زورونا في مزبود أو تواصلوا معنا مباشرة عبر واتساب. يسعدنا مساعدتكم في اختيار عطركم.' : 'Visit our boutique in Mazboud or speak with us directly on WhatsApp. We are here to help you discover the right fragrance.' %></p>
+    </header>
 
-    <div class="contact-grid">
-      <!-- Info -->
-      <div class="contact-info">
+    <div class="contact-luxury-grid reveal">
+      <section class="contact-details-card">
+        <p class="contact-card__kicker"><%= lang === 'ar' ? 'بوتيك جمال الدين' : 'JAMALUDEEN BOUTIQUE' %></p>
+        <h2><%= lang === 'ar' ? 'زيارتكم تسعدنا' : 'Visit our boutique' %></h2>
 
-        <% if (settings.store_whatsapp) { %>
-        <a class="contact-item contact-item--link" href="https://wa.me/961<%= settings.store_whatsapp.replace(/[^0-9]/g,'') %>" target="_blank">
-          <span class="contact-item__icon contact-item__icon--wa">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.852L0 24l6.335-1.511A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.794 9.794 0 01-4.988-1.367l-.358-.213-3.76.896.952-3.654-.233-.374A9.787 9.787 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
-          </span>
-          <div>
-            <h4>WhatsApp</h4>
-            <p>+961 <%= settings.store_whatsapp %></p>
-          </div>
-        </a>
-        <% } %>
-
-        <% if (settings.instagram) { %>
-        <a class="contact-item contact-item--link" href="https://instagram.com/<%= settings.instagram %>" target="_blank">
-          <span class="contact-item__icon contact-item__icon--ig">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-          </span>
-          <div>
-            <h4>Instagram</h4>
-            <p>@<%= settings.instagram %></p>
-          </div>
-        </a>
-        <% } %>
-
-        <% if (settings.tiktok) { %>
-        <a class="contact-item contact-item--link" href="https://tiktok.com/@<%= settings.tiktok %>" target="_blank">
-          <span class="contact-item__icon contact-item__icon--tt">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
-          </span>
-          <div>
-            <h4>TikTok</h4>
-            <p>@<%= settings.tiktok %></p>
-          </div>
-        </a>
-        <% } %>
-
-        <div class="contact-item">
-          <span class="contact-item__icon">📍</span>
-          <div>
-            <h4><%= lang === 'ar' ? 'الموقع' : 'Location' %></h4>
-            <p><%= settings.store_address || 'Lebanon' %></p>
-          </div>
+        <div class="contact-detail">
+          <span><%= lang === 'ar' ? 'الموقع' : 'Location' %></span>
+          <strong>JMR Mall, Mazboud, Lebanon</strong>
+          <a href="https://www.google.com/maps/search/?api=1&query=JMR+Mall+Mazboud+Lebanon" target="_blank" rel="noopener"><%= lang === 'ar' ? 'افتح الخريطة' : 'Get directions' %> &rarr;</a>
         </div>
 
-        <div class="contact-item">
-          <span class="contact-item__icon">🚚</span>
-          <div>
-            <h4><%= lang === 'ar' ? 'التوصيل' : 'Delivery' %></h4>
-            <p><%= t.free_delivery %></p>
-          </div>
+        <div class="contact-detail">
+          <span>WhatsApp</span>
+          <strong dir="ltr">+961 76 927 146</strong>
+          <a href="https://wa.me/96176927146" target="_blank" rel="noopener"><%= lang === 'ar' ? 'ابدأ المحادثة' : 'Start a conversation' %> &rarr;</a>
         </div>
 
-        <!-- Payment -->
-        <div class="contact-payment-box">
-          <h4><%= t.payment_method %></h4>
-          <div class="payment-badges">
-            <div class="payment-badge">💵 <%= t.cash_on_delivery %></div>
-            <% if (settings.whish_number) { %>
-            <div class="payment-badge">📱 ByWhish · <%= settings.whish_number %></div>
-            <% } %>
-          </div>
+        <div class="contact-detail">
+          <span><%= lang === 'ar' ? 'خدمة التوصيل' : 'Delivery service' %></span>
+          <strong><%= lang === 'ar' ? 'توصيل إلى جميع المناطق اللبنانية' : 'Available across Lebanon' %></strong>
         </div>
-      </div>
 
-      <!-- Map -->
-      <% if (settings.google_maps_embed) { %>
-      <div class="contact-map">
-        <iframe
-          src="<%= settings.google_maps_embed %>"
-          width="100%" height="100%" style="border:0; min-height:380px; border-radius:4px;"
-          allowfullscreen="" loading="lazy"
-          referrerpolicy="strict-origin-when-cross-origin">
-        </iframe>
-      </div>
-      <% } %>
+        <a class="btn btn--primary btn--lg contact-whatsapp" href="https://wa.me/96176927146?text=Hello%20Jamaludeen%2C%20I%20would%20like%20help%20choosing%20a%20perfume." target="_blank" rel="noopener"><%= lang === 'ar' ? 'تواصل عبر واتساب' : 'Chat on WhatsApp' %></a>
+      </section>
+
+      <section class="contact-map contact-map--luxury" aria-label="JMR Mall, Mazboud map">
+        <iframe src="https://www.google.com/maps?q=JMR%20Mall%2C%20Mazboud%2C%20Lebanon&output=embed" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div class="contact-map__label"><span>JAMALUDEEN</span><strong>JMR Mall · Mazboud</strong></div>
+      </section>
     </div>
   </div>
 </div>

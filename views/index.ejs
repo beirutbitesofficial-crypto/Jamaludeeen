@@ -3,25 +3,6 @@
 <!-- Hero -->
 <section class="hero"<% if (settings.banner_image) { %> style="background-image:url('<%= settings.banner_image %>'); background-size:cover; background-position:center;"<% } %>>
   <div class="hero__bg"<% if (settings.banner_image) { %> style="display:none"<% } %>></div>
-  <% if (settings.banner_image) { %><div style="position:absolute;inset:0;background:rgba(0,0,0,.52);z-index:0"></div><% } %>
-  <div class="hero__content">
-    <span class="hero__eyebrow"><%= lang === 'ar' ? 'جمال الدين — لبنان' : 'JAMALUDEEN — LEBANON' %></span>
-    <h1 class="hero__title">
-      <%= settings.hero_title_en && lang !== 'ar' ? settings.hero_title_en : (settings.hero_title_ar || t.tagline) %>
-    </h1>
-    <span class="hero__divider"></span>
-    <p class="hero__sub">
-      <%= settings.hero_sub_en && lang !== 'ar' ? settings.hero_sub_en : (settings.hero_sub_ar || t.free_delivery) %>
-    </p>
-    <div class="hero__cta">
-      <a href="/shop/men" class="btn btn--primary btn--lg"><%= t.shop_now %></a>
-      <a href="/collections" class="btn btn--outline btn--lg"><%= t.brands %></a>
-    </div>
-  </div>
-  <div class="hero__scroll">
-    <div class="hero__scroll-line"></div>
-    <span><%= lang === 'ar' ? 'تصفح' : 'Scroll' %></span>
-  </div>
 </section>
 
 <!-- Category Cards -->
@@ -33,7 +14,6 @@
         <div class="category-card__bg"<% if (settings.men_image) { %> style="background-image:url('<%= settings.men_image %>');background-size:cover;background-position:center"<% } %>></div>
         <div class="category-card__gradient"></div>
         <div class="category-card__content">
-          <div class="category-card__icon">♟</div>
           <h3 class="category-card__title"><%= t.men_perfumes %></h3>
           <p class="category-card__count"><%= stats.men %> <%= t.products %></p>
           <span class="category-card__cta"><%= t.shop_now %> →</span>
@@ -44,7 +24,6 @@
         <div class="category-card__bg"<% if (settings.women_image) { %> style="background-image:url('<%= settings.women_image %>');background-size:cover;background-position:center"<% } %>></div>
         <div class="category-card__gradient"></div>
         <div class="category-card__content">
-          <div class="category-card__icon">✦</div>
           <h3 class="category-card__title"><%= t.women_perfumes %></h3>
           <p class="category-card__count"><%= stats.women %> <%= t.products %></p>
           <span class="category-card__cta"><%= t.shop_now %> →</span>
@@ -55,7 +34,6 @@
         <div class="category-card__bg"<% if (settings.unisex_image) { %> style="background-image:url('<%= settings.unisex_image %>');background-size:cover;background-position:center"<% } %>></div>
         <div class="category-card__gradient"></div>
         <div class="category-card__content">
-          <div class="category-card__icon">◈</div>
           <h3 class="category-card__title"><%= t.unisex_perfumes %></h3>
           <p class="category-card__count"><%= stats.unisex %> <%= t.products %></p>
           <span class="category-card__cta"><%= t.shop_now %> →</span>
@@ -66,7 +44,6 @@
         <div class="category-card__bg category-card__bg--brands"></div>
         <div class="category-card__gradient"></div>
         <div class="category-card__content">
-          <div class="category-card__icon">J</div>
           <h3 class="category-card__title"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></h3>
           <p class="category-card__count"><%= stats.brands %> <%= t.products %></p>
           <span class="category-card__cta"><%= t.shop_now %> &rarr;</span>

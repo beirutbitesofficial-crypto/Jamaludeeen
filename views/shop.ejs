@@ -21,22 +21,25 @@
       </nav>
     </div>
 
-    <div class="shop-layout">
+    <form method="GET" action="/shop/<%= filters.category %>" class="catalog-toolbar" id="filterForm">
+      <label class="catalog-search">
+        <span class="catalog-search__label"><%= lang === 'ar' ? 'بحث في المجموعة' : 'Search the collection' %></span>
+        <span class="catalog-search__row">
+          <input type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="catalog-search__input"/>
+          <button type="submit" class="catalog-search__button"><%= lang === 'ar' ? 'بحث' : 'Search' %></button>
+        </span>
+      </label>
+      <% if (filters.q) { %><a href="/shop/<%= filters.category %>" class="catalog-clear"><%= lang === 'ar' ? 'مسح البحث' : 'Clear search' %></a><% } %>
+    </form>
+
+    <div class="shop-layout shop-layout--catalog">
 
       <!-- Filters sidebar -->
-      <aside class="shop-sidebar" id="shopSidebar">
+      <aside class="shop-sidebar catalog-category-panel" id="shopSidebar">
         <div class="shop-sidebar__inner">
-          <h3 class="shop-sidebar__title"><%= t.filter %></h3>
+          <h3 class="shop-sidebar__title"><%= lang === 'ar' ? 'تسوّق حسب الفئة' : 'Shop by category' %></h3>
 
-          <form method="GET" action="/shop/<%= filters.category %>" id="filterForm">
-
-            <!-- Search -->
-            <div class="filter-group">
-              <label class="filter-label"><%= lang === 'ar' ? 'بحث' : 'Search' %></label>
-              <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="filter-input"/>
-            </div>
-
-            <!-- Category -->
+          <div>
             <div class="filter-group">
               <label class="filter-label"><%= lang === 'ar' ? 'الفئة' : 'Category' %></label>
               <div class="filter-options">
@@ -49,9 +52,7 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn--primary btn--full"><%= t.filter %></button>
-            <a href="/shop/<%= filters.category %>" class="btn btn--outline btn--full" style="margin-top:8px"><%= lang === 'ar' ? 'مسح الفلتر' : 'Clear' %></a>
-          </form>
+          </div>
         </div>
       </aside>
 
@@ -59,7 +60,7 @@
       <main class="shop-main">
         <!-- Mobile filter toggle -->
         <button class="shop-filter-toggle" id="filterToggle">
-          ☰ <%= t.filter %>
+          <%= lang === 'ar' ? 'اختيار الفئة' : 'Choose category' %>
         </button>
 
         <% if (!products.length) { %>

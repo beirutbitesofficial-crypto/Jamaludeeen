@@ -15,13 +15,22 @@
       </nav>
     </div>
 
+    <div class="brand-search catalog-toolbar">
+      <label class="catalog-search">
+        <span class="catalog-search__label"><%= lang === 'ar' ? 'ابحث عن ماركة' : 'Find a fragrance house' %></span>
+        <span class="catalog-search__row">
+          <input type="search" id="brandSearch" class="catalog-search__input" placeholder="<%= lang === 'ar' ? 'اكتب اسم الماركة...' : 'Search brands...' %>" autocomplete="off"/>
+        </span>
+      </label>
+    </div>
+
     <!-- International Brands -->
     <% if (western.length) { %>
     <section class="brands-section">
       <h2 class="brands-section__title"><%= t.western_brands %></h2>
       <div class="brands-grid">
         <% western.forEach(b => { %>
-        <a href="/collections/<%= b.id %>" class="brand-card">
+        <a href="/collections/<%= b.id %>" class="brand-card" data-brand-name="<%= b.name.toLowerCase() %>">
           <% if (b.logo_path) { %>
             <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
           <% } %>
@@ -39,7 +48,7 @@
       <h2 class="brands-section__title"><%= t.khaleeji_brands %></h2>
       <div class="brands-grid">
         <% khaleeji.forEach(b => { %>
-        <a href="/collections/<%= b.id %>" class="brand-card brand-card--khaleeji">
+        <a href="/collections/<%= b.id %>" class="brand-card brand-card--khaleeji" data-brand-name="<%= b.name.toLowerCase() %>">
           <% if (b.logo_path) { %>
             <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
           <% } %>

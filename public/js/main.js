@@ -1,4 +1,4 @@
-﻿// ── Navbar scroll effect ──────────────────────────────────
+﻿﻿// ── Navbar scroll effect ──────────────────────────────────
 const navbar = document.getElementById('navbar');
 if (navbar) {
   window.addEventListener('scroll', () => {
@@ -51,13 +51,44 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 768) closeMenu();
 });
 
+// Subtle reveal transitions, disabled for visitors who prefer reduced motion.
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const revealItems = document.querySelectorAll('.section, .product-card, .brand-card, .reveal');
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px' });
+  revealItems.forEach(item => {
+    item.classList.add('reveal-ready');
+    revealObserver.observe(item);
+  });
+}
+
+// Instant filtering for the brand directory.
+const brandSearch = document.getElementById('brandSearch');
+if (brandSearch) {
+  brandSearch.addEventListener('input', () => {
+    const query = brandSearch.value.trim().toLocaleLowerCase();
+    document.querySelectorAll('[data-brand-name]').forEach(card => {
+      card.hidden = Boolean(query) && !card.dataset.brandName.includes(query);
+    });
+  });
+}
+
 // ── Shop sidebar filter toggle (mobile) ──────────────────
 const filterToggle = document.getElementById('filterToggle');
 const sidebar      = document.getElementById('shopSidebar');
 if (filterToggle && sidebar) {
+  const arabic = document.documentElement.lang === 'ar';
   filterToggle.addEventListener('click', () => {
     const isOpen = sidebar.classList.toggle('open');
-    filterToggle.textContent = isOpen ? '✕  Close Filters' : '☰  Filter';
+    filterToggle.textContent = isOpen
+      ? (arabic ? '✕  إغلاق الفلاتر' : '✕  Close Filters')
+      : (arabic ? '☰  فلترة' : '☰  Filter');
   });
 }
 
