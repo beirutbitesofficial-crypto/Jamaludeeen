@@ -93,9 +93,9 @@ const setSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUE
   ['store_address', process.env.STORE_ADDRESS || 'Lebanon'],
   ['delivery_fee', '0'],
   ['hero_title_en', 'Discover Your Signature Scent'],
-  ['hero_title_ar', 'اكتشف عطرك المميز'],
+  ['hero_title_ar', 'Ø§ÙƒØªØ´Ù Ø¹Ø·Ø±Ùƒ Ø§Ù„Ù…Ù…ÙŠØ²'],
   ['hero_sub_en', 'Premium perfumes delivered all over Lebanon'],
-  ['hero_sub_ar', 'عطور فاخرة توصل لجميع أنحاء لبنان'],
+  ['hero_sub_ar', 'Ø¹Ø·ÙˆØ± ÙØ§Ø®Ø±Ø© ØªÙˆØµÙ„ Ù„Ø¬Ù…ÙŠØ¹ Ø£Ù†Ø­Ø§Ø¡ Ù„Ø¨Ù†Ø§Ù†'],
 ].forEach(([k, v]) => setSetting.run(k, v));
 
 // Ensure a fresh production database always has an administrator.
@@ -115,7 +115,7 @@ try {
   db.exec(`ALTER TABLE products ADD COLUMN type TEXT NOT NULL DEFAULT 'local' CHECK(type IN ('local','brand'))`);
 } catch (_) { /* column already exists */ }
 
-// ── Runtime migrations (safe, idempotent) ─────────────────────────────────────
+// â”€â”€ Runtime migrations (safe, idempotent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 try {
   db.exec(`ALTER TABLE products ADD COLUMN brand_category_id INTEGER REFERENCES brand_categories(id) ON DELETE SET NULL`);
 } catch (_) { /* column already exists */ }
@@ -182,3 +182,14 @@ if (unisexCatalogVersion !== UNISEX_CATALOG_VERSION) {
   synchronizeUnisex();
   console.log(`Unisex catalog synchronized: ${UNISEX.length} local products.`);
 }
+
+// One-time production synchronization for the Excel Brand catalog only.
+const BRAND_CATALOG_VERSION = '2026-08-05-v1';
+const brandCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='brand_catalog_version'`).get()?.value;
+if (brandCatalogVersion !== BRAND_CATALOG_VERSION) {
+  const { synchronizeBrandCatalog } = require('./import-excel');
+  const result = synchronizeBrandCatalog(db);
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('brand_catalog_version', ?)`).run(BRAND_CATALOG_VERSION);
+  console.log(`Brand catalog synchronized: ${result.products} products in ${result.brands} brands.`);
+}
+
