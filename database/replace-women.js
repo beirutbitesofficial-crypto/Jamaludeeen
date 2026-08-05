@@ -5,7 +5,9 @@
 const Database = require('better-sqlite3');
 const path     = require('path');
 
-const db = new Database(path.join(__dirname, '../data/store.db'));
+const db = require.main === module
+  ? new Database(path.join(__dirname, '../data/store.db'))
+  : null;
 
 const DEMO_PRICE = 50000; // 50,000 LBP
 
@@ -341,6 +343,10 @@ const WOMEN = [
   { n: "Zelda",                                       brand: "Other" },
 ];
 
+module.exports = { WOMEN };
+
+if (require.main === module) {
+
 const khaleejiSet = new Set(['Lattafa', 'Rasasi', 'Arabian Oud', 'Ajmal', 'Asdaaf', 'Ard Al Zaafaran']);
 
 const insertBrand   = db.prepare("INSERT OR IGNORE INTO brands (name, type) VALUES (?, ?)");
@@ -356,11 +362,7 @@ const run = db.transaction(() => {
   const del = db.prepare("DELETE FROM products WHERE category='women' AND type='local'").run();
   console.log(`  ✓ Removed ${del.changes} old women's products`);
 
-  // Ensure brands
-  const brandsSeen = new Set(WOMEN.map(p => p.brand));
-  for (const b of brandsSeen) {
-    insertBrand.run(b, khaleejiSet.has(b) ? 'khaleeji' : 'western');
-  }
+  // Local Women products must not create or modify storefront Brand records.
 
   // Insert products
   for (const p of WOMEN) insertProduct.run(p.n, p.brand, DEMO_PRICE);
@@ -370,3 +372,5 @@ const run = db.transaction(() => {
 
 run();
 console.log('\n✅ Done! Open http://localhost:3000/shop?category=women to verify.');
+db.close();
+}
