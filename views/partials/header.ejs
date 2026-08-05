@@ -13,10 +13,10 @@
 
 <!-- Flash messages -->
 <% if (success_msg && success_msg.length) { %>
-<div class="flash flash--success"><%= success_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">âœ•</button></div>
+<div class="flash flash--success"><%= success_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">✕</button></div>
 <% } %>
 <% if (error_msg && error_msg.length) { %>
-<div class="flash flash--error"><%= error_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">âœ•</button></div>
+<div class="flash flash--error"><%= error_msg[0] %> <button class="flash__close" onclick="this.parentElement.remove()">✕</button></div>
 <% } %>
 
 <!-- Mobile nav overlay -->
@@ -46,7 +46,7 @@
       <li><a href="/shop/men"><%= t.men %></a></li>
       <li><a href="/shop/women"><%= t.women %></a></li>
       <li><a href="/shop/unisex"><%= t.unisex %></a></li>
-      <li><a href="/collections"><%= lang === 'ar' ? 'Ø§Ù„Ù…Ø§Ø±ÙƒØ§Øª' : 'Brands' %></a></li>
+      <li><a href="/collections"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></a></li>
       <li><a href="/contact"><%= t.contact %></a></li>
     </ul>
 
@@ -55,7 +55,7 @@
       <!-- Language toggle -->
       <form action="/set-lang" method="POST" class="lang-form">
         <button type="submit" name="lang" value="<%= lang === 'ar' ? 'en' : 'ar' %>" class="btn-lang">
-          <%= lang === 'ar' ? 'EN' : 'Ø¹Ø±Ø¨ÙŠ' %>
+          <%= lang === 'ar' ? 'EN' : 'عربي' %>
         </button>
       </form>
 
@@ -86,4 +86,3 @@
 
   </div>
 </nav>
-
