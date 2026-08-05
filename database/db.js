@@ -161,3 +161,24 @@ if (womenCatalogVersion !== WOMEN_CATALOG_VERSION) {
   synchronizeWomen();
   console.log(`Women catalog synchronized: ${WOMEN.length} local products.`);
 }
+
+// One-time production synchronization for local Unisex inventory only.
+const UNISEX_CATALOG_VERSION = '2026-08-05-v1';
+const unisexCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='unisex_catalog_version'`).get()?.value;
+if (unisexCatalogVersion !== UNISEX_CATALOG_VERSION) {
+  const { UNISEX } = require('./replace-unisex');
+  const configuredPrice = db.prepare(`SELECT value FROM settings WHERE key='local_price_unisex'`).get()?.value;
+  const sharedPrice = configuredPrice !== undefined && configuredPrice !== '' ? Number(configuredPrice) : 50000;
+  const synchronizeUnisex = db.transaction(() => {
+    db.prepare(`DELETE FROM products WHERE category='unisex' AND type='local'`).run();
+    const insert = db.prepare(`
+      INSERT INTO products
+        (name_en, category, brand, type, price, image_path, brand_category_id, in_stock, featured)
+      VALUES (?, 'unisex', ?, 'local', ?, NULL, NULL, 1, 0)
+    `);
+    for (const product of UNISEX) insert.run(product.n, product.brand, sharedPrice);
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('unisex_catalog_version', ?)`).run(UNISEX_CATALOG_VERSION);
+  });
+  synchronizeUnisex();
+  console.log(`Unisex catalog synchronized: ${UNISEX.length} local products.`);
+}
