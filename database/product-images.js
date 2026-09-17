@@ -103,6 +103,56 @@ const PRODUCT_IMAGES = [
     name: 'H.L ROMANCE',
     image: 'https://medaid.ae/cdn/shop/files/Romance-for-Women_e2007861-8638-4f50-b7af-82a8e37c3586.webp?v=1746880660&width=1946',
   },
+  {
+    brand: 'JUNAID',
+    name: 'MOATTAR DHAHAB',
+    image: 'https://witr.com.au/cdn/shop/files/Moattar_Dhahab_1.webp?v=1780840090&width=1000',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'THULOOJ INTENSE',
+    image: 'https://world.junaidperfumes.com/cdn/shop/files/Thulooj_Intense.jpg?v=1756129998&width=1445',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'THULOOJ',
+    image: 'https://witr.com.au/cdn/shop/files/thulooj_gents_junaid.jpg?v=1780877392&width=1000',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'FUTAINA',
+    image: 'https://world.junaidperfumes.com/cdn/shop/files/Futaina_20_2_20copy_b435f513-3e1c-4bb8-ac0d-62b8eb0b8c63.jpg?v=1756130109&width=1946',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'MUSK OCEAN',
+    image: 'https://world.junaidperfumes.com/cdn/shop/files/Ocean-Musk.jpg?v=1756130054&width=1445',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'MUSK',
+    image: 'https://world.junaidperfumes.com/cdn/shop/files/Musk-10-0-4146.jpg?v=1756129991&width=1946',
+  },
+  {
+    brand: 'JUNAID',
+    name: 'NASHWA',
+    image: 'https://world.junaidperfumes.com/cdn/shop/files/Nashwa.jpg?v=1756129995&width=1946',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ATLANTIS EXTRAIT',
+    image: 'https://frenchavenue.com/cdn/shop/files/1-2025-08-20T113257.096.jpg?v=1755675237&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'IRIDA EXTRAIT',
+    image: 'https://orioudh.com/cdn/shop/files/irida-extrait-de-parfum-100ml-by-french-avenue-women-perfume-extrait-de-parfum-100ml-french-avenue-309937-1191457790.jpg?crop=center&height=2048&v=1757064936&width=2048',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: "ROSES D'EMOTION",
+    image: 'https://cdn.notinoimg.com/detail_main_hq/french_avenue/6290360370217_02-o/roses-demotion___250109.jpg',
+  },
 ];
 
 function normalize(value) {
