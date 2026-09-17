@@ -253,6 +253,106 @@ const PRODUCT_IMAGES = [
     name: 'CANDY POP',
     image: 'https://productosdelujo.cl/cdn/shop/files/CANDYPOP.png?v=1751657428&width=2048',
   },
+  {
+    brand: 'TUBBEES',
+    name: 'LYCHEE LUSH',
+    image: 'https://www.tubbees.com/cdn/shop/files/Lychee_Lush_Perfume.jpg?v=1781693815&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'CHERRY LUXE',
+    image: 'https://www.tubbees.com/cdn/shop/files/TubbeesCherryLuxe.jpg?v=1783682279&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'BERRY BLAST',
+    image: 'https://www.tubbees.com/cdn/shop/files/Berry_Blast_Perfume.jpg?v=1781693836&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'BUBBLE GUM',
+    image: 'https://www.tubbees.com/cdn/shop/files/Bubble_Gum_Perfume.jpg?v=1781693963&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'CHOCOLATE FUDGE',
+    image: 'https://www.tubbees.com/cdn/shop/files/TubbeesChocolatefudge.jpg?v=1783682126&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'SWEET CARAMEL',
+    image: 'https://www.tubbees.com/cdn/shop/files/sweet-caramel_b2a969d8-7c0f-436b-b1ab-c4e9d71f4087.png?v=1758025350&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'UNICORN VANILLA',
+    image: 'https://www.tubbees.com/cdn/shop/files/Unicorn_Vanilla_Perfume.jpg?v=1781693940&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'PISTACHIO KUNAFA',
+    image: 'https://www.tubbees.com/cdn/shop/files/Pistachio_Kunafa_perfume.jpg?v=1781693804&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'COOKIES & CREAM',
+    image: 'https://www.tubbees.com/cdn/shop/files/Cookies_Cream.jpg?v=1775558659&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'DREAMY TREATS',
+    image: 'https://www.tubbees.com/cdn/shop/files/dreamy-treat.png?v=1758025754&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'STRAWBERRY CHEESECAKE',
+    image: 'https://www.tubbees.com/cdn/shop/files/StrawberryCheesecake.jpg?v=1775558459&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'TROPICAL ISLAND',
+    image: 'https://www.tubbees.com/cdn/shop/files/Tropical_Island_Perfume.jpg?v=1781693874&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'PINK SUGAR',
+    image: 'https://www.tubbees.com/cdn/shop/files/Pink_Sugar_Perfume_da8cccee-6ac9-4c12-a868-5883365c33f5.jpg?v=1783512420&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST GOLDEN PRALINE BLISS',
+    image: 'https://www.tubbees.com/cdn/shop/files/Golden_Praline_Bliss_Body_Mist.jpg?v=1781694490&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST SWEET MANGO MELODY',
+    image: 'https://www.tubbees.com/cdn/shop/files/Sweet_Mango_Melody_Body_Mist_b276bf35-1064-4364-98a6-8d50a42eed38.jpg?v=1785132318&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST LEMON -A- LICIOUS!',
+    image: 'https://www.tubbees.com/cdn/shop/files/Lemon_a_Licious_Body_Mist_49a91001-3438-4aac-afcc-c9b5e59439d6.jpg?v=1785132233&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST BERRY EXPLOSION',
+    image: 'https://www.tubbees.com/cdn/shop/files/Berry_Explosion_Body_Mist.jpg?v=1781694388&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST TIRA-MISS-YOU',
+    image: 'https://www.tubbees.com/cdn/shop/files/Tira_Miss_You_Body_Mist.jpg?v=1781694547&width=1946',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'MIST TRES LECHES',
+    image: 'https://www.tubbees.com/cdn/shop/files/Tres_Leches_Body_Mist_d475d5cd-b401-4a9c-b037-2480af9d580f.jpg?v=1785132333&width=533',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'JAR SWEET MANGO MELODY',
+    image: 'https://www.tubbees.com/cdn/shop/files/Sweet_Mango_Melody_Perfume.png?v=1781694790&width=533',
+  },
 ];
 
 function normalize(value) {
