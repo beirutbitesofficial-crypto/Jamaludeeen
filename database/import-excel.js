@@ -8,6 +8,7 @@
 
 const path = require('path');
 const XLSX = require('xlsx');
+const { getProductImage } = require('./product-images');
 
 const RATE = 90000;
 const DEFAULT_FILE = path.join(__dirname, '..', 'TAHA.xlsx');
@@ -33,6 +34,7 @@ function readCatalog(file = DEFAULT_FILE) {
       name,
       brand,
       price: Math.round(priceUsd * RATE / 1000) * 1000,
+      image: getProductImage(brand, name),
     }];
   });
 }
@@ -58,7 +60,7 @@ function synchronizeBrandCatalog(db, file = DEFAULT_FILE) {
       INSERT INTO products
         (name_en, name_ar, brand, category, type, price, image_path,
          description_en, description_ar, brand_category_id, in_stock, featured)
-      VALUES (?, '', ?, 'unisex', 'brand', ?, NULL, '', '', ?, 1, 0)
+      VALUES (?, '', ?, 'unisex', 'brand', ?, ?, '', '', ?, 1, 0)
     `);
 
     const categoryByBrand = new Map();
@@ -70,7 +72,13 @@ function synchronizeBrandCatalog(db, file = DEFAULT_FILE) {
     }
 
     for (const product of products) {
-      insertProduct.run(product.name, product.brand, product.price, categoryByBrand.get(product.brand));
+      insertProduct.run(
+        product.name,
+        product.brand,
+        product.price,
+        product.image,
+        categoryByBrand.get(product.brand)
+      );
     }
   });
 
@@ -85,4 +93,3 @@ if (require.main === module) {
   const result = synchronizeBrandCatalog(db);
   console.log(`Brand catalog synchronized: ${result.products} products in ${result.brands} brands.`);
 }
-
