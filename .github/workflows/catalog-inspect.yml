@@ -1,0 +1,60 @@
+name: catalog-inspect
+
+on:
+  push:
+    branches:
+      - catalog-inspect2
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dump first catalog rows
+        shell: bash
+        run: |
+          python - <<'PY'
+          import zipfile, xml.etree.ElementTree as ET, json, re
+
+          NS = {'a': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+
+          def col_index(ref):
+              letters = re.match(r'([A-Z]+)', ref).group(1)
+              n = 0
+              for ch in letters:
+                  n = n * 26 + ord(ch) - 64
+              return n - 1
+
+          with zipfile.ZipFile('TAHA.xlsx') as z:
+              shared = []
+              if 'xl/sharedStrings.xml' in z.namelist():
+                  root = ET.fromstring(z.read('xl/sharedStrings.xml'))
+                  for si in root.findall('a:si', NS):
+                      shared.append(''.join((t.text or '') for t in si.iter('{%s}t' % NS['a'])))
+
+              root = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
+              rows = []
+              for row in root.findall('.//a:sheetData/a:row', NS):
+                  values = []
+                  for cell in row.findall('a:c', NS):
+                      idx = col_index(cell.attrib.get('r', 'A1'))
+                      while len(values) <= idx:
+                          values.append('')
+                      typ = cell.attrib.get('t')
+                      value = ''
+                      if typ == 'inlineStr':
+                          is_node = cell.find('a:is', NS)
+                          if is_node is not None:
+                              value = ''.join((t.text or '') for t in is_node.iter('{%s}t' % NS['a']))
+                      else:
+                          v = cell.find('a:v', NS)
+                          if v is not None and v.text is not None:
+                              if typ == 's':
+                                  value = shared[int(v.text)]
+                              else:
+                                  value = v.text
+                      values[idx] = value
+                  rows.append(values)
+
+          print('CATALOG_ROWS_JSON=' + json.dumps(rows[:40], ensure_ascii=False))
+          PY
