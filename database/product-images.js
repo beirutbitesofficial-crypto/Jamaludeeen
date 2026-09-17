@@ -28,6 +28,31 @@ const PRODUCT_IMAGES = [
     name: 'H.L ROSA',
     image: 'https://labbanperfume.com/cdn/shop/files/ROSA___NOTES___1_under_70KB_1280x.webp?v=1771323636',
   },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L VANILLA TWILIGHT',
+    image: 'https://labbanperfume.com/cdn/shop/files/VANILLA_TWILIGHT_-_VANILLA_NOTE_1280x.webp?v=1771323858',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L NEW OUD',
+    image: 'https://labbanperfume.com/cdn/shop/files/NEW_OUD_under_100KB_1280x.webp?v=1770028988',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L WHITE MUSK',
+    image: 'https://labbanperfume.com/cdn/shop/files/WHITE_MUSK_FLOAT_under_100KB_1280x.webp?v=1771323794',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L CODE',
+    image: 'https://labbanperfume.com/cdn/shop/files/CODE_1280x.webp?v=1745582492',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L SENORITA',
+    image: 'https://labbanperfume.com/cdn/shop/files/SENORITA_NOTES_under_70KB_1280x.webp?v=1771323879',
+  },
 ];
 
 function normalize(value) {
