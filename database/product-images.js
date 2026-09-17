@@ -153,6 +153,106 @@ const PRODUCT_IMAGES = [
     name: "ROSES D'EMOTION",
     image: 'https://cdn.notinoimg.com/detail_main_hq/french_avenue/6290360370217_02-o/roses-demotion___250109.jpg',
   },
+  {
+    brand: 'FRENCH AVENUE',
+    name: "AMBER D'OR",
+    image: 'https://de.swedishface.com/image/cache/data/french-avenue-amber-dor-edp-100ml-1200x1200.jpg',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'SAFARI BREEZE',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_30_119af50e-a703-451d-9431-1f9a1c27ea38.jpg?v=1767178603&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ROYAL BLEND',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_0c13c6f3-ab85-4b41-b4d0-5d58b65ea455.jpg?v=1751982512&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ROYAL BLEND NERO',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_a3eee318-8ca6-4c3b-9093-daaee273887b.jpg?v=1751982733&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ROYAL BLEND BOURBON',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_2cbd0975-a79c-458d-9ad5-86586627e767.jpg?v=1751982598&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'SULTAN THE CONQUEROR',
+    image: 'https://discountstore.pk/cdn/shop/files/71qyirp-yJL_1200x.jpg?v=1721984575',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'SULTAN THE FOUNDER',
+    image: 'https://frenchavenue.com/cdn/shop/files/05102_1.webp?v=1749715398&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'SULTANA THE JOYFUL',
+    image: 'https://fragrancefusion.nl/cdn/shop/files/French_Avenue_Sultana_The_Joyful.png?v=1762957155&width=1946',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'SOLITAIRE',
+    image: 'https://www.barakkat.lt/3456-large_default/french-avenue-solitaire-arabiski-kvepalai.jpg',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'VULCAN FEU',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_adefc13c-6803-433a-8ef5-b3aac7d179e2.jpg?v=1751985860&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ZENITH VANILLA',
+    image: 'https://frenchavenue.com/cdn/shop/files/1-2025-08-14T140736.640.jpg?v=1755166101&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ZENITH BLUE',
+    image: 'https://frenchavenue.com/cdn/shop/files/1-2025-08-14T140231.638.jpg?v=1755165791&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: "SH'MALLOW FLUFF",
+    image: 'https://frenchavenue.com/cdn/shop/files/1_2.jpg?v=1763200275&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'ENIGMA UNE',
+    image: 'https://cdn.brastygroup.eu/images/w700/6291108329313-3.webp?v=1763707979',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'LIQUID BRUN',
+    image: 'https://frenchavenue.com/cdn/shop/files/1-2025-07-28T152522.612.jpg?v=1753701977&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'RAVINE GINGER',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_62.jpg?v=1769500338&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'GHOST SPECTRE',
+    image: 'https://frenchavenue.com/cdn/shop/files/1_de7eb121-357b-4a23-99d2-c44f16f29a21.jpg?v=1751983880&width=416',
+  },
+  {
+    brand: 'FRENCH AVENUE',
+    name: 'THUNDER',
+    image: 'https://frenchavenue.com/cdn/shop/files/1-2025-08-14T135147.181.jpg?v=1755165157&width=416',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'COTTON CANDY',
+    image: 'https://cazanovaonline.mx/cdn/shop/files/Disenosintitulo_28_7b9d4e91-41c9-465c-93f8-3aff260700c1.jpg?v=1744404651',
+  },
+  {
+    brand: 'TUBBEES',
+    name: 'CANDY POP',
+    image: 'https://productosdelujo.cl/cdn/shop/files/CANDYPOP.png?v=1751657428&width=2048',
+  },
 ];
 
 function normalize(value) {
