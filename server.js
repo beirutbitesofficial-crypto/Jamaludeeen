@@ -44,6 +44,27 @@ app.use(session({
 // Flash messages
 app.use(flash());
 
+// Lightweight health endpoint registered before database initialization.
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
+// Bind the Hostinger-provided port immediately. Some first-run database/catalog
+// initialization is synchronous and may take a few seconds; binding first keeps
+// the platform from marking the service unavailable during startup.
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('\n──────────────────────────────────');
+  console.log('  JAMALUDEEN Perfume Store');
+  console.log(`  Listening on 0.0.0.0:${PORT}`);
+  console.log(`  Admin : /admin`);
+  console.log('──────────────────────────────────\n');
+});
+
+server.on('error', (error) => {
+  console.error('Server listen error:', error);
+  process.exit(1);
+});
+
 // Global locals for every view
 app.use((req, res, next) => {
   const lang = req.session.lang || 'en';
@@ -71,7 +92,8 @@ app.post('/set-lang', (req, res) => {
   res.redirect(back);
 });
 
-// Routes
+// Routes. These imports initialize SQLite/catalog data on first run, so they
+// intentionally come after app.listen().
 app.use('/', require('./routes/index'));
 app.use('/shop', require('./routes/shop'));
 app.use('/collections', require('./routes/collections'));
@@ -82,12 +104,4 @@ app.use('/admin', require('./routes/admin'));
 // 404 handler
 app.use((req, res) => {
   res.status(404).render('404', { title: '404' });
-});
-
-app.listen(PORT, () => {
-  console.log('\n──────────────────────────────────');
-  console.log('  JAMALUDEEN Perfume Store');
-  console.log(`  Store :  http://localhost:${PORT}`);
-  console.log(`  Admin :  http://localhost:${PORT}/admin`);
-  console.log('──────────────────────────────────\n');
 });
