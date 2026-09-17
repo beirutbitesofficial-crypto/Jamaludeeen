@@ -1,8 +1,11 @@
 {
   "name": "jamaludeen-perfume-store",
   "version": "1.0.0",
-  "description": "Jamaludeen Luxury Perfume Store â€“ Lebanon",
+  "description": "Jamaludeen Luxury Perfume Store – Lebanon",
   "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -10,7 +13,7 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.2.1",
+    "better-sqlite3": "13.0.3",
     "connect-flash": "^0.1.1",
     "dotenv": "^16.4.1",
     "ejs": "^3.1.9",
@@ -24,4 +27,3 @@
     "nodemon": "^3.0.3"
   }
 }
-
