@@ -1,98 +1,91 @@
 <%- include('partials/header', { title: title }) %>
 
-<div class="shop-page">
-  <div class="container">
-
-    <!-- Page header -->
-    <div class="page-header">
-      <p class="page-header__eyebrow">JAMALUDEEN COLLECTION</p>
-      <h1 class="page-header__title">
-        <% if (filters.category === 'men') { %><%= t.men_perfumes %>
-        <% } else if (filters.category === 'women') { %><%= t.women_perfumes %>
-        <% } else if (filters.category === 'unisex') { %><%= t.unisex_perfumes %>
-        <% } else { %><%= t.all_perfumes %><% } %>
-      </h1>
-      <p class="page-header__count"><%= pagination.total %> <%= t.products %></p>
-      <nav class="collection-tabs" aria-label="Catalog categories">
-        <a href="/shop/men" class="<%= filters.category === 'men' ? 'active' : '' %>"><%= t.men %></a>
-        <a href="/shop/women" class="<%= filters.category === 'women' ? 'active' : '' %>"><%= t.women %></a>
-        <a href="/shop/unisex" class="<%= filters.category === 'unisex' ? 'active' : '' %>"><%= t.unisex %></a>
-        <a href="/collections"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></a>
-      </nav>
+<main class="store-catalog-page">
+  <section class="store-catalog-hero">
+    <div class="container">
+      <p class="store-kicker store-kicker--dark">JAMALUDEEN COLLECTION</p>
+      <div class="store-catalog-hero__row">
+        <div>
+          <h1>
+            <% if (filters.category === 'men') { %><%= t.men_perfumes %>
+            <% } else if (filters.category === 'women') { %><%= t.women_perfumes %>
+            <% } else if (filters.category === 'unisex') { %><%= t.unisex_perfumes %>
+            <% } else { %><%= t.all_perfumes %><% } %>
+          </h1>
+          <p><%= pagination.total %> <%= t.products %></p>
+        </div>
+        <div class="store-catalog-tabs">
+          <a href="/shop/men" class="<%= filters.category === 'men' ? 'active' : '' %>"><%= t.men %></a>
+          <a href="/shop/women" class="<%= filters.category === 'women' ? 'active' : '' %>"><%= t.women %></a>
+          <a href="/shop/unisex" class="<%= filters.category === 'unisex' ? 'active' : '' %>"><%= t.unisex %></a>
+          <a href="/collections"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></a>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <form method="GET" action="/shop/<%= filters.category %>" class="catalog-toolbar" id="filterForm">
-      <label class="catalog-search">
-        <span class="catalog-search__label"><%= lang === 'ar' ? 'بحث في المجموعة' : 'Search the collection' %></span>
-        <span class="catalog-search__row">
-          <input type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="catalog-search__input"/>
-          <button type="submit" class="catalog-search__button"><%= lang === 'ar' ? 'بحث' : 'Search' %></button>
-        </span>
-      </label>
-      <% if (filters.q) { %><a href="/shop/<%= filters.category %>" class="catalog-clear"><%= lang === 'ar' ? 'مسح البحث' : 'Clear search' %></a><% } %>
-    </form>
+  <section class="store-catalog-body">
+    <div class="container">
+      <div class="store-catalog-toolbar">
+        <form method="GET" action="/shop/<%= filters.category %>" class="store-search-form">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= lang === 'ar' ? 'ابحث عن اسم عطر أو ماركة...' : 'Search perfume or brand...' %>"/>
+          <button type="submit"><%= lang === 'ar' ? 'بحث' : 'Search' %></button>
+        </form>
+        <% if (filters.q) { %><a href="/shop/<%= filters.category %>" class="store-clear-search"><%= lang === 'ar' ? 'مسح البحث' : 'Clear search' %></a><% } %>
+      </div>
 
-    <div class="shop-layout shop-layout--catalog">
+      <div class="store-catalog-layout">
+        <aside class="store-filter-panel" id="shopSidebar">
+          <div class="store-filter-panel__head">
+            <strong><%= lang === 'ar' ? 'تصفية المجموعة' : 'Filter collection' %></strong>
+            <span><%= pagination.total %></span>
+          </div>
+          <nav class="store-filter-links">
+            <a href="/shop/men<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>" class="<%= filters.category === 'men' ? 'active' : '' %>"><span><%= t.men %></span><b>→</b></a>
+            <a href="/shop/women<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>" class="<%= filters.category === 'women' ? 'active' : '' %>"><span><%= t.women %></span><b>→</b></a>
+            <a href="/shop/unisex<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>" class="<%= filters.category === 'unisex' ? 'active' : '' %>"><span><%= t.unisex %></span><b>→</b></a>
+            <a href="/collections"><span><%= lang === 'ar' ? 'كل الماركات' : 'All brands' %></span><b>→</b></a>
+          </nav>
+          <div class="store-filter-panel__note">
+            <span>J</span>
+            <p><%= lang === 'ar' ? 'مش عارف شو تختار؟ تواصل معنا ومنساعدك تلاقي العطر المناسب.' : 'Not sure what to choose? Message us and we’ll help you find your scent.' %></p>
+          </div>
+        </aside>
 
-      <!-- Filters sidebar -->
-      <aside class="shop-sidebar catalog-category-panel" id="shopSidebar">
-        <div class="shop-sidebar__inner">
-          <h3 class="shop-sidebar__title"><%= lang === 'ar' ? 'تسوّق حسب الفئة' : 'Shop by category' %></h3>
+        <section class="store-catalog-products">
+          <button class="store-mobile-filter" id="filterToggle"><%= lang === 'ar' ? 'اختيار الفئة' : 'Choose category' %> <span>+</span></button>
 
-          <div>
-            <div class="filter-group">
-              <label class="filter-label"><%= lang === 'ar' ? 'الفئة' : 'Category' %></label>
-              <div class="filter-options">
-                <a href="/shop/men<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>"
-                   class="filter-option <%= filters.category === 'men' ? 'active' : '' %>"><%= t.men %></a>
-                <a href="/shop/women<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>"
-                   class="filter-option <%= filters.category === 'women' ? 'active' : '' %>"><%= t.women %></a>
-                <a href="/shop/unisex<%= filters.q ? '?q='+encodeURIComponent(filters.q) : '' %>"
-                   class="filter-option <%= filters.category === 'unisex' ? 'active' : '' %>"><%= t.unisex %></a>
-              </div>
+          <% if (!products.length) { %>
+            <div class="store-empty-state">
+              <span>J</span>
+              <h2><%= t.no_products %></h2>
+              <p><%= lang === 'ar' ? 'جرّب بحث مختلف أو تصفّح فئة ثانية.' : 'Try a different search or browse another category.' %></p>
+              <a href="/shop/<%= filters.category %>" class="store-btn store-btn--dark"><%= lang === 'ar' ? 'مسح البحث' : 'Clear search' %></a>
+            </div>
+          <% } else { %>
+            <div class="products-grid store-products-grid store-products-grid--catalog">
+              <% products.forEach(p => { %>
+                <%- include('partials/product-card', { p }) %>
+              <% }) %>
             </div>
 
-          </div>
-        </div>
-      </aside>
-
-      <!-- Products grid -->
-      <main class="shop-main">
-        <!-- Mobile filter toggle -->
-        <button class="shop-filter-toggle" id="filterToggle">
-          <%= lang === 'ar' ? 'اختيار الفئة' : 'Choose category' %>
-        </button>
-
-        <% if (!products.length) { %>
-        <div class="empty-state">
-          <p class="empty-state__icon">✦</p>
-          <h3><%= t.no_products %></h3>
-          <a href="/shop/<%= filters.category %>" class="btn btn--outline"><%= lang === 'ar' ? 'مسح الفلتر' : 'Clear filters' %></a>
-        </div>
-        <% } else { %>
-        <div class="products-grid">
-          <% products.forEach(p => { %>
-          <%- include('partials/product-card', { p }) %>
-          <% }) %>
-        </div>
-
-        <!-- Pagination -->
-        <% if (pagination.totalPages > 1) { %>
-        <div class="pagination">
-          <% if (pagination.page > 1) { %>
-          <a href="/shop/<%= filters.category %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">← <%= t.prev %></a>
+            <% if (pagination.totalPages > 1) { %>
+            <nav class="store-pagination" aria-label="Pagination">
+              <% if (pagination.page > 1) { %>
+                <a href="/shop/<%= filters.category %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>">← <%= t.prev %></a>
+              <% } else { %><span></span><% } %>
+              <span><%= pagination.page %> / <%= pagination.totalPages %></span>
+              <% if (pagination.page < pagination.totalPages) { %>
+                <a href="/shop/<%= filters.category %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>"><%= t.next_page %> →</a>
+              <% } else { %><span></span><% } %>
+            </nav>
+            <% } %>
           <% } %>
-          <span class="pagination__info"><%= t.page %> <%= pagination.page %> <%= t.of %> <%= pagination.totalPages %></span>
-          <% if (pagination.page < pagination.totalPages) { %>
-          <a href="/shop/<%= filters.category %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn"><%= t.next_page %> →</a>
-          <% } %>
-        </div>
-        <% } %>
-        <% } %>
-      </main>
-
+        </section>
+      </div>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
 <%- include('partials/footer') %>
