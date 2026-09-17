@@ -11,7 +11,8 @@ router.get('/', (req, res) => {
   res.render('collections', { title: 'Brands', western, khaleeji });
 });
 
-// GET /collections/:brandId — brand detail: shows its categories as cards
+// GET /collections/:brandId — if the brand has one category, go straight to products.
+// Only show the category chooser when a brand genuinely has multiple categories.
 router.get('/:brandId(\\d+)', (req, res) => {
   const brand = db.prepare(`SELECT * FROM brands WHERE id = ?`).get(req.params.brandId);
   if (!brand) return res.status(404).render('404', { title: '404' });
@@ -24,6 +25,10 @@ router.get('/:brandId(\\d+)', (req, res) => {
     GROUP BY bc.id
     ORDER BY bc.sort_order ASC, bc.name_en ASC
   `).all(brand.id);
+
+  if (categories.length === 1) {
+    return res.redirect(`/collections/${brand.id}/category/${categories[0].id}`);
+  }
 
   res.render('brand-detail', { title: brand.name, brand, categories });
 });
