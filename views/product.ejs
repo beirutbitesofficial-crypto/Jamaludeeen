@@ -1,79 +1,90 @@
 <%- include('partials/header', { title: product.name_en }) %>
 
-<div class="product-page">
+<main class="store-product-page">
   <div class="container">
-    <a href="/shop/<%= product.category %>" class="back-link"><%= t.back_to_shop %></a>
+    <nav class="store-breadcrumb">
+      <a href="/"><%= t.home %></a><span>/</span>
+      <a href="/shop/<%= product.category %>"><%= product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex %></a><span>/</span>
+      <span><%= lang === 'ar' && product.name_ar ? product.name_ar : product.name_en %></span>
+    </nav>
 
-    <div class="product-detail">
-
-      <!-- Image -->
-      <div class="product-detail__image">
-        <% if (product.image_path) { %>
-          <img src="<%= product.image_path %>" alt="<%= product.name_en %>"/>
-        <% } else { %>
-          <div class="product-detail__placeholder"><span>✦</span></div>
-        <% } %>
+    <section class="store-product-detail">
+      <div class="store-product-detail__visual">
+        <div class="store-product-detail__image">
+          <% if (product.image_path) { %>
+            <img src="<%= product.image_path %>" alt="<%= product.name_en %>"/>
+          <% } else { %>
+            <div class="store-product-detail__placeholder"><span>J</span></div>
+          <% } %>
+        </div>
       </div>
 
-      <!-- Info -->
-      <div class="product-detail__info">
-        <span class="product-detail__category badge badge--<%= product.category %>">
-          <%= product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex %>
-        </span>
-        <h1 class="product-detail__name"><%= product.name_en %></h1>
-        <% if (product.name_ar) { %><p class="product-detail__name-ar"><%= product.name_ar %></p><% } %>
-        <p class="product-detail__brand"><%= t.brand %>: <strong><%= product.brand %></strong></p>
+      <div class="store-product-detail__info">
+        <p class="store-kicker store-kicker--dark"><%= product.brand || 'JAMALUDEEN' %></p>
+        <h1><%= lang === 'ar' && product.name_ar ? product.name_ar : product.name_en %></h1>
+        <% if (lang === 'ar' && product.name_ar && product.name_en) { %><p class="store-product-detail__alt-name"><%= product.name_en %></p><% } %>
+
+        <div class="store-product-detail__price-row">
+          <% if (product.price) { %>
+            <span class="store-product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
+          <% } else { %>
+            <span class="store-product-detail__price store-product-detail__price--muted"><%= t.price_not_set %></span>
+          <% } %>
+          <span class="store-stock <%= product.in_stock ? 'is-in' : 'is-out' %>"><i></i><%= product.in_stock ? t.in_stock : t.out_of_stock %></span>
+        </div>
 
         <% if (product.description_en || product.description_ar) { %>
-        <div class="product-detail__desc">
-          <% if (lang !== 'ar' && product.description_en) { %><p><%= product.description_en %></p><% } %>
-          <% if (lang === 'ar' && product.description_ar) { %><p><%= product.description_ar %></p>
-          <% } else if (product.description_en) { %><p><%= product.description_en %></p><% } %>
+        <div class="store-product-detail__description">
+          <% if (lang === 'ar' && product.description_ar) { %>
+            <p><%= product.description_ar %></p>
+          <% } else if (product.description_en) { %>
+            <p><%= product.description_en %></p>
+          <% } %>
         </div>
         <% } %>
-
-        <div class="product-detail__price-row">
-          <% if (product.price) { %>
-            <span class="product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
-          <% } else { %>
-            <span class="product-detail__price product-detail__price--na"><%= t.price_not_set %></span>
-          <% } %>
-          <span class="product-detail__stock <%= product.in_stock ? 'in-stock' : 'out-stock' %>">
-            <%= product.in_stock ? t.in_stock : t.out_of_stock %>
-          </span>
-        </div>
 
         <% if (product.in_stock && product.price) { %>
-        <form action="/cart/add" method="POST" class="product-detail__cart-form">
+        <form action="/cart/add" method="POST" class="store-product-detail__cart">
           <input type="hidden" name="productId" value="<%= product.id %>"/>
-          <div class="qty-row">
-            <label><%= t.qty %>:</label>
-            <input type="number" name="qty" value="1" min="1" max="99" class="qty-input"/>
+          <div class="store-qty-field">
+            <label for="productQty"><%= t.qty %></label>
+            <input id="productQty" type="number" name="qty" value="1" min="1" max="99"/>
           </div>
-          <button type="submit" class="btn btn--primary btn--full"><%= t.add_to_cart %></button>
+          <button type="submit" class="store-btn store-btn--dark store-btn--full"><%= lang === 'ar' ? 'أضف إلى السلة' : 'Add to bag' %></button>
         </form>
-        <% } else if (!product.in_stock) { %>
-        <div class="product-detail__oos-msg"><%= t.out_of_stock %></div>
         <% } else { %>
-        <div class="product-detail__oos-msg"><%= t.price_not_set %></div>
+          <div class="store-product-detail__unavailable"><%= product.in_stock ? t.price_not_set : t.out_of_stock %></div>
         <% } %>
+
+        <button class="btn-wishlist store-product-detail__wishlist" data-id="<%= product.id %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span><%= lang === 'ar' ? 'احفظ بالمفضلة' : 'Save to wishlist' %></span>
+        </button>
+
+        <div class="store-product-detail__assurances">
+          <div><span>01</span><div><strong><%= lang === 'ar' ? 'توصيل لكل لبنان' : 'Delivery across Lebanon' %></strong><p><%= lang === 'ar' ? 'توصيل لجميع المناطق.' : 'Available to all regions.' %></p></div></div>
+          <div><span>02</span><div><strong><%= lang === 'ar' ? 'دفع مرن' : 'Flexible payment' %></strong><p><%= lang === 'ar' ? 'كاش عند الاستلام أو Whish Money.' : 'Cash on delivery or Whish Money.' %></p></div></div>
+          <div><span>03</span><div><strong><%= lang === 'ar' ? 'دعم مباشر' : 'Direct support' %></strong><p><%= lang === 'ar' ? 'تواصل معنا على واتساب لأي مساعدة.' : 'Message us on WhatsApp for help choosing.' %></p></div></div>
+        </div>
       </div>
+    </section>
 
-    </div><!-- end product-detail -->
-
-    <!-- Related products -->
-    <% if (related.length) { %>
-    <section class="related-products">
-      <h2 class="section__title"><%= lang === 'ar' ? 'منتجات مشابهة' : 'You Might Also Like' %></h2>
-      <div class="products-grid">
+    <% if (related && related.length) { %>
+    <section class="store-section store-related-products">
+      <div class="store-section__head">
+        <div>
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'قد يعجبك أيضاً' : 'YOU MAY ALSO LIKE' %></p>
+          <h2><%= lang === 'ar' ? 'عطور مشابهة' : 'More to discover' %></h2>
+        </div>
+      </div>
+      <div class="products-grid store-products-grid">
         <% related.forEach(p => { %>
-        <%- include('partials/product-card', { p }) %>
+          <%- include('partials/product-card', { p }) %>
         <% }) %>
       </div>
     </section>
     <% } %>
-
   </div>
-</div>
+</main>
 
 <%- include('partials/footer') %>
