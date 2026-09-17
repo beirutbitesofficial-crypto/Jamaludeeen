@@ -1,8 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
+const { PRODUCT_IMAGES } = require('../database/product-images');
 
 const PAGE_SIZE = 24;
+
+// Apply curated image mappings to the existing production catalog without
+// recreating products or changing their IDs. This is safe to run at startup.
+try {
+  const updateImage = db.prepare(`
+    UPDATE products
+    SET image_path = ?
+    WHERE type = 'brand'
+      AND UPPER(TRIM(brand)) = UPPER(TRIM(?))
+      AND UPPER(TRIM(name_en)) = UPPER(TRIM(?))
+  `);
+  const syncImages = db.transaction(() => {
+    for (const item of PRODUCT_IMAGES) {
+      updateImage.run(item.image, item.brand, item.name);
+    }
+  });
+  syncImages();
+  console.log(`Curated product images synchronized: ${PRODUCT_IMAGES.length}`);
+} catch (error) {
+  console.error('Product image synchronization failed:', error.message);
+}
 
 // GET /collections — brand list page (clean grid, no filters)
 router.get('/', (req, res) => {
