@@ -53,6 +53,56 @@ const PRODUCT_IMAGES = [
     name: 'H.L SENORITA',
     image: 'https://labbanperfume.com/cdn/shop/files/SENORITA_NOTES_under_70KB_1280x.webp?v=1771323879',
   },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L INTENSE OCEAN',
+    image: 'https://labbanperfume.com/cdn/shop/files/INTENSE_OCEAN___NOTES___1_under_70KB_1280x.webp?v=1771323611',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L ROYAL OUD',
+    image: 'https://labbanperfume.com/cdn/shop/files/ROYAL_OUD___NOTES___1_under_70KB_1280x.webp?v=1771323697',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L WARM AMBER',
+    image: 'https://labbanperfume.com/cdn/shop/files/WARM_AMBER___NOTES___1_under_70KB_1280x.webp?v=1771323670',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L ROSELLA',
+    image: 'https://labbanperfume.com/cdn/shop/files/ROSELLA___NOTES___1_under_70KB_1280x.webp?v=1771323951',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L SWEET OUD',
+    image: 'https://labbanperfume.com/cdn/shop/files/SWEET_OUD___NOTES___1_under_70KB_1280x.webp?v=1771323655',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L SIENNA',
+    image: 'https://labbanperfume.com/cdn/shop/files/d92333e8f0f91e25c4caf7913efe22e7_1280x.webp?v=1757752764',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L INFINITY',
+    image: 'https://labbanperfume.com/cdn/shop/files/INFINITY___NOTES___1_under_70KB_1280x.webp?v=1771323661',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L MYSTERY',
+    image: 'https://labbanperfume.com/cdn/shop/files/MYSTERY_1280x.webp?v=1768038386',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L LEGEND',
+    image: 'https://labbanperfume.com/cdn/shop/files/LEGEND___NOTES___1_under_70KB_1280x.webp?v=1771323618',
+  },
+  {
+    brand: 'HAMZA AL LABBAN',
+    name: 'H.L ROMANCE',
+    image: 'https://medaid.ae/cdn/shop/files/Romance-for-Women_e2007861-8638-4f50-b7af-82a8e37c3586.webp?v=1746880660&width=1946',
+  },
 ];
 
 function normalize(value) {
