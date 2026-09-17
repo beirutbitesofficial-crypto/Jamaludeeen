@@ -1,0 +1,64 @@
+name: catalog-western
+
+on:
+  push:
+    branches:
+      - catalog-inspect2
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dump first western catalog products
+        shell: bash
+        run: |
+          python - <<'PY'
+          import zipfile, xml.etree.ElementTree as ET, json, re
+
+          NS = {'a': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+          KHALEEJI = {
+            'LATTAFA', 'LATTAFA PRIDE', 'RASASI', 'ARD AL ZAAFARAN TRADING',
+            'ASDAAF', 'MAISON ALHAMBRA', 'AFNAN', 'FRAGRANCE WORLD',
+            'RIFFS', 'SHAYKH ALKAR', 'AJMAL', 'ARABIAN OUD'
+          }
+
+          def col_index(ref):
+              letters = re.match(r'([A-Z]+)', ref).group(1)
+              n = 0
+              for ch in letters:
+                  n = n * 26 + ord(ch) - 64
+              return n - 1
+
+          with zipfile.ZipFile('TAHA.xlsx') as z:
+              shared = []
+              root = ET.fromstring(z.read('xl/sharedStrings.xml'))
+              for si in root.findall('a:si', NS):
+                  shared.append(''.join((t.text or '') for t in si.iter('{%s}t' % NS['a'])))
+              root = ET.fromstring(z.read('xl/worksheets/sheet1.xml'))
+              rows = []
+              for row in root.findall('.//a:sheetData/a:row', NS):
+                  values = []
+                  for cell in row.findall('a:c', NS):
+                      idx = col_index(cell.attrib.get('r', 'A1'))
+                      while len(values) <= idx:
+                          values.append('')
+                      typ = cell.attrib.get('t')
+                      v = cell.find('a:v', NS)
+                      value = ''
+                      if v is not None and v.text is not None:
+                          value = shared[int(v.text)] if typ == 's' else v.text
+                      values[idx] = value
+                  rows.append(values)
+
+          western = []
+          for row in rows[1:]:
+              if len(row) < 4:
+                  continue
+              name = str(row[1]).strip()
+              brand = str(row[2]).strip()
+              price = str(row[3]).strip()
+              if name and brand and brand.upper() not in KHALEEJI:
+                  western.append({'name': name, 'brand': brand, 'price_usd': price})
+          print('WESTERN_PRODUCTS_JSON=' + json.dumps(western[:30], ensure_ascii=False))
+          PY
