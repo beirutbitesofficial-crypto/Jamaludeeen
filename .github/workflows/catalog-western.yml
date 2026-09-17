@@ -60,5 +60,5 @@ jobs:
               price = str(row[3]).strip()
               if name and brand and brand.upper() not in EXCLUDE:
                   international.append({'name': name, 'brand': brand, 'price_usd': price})
-          print('INTERNATIONAL_PRODUCTS_JSON=' + json.dumps(international[:80], ensure_ascii=False))
+          print('INTERNATIONAL_PRODUCTS_JSON=' + json.dumps(international[80:180], ensure_ascii=False))
           PY
