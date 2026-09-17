@@ -10,17 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Dump first western catalog products
+      - name: Dump next international catalog products
         shell: bash
         run: |
           python - <<'PY'
           import zipfile, xml.etree.ElementTree as ET, json, re
 
           NS = {'a': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-          KHALEEJI = {
+          EXCLUDE = {
             'LATTAFA', 'LATTAFA PRIDE', 'RASASI', 'ARD AL ZAAFARAN TRADING',
             'ASDAAF', 'MAISON ALHAMBRA', 'AFNAN', 'FRAGRANCE WORLD',
-            'RIFFS', 'SHAYKH ALKAR', 'AJMAL', 'ARABIAN OUD'
+            'RIFFS', 'SHAYKH ALKAR', 'AJMAL', 'ARABIAN OUD', 'JAMALUDEEN'
           }
 
           def col_index(ref):
@@ -51,14 +51,14 @@ jobs:
                       values[idx] = value
                   rows.append(values)
 
-          western = []
+          international = []
           for row in rows[1:]:
               if len(row) < 4:
                   continue
               name = str(row[1]).strip()
               brand = str(row[2]).strip()
               price = str(row[3]).strip()
-              if name and brand and brand.upper() not in KHALEEJI:
-                  western.append({'name': name, 'brand': brand, 'price_usd': price})
-          print('WESTERN_PRODUCTS_JSON=' + json.dumps(western[:30], ensure_ascii=False))
+              if name and brand and brand.upper() not in EXCLUDE:
+                  international.append({'name': name, 'brand': brand, 'price_usd': price})
+          print('INTERNATIONAL_PRODUCTS_JSON=' + json.dumps(international[:80], ensure_ascii=False))
           PY
