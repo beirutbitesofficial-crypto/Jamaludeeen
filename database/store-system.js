@@ -23,6 +23,8 @@ addColumn('sales', 'change_usd REAL NOT NULL DEFAULT 0');
 addColumn('expenses', 'shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL');
 addColumn('order_items', 'size_ml INTEGER');
 addColumn('order_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
+addColumn('orders', 'stock_reserved INTEGER NOT NULL DEFAULT 0');
+addColumn('orders', 'sales_id INTEGER REFERENCES sales(id) ON DELETE SET NULL');
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
