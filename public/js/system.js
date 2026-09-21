@@ -225,7 +225,7 @@
     try{
       const d=await api('/system/api/products?q='+encodeURIComponent(q)+'&limit=200'+low);
       inventoryMap=new Map(d.products.map(p=>[p.id,p]));
-      $('#inventoryRows').innerHTML=d.products.length?d.products.map(p=>`<tr><td><b>${esc(p.name_en)}</b><br><small>${esc(p.category)} · ${esc(p.type)}</small></td><td>${esc(p.brand)}</td><td>${p.type==='local'?`50ml ${fmt(p.price_50ml ?? p.price)}<br><small>100ml ${fmt(p.price_100ml ?? p.price)}</small>`:fmt(p.price)}</td><td>${fmt(p.cost_price)}</td><td class="${p.track_stock&&p.stock_qty<=p.low_stock_threshold?'danger':''}">${p.track_stock?esc(p.stock_qty):'<span class="muted">Not tracked</span>'}</td><td>${esc(p.sku||'—')}<br><small>${esc(p.barcode||'')}</small></td><td><button class="sys-btn sys-btn--small" data-edit-inv="${p.id}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7" class="sys-empty">No products found.</td></tr>';
+      $('#inventoryRows').innerHTML=d.products.length?d.products.map(p=>`<tr><td><b>${esc(p.name_en)}</b><br><small>${esc(p.category)} · ${esc(p.type)}</small></td><td>${esc(p.brand)}</td><td>${p.type==='local'?`50ml ${fmt(p.price_50ml ?? p.price)}<br><small>100ml ${fmt(p.price_100ml ?? p.price)}</small>`:fmt(p.price)}</td><td>${p.type==='local'?`50ml ${fmt(p.cost_50ml ?? (Number(p.cost_price||0)*50))}<br><small>100ml ${fmt(p.cost_100ml ?? (Number(p.cost_price||0)*100))}</small>`:fmt(p.cost_price)}</td><td class="${p.track_stock&&p.stock_qty<=p.low_stock_threshold?'danger':''}">${p.track_stock?esc(p.stock_qty)+' '+(p.type==='local'?'ml':'units'):'<span class="muted">Not tracked</span>'}</td><td>${esc(p.sku||'—')}<br><small>${esc(p.barcode||'')}</small></td><td><button class="sys-btn sys-btn--small" data-edit-inv="${p.id}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7" class="sys-empty">No products found.</td></tr>';
       $$('[data-edit-inv]').forEach(b=>b.onclick=()=>openInventory(Number(b.dataset.editInv)));
     }catch(e){toast(e.message,true)}
   }
@@ -235,13 +235,14 @@
   function openInventory(id){
     const p=inventoryMap.get(id);if(!p)return;
     const f=$('#inventoryForm'); f.id.value=p.id; $('#inventoryProductName').textContent=p.name_en;
-    f.price.value=p.price??0;f.price_50ml.value=p.price_50ml??'';f.price_100ml.value=p.price_100ml??'';f.cost_price.value=p.cost_price??0;f.stock_qty.value=p.stock_qty??0;f.low_stock_threshold.value=p.low_stock_threshold??5;f.sku.value=p.sku||'';f.barcode.value=p.barcode||'';f.track_stock.checked=!!p.track_stock;f.in_stock.checked=!!p.in_stock;
+    f.price.value=p.price??0;f.price_50ml.value=p.price_50ml??'';f.price_100ml.value=p.price_100ml??'';f.cost_price.value=p.cost_price??0;f.cost_50ml.value=p.cost_50ml??'';f.cost_100ml.value=p.cost_100ml??'';f.stock_qty.value=p.stock_qty??0;f.low_stock_threshold.value=p.low_stock_threshold??5;f.sku.value=p.sku||'';f.barcode.value=p.barcode||'';f.track_stock.checked=!!p.track_stock;f.in_stock.checked=!!p.in_stock;
+    $('#inventoryUnitHint').textContent=p.type==='local'?'Local perfume: stock and adjustments are measured in ml. Cost price is cost per ml; 50/100ml costs can override it.':'Brand product: stock is measured in units.';
     $('#adjustForm').id.value=p.id; $('#adjustForm').quantity.value=''; $('#adjustForm').note.value='';
     $('#inventoryModal').classList.add('open');
   }
   $('#inventoryForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const f=e.target;
-    try{await api('/system/api/products/'+f.id.value+'/inventory',{method:'POST',body:{price:f.price.value,price_50ml:f.price_50ml.value,price_100ml:f.price_100ml.value,cost_price:f.cost_price.value,stock_qty:f.stock_qty.value,low_stock_threshold:f.low_stock_threshold.value,sku:f.sku.value,barcode:f.barcode.value,track_stock:f.track_stock.checked,in_stock:f.in_stock.checked}});toast('Inventory saved.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
+    try{await api('/system/api/products/'+f.id.value+'/inventory',{method:'POST',body:{price:f.price.value,price_50ml:f.price_50ml.value,price_100ml:f.price_100ml.value,cost_price:f.cost_price.value,cost_50ml:f.cost_50ml.value,cost_100ml:f.cost_100ml.value,stock_qty:f.stock_qty.value,low_stock_threshold:f.low_stock_threshold.value,sku:f.sku.value,barcode:f.barcode.value,track_stock:f.track_stock.checked,in_stock:f.in_stock.checked}});toast('Inventory saved.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
   });
   $('#adjustForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const f=e.target;
