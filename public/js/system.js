@@ -121,7 +121,8 @@
       $('#posProducts').innerHTML=d.products.length?d.products.map(p=>{
         const stock=p.track_stock?`<div class="sys-product-stock">${p.stock_qty} in stock</div>`:'';
         const img=p.image_path?`<img src="${esc(p.image_path)}" alt="">`:'';
-        return `<button class="sys-product" data-add="${p.id}">${img}<strong>${esc(p.name_en)}</strong><small>${esc(p.brand||'')}</small><div class="sys-product-price">${fmt(p.price)}</div>${stock}</button>`;
+        const unavailable=!p.in_stock || (p.track_stock && Number(p.stock_qty)<=0);
+        return `<button class="sys-product" data-add="${p.id}" ${unavailable?'disabled':''}>${img}<strong>${esc(p.name_en)}</strong><small>${esc(p.brand||'')}</small><div class="sys-product-price">${fmt(p.price)}</div>${stock}${unavailable?'<div class="sys-product-stock">Unavailable</div>':''}</button>`;
       }).join(''):'<div class="sys-empty">No products found.</div>';
       $$('[data-add]').forEach(b=>b.onclick=()=>addToCart(Number(b.dataset.add)));
     } catch(e){toast(e.message,true)}
@@ -135,6 +136,7 @@
 
   function addToCart(id) {
     const p=currentProducts.find(x=>x.id===id); if(!p)return;
+    if(!p.in_stock){toast('This item is marked unavailable.',true);return;}
     if(p.track_stock && Number(p.stock_qty)<=0){toast('This item is out of stock.',true);return;}
     const row=cart.find(x=>x.product_id===id);
     if(row){ if(p.track_stock && row.quantity+1>Number(p.stock_qty)){toast('Not enough stock.',true);return;} row.quantity+=1; }
