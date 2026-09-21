@@ -1,0 +1,54 @@
+name: Store System Check
+
+on:
+  push:
+    branches:
+      - feature/store-pos-system
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: JavaScript syntax
+        run: |
+          node --check server.js
+          node --check database/store-system.js
+          node --check routes/system.js
+          node --check public/js/system.js
+      - name: Compile EJS views
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const ejs = require('ejs');
+          for (const file of ['views/system/login.ejs','views/system/app.ejs']) {
+            ejs.compile(fs.readFileSync(file,'utf8'), { filename:file });
+            console.log('compiled', file);
+          }
+          NODE
+      - name: Database schema smoke test
+        run: node -e "require('./database/store-system'); console.log('database ok')"
+      - name: Server health smoke test
+        run: |
+          node server.js > /tmp/jamaludeen-server.log 2>&1 &
+          PID=$!
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:3000/healthz >/dev/null; then
+              kill $PID || true
+              echo "health check ok"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/jamaludeen-server.log
+          kill $PID || true
+          exit 1
