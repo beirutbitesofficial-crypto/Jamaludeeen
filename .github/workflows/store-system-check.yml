@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 18
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm install
       - name: JavaScript syntax
         run: |
           node --check server.js
