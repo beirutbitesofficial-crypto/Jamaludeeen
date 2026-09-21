@@ -1,0 +1,45 @@
+name: Import Men Product Images Batch 1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/import-men-images-batch1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download generated men product images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/images/men
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144829_e3bac776-cfc9-4317-bb9c-661c8ab577d9.png' -o 'public/images/men/a-men-fantasm-mugler.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144828_e0c0f087-1231-448c-b811-21ad86420f01.png' -o 'public/images/men/adidas-game-spirit.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144829_36236f42-7115-4c64-ad17-594cdd274698.png' -o 'public/images/men/adidas-sport.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144828_2bf36611-3a97-4d7a-aadf-5e68db6da7b5.png' -o 'public/images/men/ajwad-lattafa.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144828_adaa98e7-0337-443f-9ab9-05eb1b77c9d2.png' -o 'public/images/men/akira.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144830_1b0dcc22-2c18-422d-bffc-065054aa22af.png' -o 'public/images/men/al-haybe.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144843_e9537383-4aae-40fe-a8ca-808f982e44a9.png' -o 'public/images/men/allure-homme-sport.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144844_9fa60a2b-7de6-47eb-b862-b856c0c383fd.png' -o 'public/images/men/althair-de-marly.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144842_fc3cc8c8-2509-4423-bf13-c02c3c064931.png' -o 'public/images/men/amarige.png'
+          curl -L --fail --retry 3 'https://d8j0ntlcm91z4.cloudfront.net/user_3JahsNfdJiL2hQxRHRNOGejlAWc/hf_20260921_144844_e0b0497b-741a-40ac-9646-215a7a423b77.png' -o 'public/images/men/angel.png'
+
+      - name: Commit product images
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/images/men
+          if git diff --cached --quiet; then
+            echo 'No image changes to commit.'
+          else
+            git commit -m 'Add first 10 Jamaludeen men product images'
+            git push
+          fi
