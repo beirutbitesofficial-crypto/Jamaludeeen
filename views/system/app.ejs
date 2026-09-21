@@ -24,7 +24,7 @@
     <nav id="nav">
       <button data-tab="dashboard" class="active">▦ Dashboard</button>
       <button data-tab="pos">◫ POS / Cashier</button>
-      <button data-tab="inventory">▣ Inventory</button>
+      <% if (['owner','manager'].includes(currentUser.role)) { %><button data-tab="inventory">▣ Inventory</button><% } %>
       <button data-tab="sales">▤ Sales</button>
       <button data-tab="customers">♙ Customers</button>
       <% if (['owner','manager'].includes(currentUser.role)) { %>
@@ -45,9 +45,13 @@
       <div class="sys-metrics" id="dashboardMetrics"></div>
       <div class="sys-grid-2">
         <div class="sys-card"><div class="sys-card-head"><h2>Current Shift</h2><button class="sys-btn sys-btn--small" id="shiftActionBtn">Open Shift</button></div><div id="shiftBox"></div></div>
+        <% if (['owner','manager'].includes(currentUser.role)) { %>
         <div class="sys-card"><div class="sys-card-head"><h2>Exchange Rate</h2></div>
           <form id="exchangeForm" class="sys-inline-form"><input type="number" name="exchange_rate" min="1" value="<%= systemSettings.system_exchange_rate || 89500 %>"><span>LBP / USD</span><button class="sys-btn" type="submit">Save</button></form>
         </div>
+        <% } else { %>
+        <div class="sys-card"><div class="sys-card-head"><h2>Register</h2></div><p class="muted">Use POS to create sales. Stock and financial controls are limited to managers.</p></div>
+        <% } %>
       </div>
       <div class="sys-card"><div class="sys-card-head"><h2>Recent Sales</h2><button class="sys-link-btn" data-go="sales">View all</button></div><div id="recentSales"></div></div>
     </section>
@@ -66,7 +70,7 @@
             <label>Customer name<input id="customerName"></label>
             <label>Phone<input id="customerPhone" inputmode="tel"></label>
           </div>
-          <label>Discount (LBP)<input id="saleDiscount" type="number" min="0" value="0"></label>
+          <% if (['owner','manager'].includes(currentUser.role)) { %><label>Discount (LBP)<input id="saleDiscount" type="number" min="0" value="0"></label><% } else { %><input id="saleDiscount" type="hidden" value="0"><% } %>
           <label>Payment<select id="paymentMethod"><option value="cash_lbp">Cash LBP</option><option value="cash_usd">Cash USD</option><option value="whish">Whish</option><option value="card">Card</option></select></label>
           <div class="sys-form-grid">
             <label>Tendered LBP<input id="tenderedLbp" type="number" min="0" value="0"></label>
@@ -79,6 +83,7 @@
       </div>
     </section>
 
+    <% if (['owner','manager'].includes(currentUser.role)) { %>
     <section class="sys-tab" id="tab-inventory">
       <div class="sys-page-head"><div><h1>Inventory</h1><p>Stock, cost, SKU and barcode for all current items</p></div></div>
       <div class="sys-card">
@@ -86,6 +91,7 @@
         <div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Product</th><th>Brand</th><th>Price</th><th>Cost</th><th>Stock</th><th>SKU / Barcode</th><th></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
       </div>
     </section>
+    <% } %>
 
     <section class="sys-tab" id="tab-sales">
       <div class="sys-page-head"><div><h1>Sales</h1><p>POS sales, payment and refunds</p></div></div>
