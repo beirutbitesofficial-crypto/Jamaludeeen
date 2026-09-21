@@ -25,7 +25,12 @@
         <% if (lang === 'ar' && product.name_ar && product.name_en) { %><p class="store-product-detail__alt-name"><%= product.name_en %></p><% } %>
 
         <div class="store-product-detail__price-row">
-          <% if (product.price) { %>
+          <% if (product.type === 'local') { %>
+            <div>
+              <span class="store-product-detail__price price-display" data-lbp="<%= product.price_50ml || 0 %>">50ml · <%= (product.price_50ml || 0).toLocaleString() %> LBP</span><br>
+              <span class="store-product-detail__price price-display" data-lbp="<%= product.price_100ml || 0 %>">100ml · <%= (product.price_100ml || 0).toLocaleString() %> LBP</span>
+            </div>
+          <% } else if (product.price) { %>
             <span class="store-product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
           <% } else { %>
             <span class="store-product-detail__price store-product-detail__price--muted"><%= t.price_not_set %></span>
@@ -46,6 +51,15 @@
         <% if (product.in_stock && product.price) { %>
         <form action="/cart/add" method="POST" class="store-product-detail__cart">
           <input type="hidden" name="productId" value="<%= product.id %>"/>
+          <% if (product.type === 'local') { %>
+          <div class="store-qty-field">
+            <label for="productSize"><%= lang === 'ar' ? 'الحجم' : 'Size' %></label>
+            <select id="productSize" name="size_ml" required>
+              <option value="50">50ml — <%= (product.price_50ml || product.price || 0).toLocaleString() %> LBP</option>
+              <option value="100">100ml — <%= (product.price_100ml || product.price || 0).toLocaleString() %> LBP</option>
+            </select>
+          </div>
+          <% } %>
           <div class="store-qty-field">
             <label for="productQty"><%= t.qty %></label>
             <input id="productQty" type="number" name="qty" value="1" min="1" max="99"/>
