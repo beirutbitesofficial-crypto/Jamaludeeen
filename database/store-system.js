@@ -14,8 +14,15 @@ addColumn('products', 'low_stock_threshold REAL NOT NULL DEFAULT 5');
 addColumn('products', 'track_stock INTEGER NOT NULL DEFAULT 0');
 addColumn('products', 'price_50ml REAL');
 addColumn('products', 'price_100ml REAL');
+addColumn('products', 'cost_50ml REAL');
+addColumn('products', 'cost_100ml REAL');
 
 addColumn('sale_items', 'size_ml INTEGER');
+addColumn('sale_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
+addColumn('sales', 'change_usd REAL NOT NULL DEFAULT 0');
+addColumn('expenses', 'shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL');
+addColumn('order_items', 'size_ml INTEGER');
+addColumn('order_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
@@ -123,6 +130,19 @@ db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS cash_movements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL,
+    movement_type TEXT NOT NULL CHECK(movement_type IN ('sale','refund','expense','paid_in','paid_out')),
+    reference_type TEXT,
+    reference_id INTEGER,
+    amount_lbp REAL NOT NULL DEFAULT 0,
+    amount_usd REAL NOT NULL DEFAULT 0,
+    note TEXT,
+    staff_name TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -156,6 +176,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
   CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory_movements(product_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);
+  CREATE INDEX IF NOT EXISTS idx_cash_movements_shift ON cash_movements(shift_id, created_at);
 `);
 
 const setSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
