@@ -5,8 +5,21 @@ const flash = require('connect-flash');
 const methodOverride = require('method-override');
 const path = require('path');
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+if (IS_PRODUCTION) {
+  const missing = ['SESSION_SECRET','ADMIN_USERNAME','ADMIN_PASSWORD','DATA_DIR','BACKUP_DIR']
+    .filter(name => !String(process.env[name] || '').trim());
+  if (missing.length) throw new Error('Missing required production environment variables: ' + missing.join(', '));
+  if (String(process.env.SESSION_SECRET).length < 32) throw new Error('SESSION_SECRET must be at least 32 characters in production.');
+  if (String(process.env.ADMIN_PASSWORD).length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
+}
+const { sessionDbPath } = require('./database/runtime-paths');
+const SQLiteSessionStore = require('./database/sqlite-session-store');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+if (IS_PRODUCTION) app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
 // View engine
 app.set('view engine', 'ejs');
@@ -33,12 +46,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
 
-// Sessions
+// Baseline browser security headers.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (IS_PRODUCTION) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (req.path.startsWith('/admin') || req.path.startsWith('/system')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
+
+// Persistent sessions survive application restarts and deployments when DATA_DIR is persistent.
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'jamaludeen-secret',
+  name: 'jamaludeen.sid',
+  store: new SQLiteSessionStore({ filename: sessionDbPath }),
+  secret: process.env.SESSION_SECRET || 'development-session-secret-change-before-production',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
+  rolling: true,
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: IS_PRODUCTION
+  }
 }));
 
 // Flash messages
