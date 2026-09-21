@@ -100,6 +100,7 @@ app.use('/collections', require('./routes/collections'));
 app.use('/cart', require('./routes/cart'));
 app.use('/checkout', require('./routes/checkout'));
 app.use('/admin', require('./routes/admin'));
+app.use('/system', require('./routes/system'));
 
 // 404 handler
 app.use((req, res) => {
