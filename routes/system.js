@@ -156,7 +156,7 @@ router.get('/api/products', requireSystem, (req, res) => {
     ORDER BY name_en LIMIT ? OFFSET ?
   `).all(...params, limit, (page-1)*limit);
   const safeRows = req.systemUser.role === 'cashier'
-    ? rows.map(({ cost_price, ...product }) => product)
+    ? rows.map(({ cost_price, cost_50ml, cost_100ml, ...product }) => product)
     : rows;
   res.json({ products: safeRows, total, page, pages: Math.ceil(total/limit) });
 });
@@ -477,7 +477,7 @@ router.post('/api/users', requireOwner, (req,res) => {
   const username=String(req.body.username||'').trim();
   const password=String(req.body.password||'');
   const role=req.body.role==='manager'?'manager':'cashier';
-  if(!fullName||!username||password.length<4) return res.status(400).json({error:'Name, username and a password of at least 4 characters are required.'});
+  if(!fullName||!username||password.length<8) return res.status(400).json({error:'Name, username and a password of at least 8 characters are required.'});
   try{
     const hash=bcrypt.hashSync(password,10);
     const info=db.prepare('INSERT INTO staff_users(full_name,username,password,role) VALUES (?,?,?,?)').run(fullName,username,hash,role);
