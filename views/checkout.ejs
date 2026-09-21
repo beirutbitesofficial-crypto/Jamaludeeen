@@ -81,7 +81,7 @@
             </div>
             <div class="store-checkout-item__info">
               <small><%= item.brand %></small>
-              <strong><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %></strong>
+              <strong><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %><% if (item.size_ml) { %> · <%= item.size_ml %>ml<% } %></strong>
             </div>
             <b><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</b>
           </div>
