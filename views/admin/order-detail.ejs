@@ -64,7 +64,7 @@
           <tbody>
             <% items.forEach(item => { %>
             <tr>
-              <td><strong><%= item.product_name %></strong></td>
+              <td><strong><%= item.product_name %><% if (item.size_ml) { %> · <%= item.size_ml %>ml<% } %></strong></td>
               <td><%= item.quantity %></td>
               <td><%= item.price.toLocaleString() %> LBP</td>
               <td><%= (item.price * item.quantity).toLocaleString() %> LBP</td>
