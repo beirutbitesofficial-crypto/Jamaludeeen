@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> | JAMALUDEEN</title>
+  <link rel="stylesheet" href="/css/system.css?v=1">
+</head>
+<body class="sys-body">
+  <header class="sys-topbar">
+    <button id="menuBtn" class="sys-icon-btn" aria-label="Menu">☰</button>
+    <div>
+      <div class="sys-brand">JAMALUDEEN</div>
+      <small>Store System</small>
+    </div>
+    <div class="sys-user">
+      <span><%= currentUser.name %> · <%= currentUser.role %></span>
+      <form action="/system/logout" method="POST"><button class="sys-link-btn">Logout</button></form>
+    </div>
+  </header>
+
+  <aside class="sys-sidebar" id="sidebar">
+    <div class="sys-sidebar-brand">JAMALUDEEN <small>STORE</small></div>
+    <nav id="nav">
+      <button data-tab="dashboard" class="active">▦ Dashboard</button>
+      <button data-tab="pos">◫ POS / Cashier</button>
+      <button data-tab="inventory">▣ Inventory</button>
+      <button data-tab="sales">▤ Sales</button>
+      <button data-tab="customers">♙ Customers</button>
+      <% if (['owner','manager'].includes(currentUser.role)) { %>
+      <button data-tab="purchases">⇣ Purchases</button>
+      <button data-tab="expenses">− Expenses</button>
+      <button data-tab="reports">⌁ Reports</button>
+      <% } %>
+      <% if (currentUser.role === 'owner') { %><button data-tab="team">♟ Team</button><% } %>
+    </nav>
+    <a href="/admin" class="sys-sidebar-link">Website Admin</a>
+    <a href="/" target="_blank" class="sys-sidebar-link">View Website ↗</a>
+  </aside>
+  <div class="sys-overlay" id="overlay"></div>
+
+  <main class="sys-main">
+    <section class="sys-tab active" id="tab-dashboard">
+      <div class="sys-page-head"><div><h1>Dashboard</h1><p>Today at a glance</p></div><button class="sys-btn" id="refreshDashboard">Refresh</button></div>
+      <div class="sys-metrics" id="dashboardMetrics"></div>
+      <div class="sys-grid-2">
+        <div class="sys-card"><div class="sys-card-head"><h2>Current Shift</h2><button class="sys-btn sys-btn--small" id="shiftActionBtn">Open Shift</button></div><div id="shiftBox"></div></div>
+        <div class="sys-card"><div class="sys-card-head"><h2>Exchange Rate</h2></div>
+          <form id="exchangeForm" class="sys-inline-form"><input type="number" name="exchange_rate" min="1" value="<%= systemSettings.system_exchange_rate || 89500 %>"><span>LBP / USD</span><button class="sys-btn" type="submit">Save</button></form>
+        </div>
+      </div>
+      <div class="sys-card"><div class="sys-card-head"><h2>Recent Sales</h2><button class="sys-link-btn" data-go="sales">View all</button></div><div id="recentSales"></div></div>
+    </section>
+
+    <section class="sys-tab" id="tab-pos">
+      <div class="sys-page-head"><div><h1>POS</h1><p>Sell from the same website catalog</p></div><div id="posShiftBadge"></div></div>
+      <div class="sys-pos-layout">
+        <div class="sys-card sys-pos-products">
+          <div class="sys-search-row"><input id="posSearch" placeholder="Search product, brand, SKU or scan barcode…" autocomplete="off"><button class="sys-btn" id="posSearchBtn">Search</button></div>
+          <div id="posProducts" class="sys-product-grid"></div>
+        </div>
+        <div class="sys-card sys-cart">
+          <div class="sys-card-head"><h2>Current Sale</h2><button class="sys-link-btn danger" id="clearCart">Clear</button></div>
+          <div id="cartItems" class="sys-cart-items"></div>
+          <div class="sys-form-grid">
+            <label>Customer name<input id="customerName"></label>
+            <label>Phone<input id="customerPhone" inputmode="tel"></label>
+          </div>
+          <label>Discount (LBP)<input id="saleDiscount" type="number" min="0" value="0"></label>
+          <label>Payment<select id="paymentMethod"><option value="cash_lbp">Cash LBP</option><option value="cash_usd">Cash USD</option><option value="whish">Whish</option><option value="card">Card</option></select></label>
+          <div class="sys-form-grid">
+            <label>Tendered LBP<input id="tenderedLbp" type="number" min="0" value="0"></label>
+            <label>Tendered USD<input id="tenderedUsd" type="number" min="0" step="0.01" value="0"></label>
+          </div>
+          <label>Sale note<textarea id="saleNotes" rows="2"></textarea></label>
+          <div class="sys-cart-total" id="cartTotals"></div>
+          <button id="completeSale" class="sys-btn sys-btn--primary sys-btn--wide">Complete Sale</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="sys-tab" id="tab-inventory">
+      <div class="sys-page-head"><div><h1>Inventory</h1><p>Stock, cost, SKU and barcode for all current items</p></div></div>
+      <div class="sys-card">
+        <div class="sys-search-row"><input id="inventorySearch" placeholder="Search products…"><label class="sys-check"><input id="lowStockOnly" type="checkbox"> Low stock only</label><button class="sys-btn" id="inventorySearchBtn">Search</button></div>
+        <div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Product</th><th>Brand</th><th>Price</th><th>Cost</th><th>Stock</th><th>SKU / Barcode</th><th></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="sys-tab" id="tab-sales">
+      <div class="sys-page-head"><div><h1>Sales</h1><p>POS sales, payment and refunds</p></div></div>
+      <div class="sys-card"><div class="sys-filter-row"><label>From<input type="date" id="salesFrom"></label><label>To<input type="date" id="salesTo"></label><button class="sys-btn" id="salesFilterBtn">Load</button></div>
+        <div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Sale</th><th>Date</th><th>Customer</th><th>Cashier</th><th>Payment</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody id="salesRows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="sys-tab" id="tab-customers">
+      <div class="sys-page-head"><div><h1>Customers</h1><p>Customer history and spending</p></div></div>
+      <div class="sys-grid-2">
+        <div class="sys-card"><h2>Add Customer</h2><form id="customerForm" class="sys-form"><label>Name<input name="name" required></label><label>Phone<input name="phone"></label><label>Email<input name="email" type="email"></label><label>Notes<textarea name="notes"></textarea></label><button class="sys-btn sys-btn--primary">Add Customer</button></form></div>
+        <div class="sys-card"><div class="sys-search-row"><input id="customerSearch" placeholder="Search customer…"><button class="sys-btn" id="customerSearchBtn">Search</button></div><div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Name</th><th>Phone</th><th>Visits</th><th>Spent</th></tr></thead><tbody id="customerRows"></tbody></table></div></div>
+      </div>
+    </section>
+
+    <% if (['owner','manager'].includes(currentUser.role)) { %>
+    <section class="sys-tab" id="tab-purchases">
+      <div class="sys-page-head"><div><h1>Purchases & Suppliers</h1><p>Receive stock and record cost</p></div></div>
+      <div class="sys-grid-2">
+        <div class="sys-card"><h2>Supplier</h2><form id="supplierForm" class="sys-form"><label>Name<input name="name" required></label><label>Phone<input name="phone"></label><label>Notes<textarea name="notes"></textarea></label><button class="sys-btn">Add Supplier</button></form><div id="supplierList"></div></div>
+        <div class="sys-card"><h2>Receive Stock</h2><label>Supplier<select id="purchaseSupplier"></select></label><label>Invoice #<input id="purchaseInvoice"></label><div class="sys-search-row"><input id="purchaseProductSearch" placeholder="Search product…"><button id="purchaseProductBtn" class="sys-btn">Find</button></div><div id="purchaseProductResults" class="sys-mini-results"></div><div id="purchaseItems"></div><button id="savePurchase" class="sys-btn sys-btn--primary sys-btn--wide">Save Purchase</button></div>
+      </div>
+      <div class="sys-card"><h2>Recent Purchases</h2><div id="purchaseHistory"></div></div>
+    </section>
+
+    <section class="sys-tab" id="tab-expenses">
+      <div class="sys-page-head"><div><h1>Expenses</h1><p>Track operating expenses</p></div></div>
+      <div class="sys-grid-2"><div class="sys-card"><h2>Add Expense</h2><form id="expenseForm" class="sys-form"><label>Category<select name="category"><option>Rent</option><option>Salary</option><option>Delivery</option><option>Marketing</option><option>Utilities</option><option>Supplies</option><option>Other</option></select></label><label>Description<input name="description" required></label><div class="sys-form-grid"><label>LBP<input name="amount_lbp" type="number" min="0" value="0"></label><label>USD<input name="amount_usd" type="number" min="0" step="0.01" value="0"></label></div><button class="sys-btn sys-btn--primary">Save Expense</button></form></div><div class="sys-card"><div id="expenseList"></div></div></div>
+    </section>
+
+    <section class="sys-tab" id="tab-reports">
+      <div class="sys-page-head"><div><h1>Reports</h1><p>Revenue, COGS, expenses and net profit</p></div></div>
+      <div class="sys-card"><div class="sys-filter-row"><label>From<input type="date" id="reportFrom"></label><label>To<input type="date" id="reportTo"></label><button class="sys-btn" id="reportBtn">Generate</button></div></div>
+      <div class="sys-metrics" id="reportMetrics"></div>
+      <div class="sys-grid-2"><div class="sys-card"><h2>Best Sellers</h2><div id="topProducts"></div></div><div class="sys-card"><h2>Payments</h2><div id="paymentReport"></div></div></div>
+    </section>
+    <% } %>
+
+    <% if (currentUser.role === 'owner') { %>
+    <section class="sys-tab" id="tab-team">
+      <div class="sys-page-head"><div><h1>Team</h1><p>Cashier and manager accounts</p></div></div>
+      <div class="sys-grid-2"><div class="sys-card"><h2>Add User</h2><form id="userForm" class="sys-form"><label>Full name<input name="full_name" required></label><label>Username<input name="username" required></label><label>Password<input name="password" type="password" required minlength="4"></label><label>Role<select name="role"><option value="cashier">Cashier</option><option value="manager">Manager</option></select></label><button class="sys-btn sys-btn--primary">Create User</button></form></div><div class="sys-card"><h2>Users</h2><div id="userList"></div></div></div>
+    </section>
+    <% } %>
+  </main>
+
+  <div class="sys-modal" id="inventoryModal"><div class="sys-modal-box"><button class="sys-modal-close" data-close="inventoryModal">×</button><h2>Edit Inventory</h2><form id="inventoryForm" class="sys-form"><input type="hidden" name="id"><strong id="inventoryProductName"></strong><div class="sys-form-grid"><label>Sell price LBP<input name="price" type="number" min="0"></label><label>Cost LBP<input name="cost_price" type="number" min="0"></label></div><div class="sys-form-grid"><label>Stock qty<input name="stock_qty" type="number" step="0.01"></label><label>Low stock alert<input name="low_stock_threshold" type="number" min="0" step="0.01"></label></div><label>SKU<input name="sku"></label><label>Barcode<input name="barcode"></label><label class="sys-check"><input name="track_stock" type="checkbox"> Track stock for this product</label><label class="sys-check"><input name="in_stock" type="checkbox"> Available for sale</label><button class="sys-btn sys-btn--primary">Save</button></form><hr><form id="adjustForm" class="sys-form"><input type="hidden" name="id"><h3>Quick stock adjustment</h3><div class="sys-form-grid"><label>+ / − quantity<input name="quantity" type="number" step="0.01" required></label><label>Reason<input name="note" placeholder="Count correction…"></label></div><button class="sys-btn">Apply Adjustment</button></form></div></div>
+
+  <div class="sys-modal" id="saleModal"><div class="sys-modal-box sys-modal-box--wide"><button class="sys-modal-close" data-close="saleModal">×</button><div id="saleDetail"></div></div></div>
+  <div class="sys-modal" id="shiftModal"><div class="sys-modal-box"><button class="sys-modal-close" data-close="shiftModal">×</button><div id="shiftModalContent"></div></div></div>
+  <div class="sys-toast" id="toast"></div>
+
+  <script>window.SYSTEM_CONTEXT=<%- JSON.stringify({user: currentUser, exchangeRate: Number(systemSettings.system_exchange_rate || 89500)}) %>;</script>
+  <script src="/js/system.js?v=1"></script>
+</body>
+</html>
