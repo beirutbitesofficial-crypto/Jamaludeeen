@@ -12,6 +12,10 @@ addColumn('products', 'cost_price REAL NOT NULL DEFAULT 0');
 addColumn('products', 'stock_qty REAL NOT NULL DEFAULT 0');
 addColumn('products', 'low_stock_threshold REAL NOT NULL DEFAULT 5');
 addColumn('products', 'track_stock INTEGER NOT NULL DEFAULT 0');
+addColumn('products', 'price_50ml REAL');
+addColumn('products', 'price_100ml REAL');
+
+addColumn('sale_items', 'size_ml INTEGER');
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
