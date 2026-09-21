@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../database/store-system');
 const { normalizeSize, salePrice, saleUnitCost, stockDeduction } = require('../helpers/inventory');
+const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
 
 function settings() {
   return Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
@@ -69,16 +70,18 @@ router.get('/login', (req, res) => {
   if (user(req)) return res.redirect('/system');
   res.render('system/login', { title: 'Store System Login', error: req.flash('error') });
 });
-router.post('/login', (req, res) => {
+router.post('/login', loginRateLimit('system'), (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
   const admin = db.prepare('SELECT * FROM admins WHERE username=?').get(username);
   if (admin && bcrypt.compareSync(password, admin.password)) {
+    clearLoginAttempts(req, 'system');
     req.session.systemUser = { id: null, name: username, username, role: 'owner', owner: true };
     return res.redirect('/system');
   }
   const staff = db.prepare('SELECT * FROM staff_users WHERE username=? AND active=1').get(username);
   if (staff && bcrypt.compareSync(password, staff.password)) {
+    clearLoginAttempts(req, 'system');
     req.session.systemUser = { id: staff.id, name: staff.full_name, username: staff.username, role: staff.role, owner: false };
     return res.redirect('/system');
   }
