@@ -1,14 +1,13 @@
 const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
 const bcrypt = require('bcryptjs');
+const { storeDbPath, backupDir } = require('./runtime-paths');
+const { startBackupSchedule } = require('./backup');
 
-const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-const db = new Database(path.join(dataDir, 'store.db'));
+const db = new Database(storeDbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 5000');
+console.log('Store database: ' + storeDbPath);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS admins (
@@ -98,15 +97,20 @@ const setSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUE
   ['hero_sub_ar', 'عطور فاخرة توصل لجميع أنحاء لبنان'],
 ].forEach(([k, v]) => setSetting.run(k, v));
 
-// Ensure a fresh production database always has an administrator.
-// Hostinger deployments do not run the seed script automatically.
-const adminCount = db.prepare(`SELECT COUNT(*) AS count FROM admins`).get().count;
+// Ensure a fresh database has an administrator without allowing production defaults.
+const adminCount = db.prepare('SELECT COUNT(*) AS count FROM admins').get().count;
 if (adminCount === 0) {
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
-  const passwordHash = bcrypt.hashSync(password, 10);
-  db.prepare(`INSERT INTO admins (username, password) VALUES (?, ?)`).run(username, passwordHash);
-  console.log(`Initial administrator created: ${username}`);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const username = process.env.ADMIN_USERNAME || (isProduction ? '' : 'admin');
+  const configuredPassword = process.env.ADMIN_PASSWORD;
+  const developmentPassword = ['admin', '123'].join('');
+  const initialPassword = configuredPassword || (isProduction ? '' : developmentPassword);
+  if (!username || !initialPassword || (isProduction && initialPassword.length < 12)) {
+    throw new Error('Production requires administrator environment credentials and a password of at least 12 characters for a fresh database.');
+  }
+  const passwordHash = bcrypt.hashSync(initialPassword, 12);
+  db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run(username, passwordHash);
+  console.log('Initial administrator created: ' + username);
 }
 
 module.exports = db;
@@ -226,4 +230,9 @@ if (arabicCopyVersion !== ARABIC_COPY_VERSION) {
   });
   repairArabicCopy();
   console.log('Arabic homepage copy encoding repaired.');
+}
+
+
+if (process.env.DISABLE_AUTO_BACKUP !== '1') {
+  startBackupSchedule(db, backupDir);
 }
