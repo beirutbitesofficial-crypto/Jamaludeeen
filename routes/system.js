@@ -86,6 +86,7 @@ router.post('/login', (req, res) => {
 });
 router.post('/logout', (req, res) => {
   req.session.systemUser = null;
+  if (req.session.isAdmin) return res.redirect('/admin/dashboard');
   res.redirect('/system/login');
 });
 
@@ -184,6 +185,7 @@ router.post('/api/products/:id/adjust', requireManager, (req, res) => {
   if (!qty) return res.status(400).json({ error: 'Adjustment quantity cannot be zero.' });
   const p = db.prepare('SELECT * FROM products WHERE id=?').get(id);
   if (!p) return res.status(404).json({ error: 'Product not found' });
+  if (num(p.stock_qty) + qty < 0) return res.status(400).json({ error: 'Adjustment would make stock negative.' });
   db.transaction(() => {
     db.prepare('UPDATE products SET stock_qty=stock_qty+?, track_stock=1, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(qty,id);
     db.prepare(`
@@ -252,6 +254,7 @@ router.post('/api/sales', requireSystem, (req,res) => {
       const items = incoming.map(raw => {
         const p = db.prepare('SELECT * FROM products WHERE id=?').get(parseInt(raw.product_id,10));
         if (!p) throw new Error('One product no longer exists.');
+        if (!p.in_stock) throw new Error(p.name_en + ' is marked unavailable.');
         const qty = num(raw.quantity);
         if (qty <= 0) throw new Error('Invalid quantity for ' + p.name_en);
         if (p.track_stock && qty > p.stock_qty) throw new Error('Not enough stock for ' + p.name_en);
@@ -313,7 +316,7 @@ router.post('/api/sales/:id/refund', requireManager, (req,res) => {
       }
     }
     db.prepare("UPDATE sales SET status='refunded', refunded_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
-    if (sale.customer_id) db.prepare('UPDATE customers SET total_spent=MAX(0,total_spent-?), updated_at=CURRENT_TIMESTAMP WHERE id=?').run(sale.total,sale.customer_id);
+    if (sale.customer_id) db.prepare('UPDATE customers SET total_spent=MAX(0,total_spent-?), visits=MAX(0,visits-1), updated_at=CURRENT_TIMESTAMP WHERE id=?').run(sale.total,sale.customer_id);
   })();
   res.json({ ok:true });
 });
