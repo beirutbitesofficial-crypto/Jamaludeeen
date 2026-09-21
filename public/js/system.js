@@ -5,6 +5,7 @@
   let inventoryMap = new Map();
   let purchaseCart = [];
   let currentProducts = [];
+  let pendingSizeProductId = null;
 
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
@@ -122,7 +123,10 @@
         const stock=p.track_stock?`<div class="sys-product-stock">${p.stock_qty} in stock</div>`:'';
         const img=p.image_path?`<img src="${esc(p.image_path)}" alt="">`:'';
         const unavailable=!p.in_stock || (p.track_stock && Number(p.stock_qty)<=0);
-        return `<button class="sys-product" data-add="${p.id}" ${unavailable?'disabled':''}>${img}<strong>${esc(p.name_en)}</strong><small>${esc(p.brand||'')}</small><div class="sys-product-price">${fmt(p.price)}</div>${stock}${unavailable?'<div class="sys-product-stock">Unavailable</div>':''}</button>`;
+        const priceLabel=p.type==='local'
+          ? `<div class="sys-product-price">50ml ${fmt(p.price_50ml ?? p.price)}</div><div class="sys-product-price">100ml ${fmt(p.price_100ml ?? p.price)}</div>`
+          : `<div class="sys-product-price">${fmt(p.price)}</div>`;
+        return `<button class="sys-product" data-add="${p.id}" ${unavailable?'disabled':''}>${img}<strong>${esc(p.name_en)}</strong><small>${esc(p.brand||'')}</small>${priceLabel}${stock}${unavailable?'<div class="sys-product-stock">Unavailable</div>':''}</button>`;
       }).join(''):'<div class="sys-empty">No products found.</div>';
       $$('[data-add]').forEach(b=>b.onclick=()=>addToCart(Number(b.dataset.add)));
     } catch(e){toast(e.message,true)}
@@ -134,18 +138,33 @@
   let posTimer;
   $('#posSearch')?.addEventListener('input',()=>{clearTimeout(posTimer);posTimer=setTimeout(searchPos,250)});
 
-  function addToCart(id) {
+  function addToCart(id, sizeMl=null) {
     const p=currentProducts.find(x=>x.id===id); if(!p)return;
     if(!p.in_stock){toast('This item is marked unavailable.',true);return;}
     if(p.track_stock && Number(p.stock_qty)<=0){toast('This item is out of stock.',true);return;}
-    const row=cart.find(x=>x.product_id===id);
+    if(p.type==='local' && ![50,100].includes(Number(sizeMl))){
+      pendingSizeProductId=id;
+      $('#sizeProductName').textContent=p.name_en;
+      $('#size50Price').textContent=fmt(p.price_50ml ?? p.price);
+      $('#size100Price').textContent=fmt(p.price_100ml ?? p.price);
+      $('#sizeModal').classList.add('open');
+      return;
+    }
+    const normalizedSize=p.type==='local'?Number(sizeMl):null;
+    const price=p.type==='local'
+      ? Number(normalizedSize===100 ? (p.price_100ml ?? p.price) : (p.price_50ml ?? p.price))
+      : Number(p.price||0);
+    const row=cart.find(x=>x.product_id===id && x.size_ml===normalizedSize);
     if(row){ if(p.track_stock && row.quantity+1>Number(p.stock_qty)){toast('Not enough stock.',true);return;} row.quantity+=1; }
-    else cart.push({product_id:p.id,name:p.name_en,price:Number(p.price||0),quantity:1,stock:Number(p.stock_qty||0),tracked:!!p.track_stock});
+    else cart.push({product_id:p.id,name:p.name_en,size_ml:normalizedSize,price,quantity:1,stock:Number(p.stock_qty||0),tracked:!!p.track_stock});
+    $('#sizeModal')?.classList.remove('open');
+    pendingSizeProductId=null;
     renderCart();
   }
+  $('[data-size]').forEach(b=>b.addEventListener('click',()=>{ if(pendingSizeProductId) addToCart(pendingSizeProductId,Number(b.dataset.size)); }));
   function renderCart() {
     const host=$('#cartItems'), totals=$('#cartTotals'); if(!host||!totals)return;
-    host.innerHTML=cart.length?cart.map((x,i)=>`<div class="sys-cart-row"><div><strong>${esc(x.name)}</strong><small>${fmt(x.price)} × ${x.quantity}</small></div><div class="sys-cart-controls"><button data-dec="${i}">−</button><b>${x.quantity}</b><button data-inc="${i}">+</button><button data-remove="${i}">×</button></div></div>`).join(''):'<div class="sys-empty">Cart is empty.</div>';
+    host.innerHTML=cart.length?cart.map((x,i)=>`<div class="sys-cart-row"><div><strong>${esc(x.name)}${x.size_ml?' · '+x.size_ml+'ml':''}</strong><small>${fmt(x.price)} × ${x.quantity}</small></div><div class="sys-cart-controls"><button data-dec="${i}">−</button><b>${x.quantity}</b><button data-inc="${i}">+</button><button data-remove="${i}">×</button></div></div>`).join(''):'<div class="sys-empty">Cart is empty.</div>';
     const subtotal=cart.reduce((s,x)=>s+x.price*x.quantity,0);
     const discount=Math.min(Number($('#saleDiscount')?.value||0),subtotal);
     const total=subtotal-discount;
@@ -167,7 +186,7 @@
     if(method==='cash_usd'&&tu<=0)tu=total/exchangeRate;
     try{
       const r=await api('/system/api/sales',{method:'POST',body:{
-        items:cart.map(x=>({product_id:x.product_id,quantity:x.quantity,unit_price:x.price})),
+        items:cart.map(x=>({product_id:x.product_id,quantity:x.quantity,size_ml:x.size_ml,unit_price:x.price})),
         customer_name:$('#customerName').value,customer_phone:$('#customerPhone').value,
         discount,payment_method:method,exchange_rate:exchangeRate,tendered_lbp:tl,tendered_usd:tu,notes:$('#saleNotes').value
       }});
@@ -182,7 +201,7 @@
     try{
       const d=await api('/system/api/products?q='+encodeURIComponent(q)+'&limit=200'+low);
       inventoryMap=new Map(d.products.map(p=>[p.id,p]));
-      $('#inventoryRows').innerHTML=d.products.length?d.products.map(p=>`<tr><td><b>${esc(p.name_en)}</b><br><small>${esc(p.category)} · ${esc(p.type)}</small></td><td>${esc(p.brand)}</td><td>${fmt(p.price)}</td><td>${fmt(p.cost_price)}</td><td class="${p.track_stock&&p.stock_qty<=p.low_stock_threshold?'danger':''}">${p.track_stock?esc(p.stock_qty):'<span class="muted">Not tracked</span>'}</td><td>${esc(p.sku||'—')}<br><small>${esc(p.barcode||'')}</small></td><td><button class="sys-btn sys-btn--small" data-edit-inv="${p.id}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7" class="sys-empty">No products found.</td></tr>';
+      $('#inventoryRows').innerHTML=d.products.length?d.products.map(p=>`<tr><td><b>${esc(p.name_en)}</b><br><small>${esc(p.category)} · ${esc(p.type)}</small></td><td>${esc(p.brand)}</td><td>${p.type==='local'?`50ml ${fmt(p.price_50ml ?? p.price)}<br><small>100ml ${fmt(p.price_100ml ?? p.price)}</small>`:fmt(p.price)}</td><td>${fmt(p.cost_price)}</td><td class="${p.track_stock&&p.stock_qty<=p.low_stock_threshold?'danger':''}">${p.track_stock?esc(p.stock_qty):'<span class="muted">Not tracked</span>'}</td><td>${esc(p.sku||'—')}<br><small>${esc(p.barcode||'')}</small></td><td><button class="sys-btn sys-btn--small" data-edit-inv="${p.id}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7" class="sys-empty">No products found.</td></tr>';
       $$('[data-edit-inv]').forEach(b=>b.onclick=()=>openInventory(Number(b.dataset.editInv)));
     }catch(e){toast(e.message,true)}
   }
@@ -192,13 +211,13 @@
   function openInventory(id){
     const p=inventoryMap.get(id);if(!p)return;
     const f=$('#inventoryForm'); f.id.value=p.id; $('#inventoryProductName').textContent=p.name_en;
-    f.price.value=p.price??0;f.cost_price.value=p.cost_price??0;f.stock_qty.value=p.stock_qty??0;f.low_stock_threshold.value=p.low_stock_threshold??5;f.sku.value=p.sku||'';f.barcode.value=p.barcode||'';f.track_stock.checked=!!p.track_stock;f.in_stock.checked=!!p.in_stock;
+    f.price.value=p.price??0;f.price_50ml.value=p.price_50ml??'';f.price_100ml.value=p.price_100ml??'';f.cost_price.value=p.cost_price??0;f.stock_qty.value=p.stock_qty??0;f.low_stock_threshold.value=p.low_stock_threshold??5;f.sku.value=p.sku||'';f.barcode.value=p.barcode||'';f.track_stock.checked=!!p.track_stock;f.in_stock.checked=!!p.in_stock;
     $('#adjustForm').id.value=p.id; $('#adjustForm').quantity.value=''; $('#adjustForm').note.value='';
     $('#inventoryModal').classList.add('open');
   }
   $('#inventoryForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const f=e.target;
-    try{await api('/system/api/products/'+f.id.value+'/inventory',{method:'POST',body:{price:f.price.value,cost_price:f.cost_price.value,stock_qty:f.stock_qty.value,low_stock_threshold:f.low_stock_threshold.value,sku:f.sku.value,barcode:f.barcode.value,track_stock:f.track_stock.checked,in_stock:f.in_stock.checked}});toast('Inventory saved.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
+    try{await api('/system/api/products/'+f.id.value+'/inventory',{method:'POST',body:{price:f.price.value,price_50ml:f.price_50ml.value,price_100ml:f.price_100ml.value,cost_price:f.cost_price.value,stock_qty:f.stock_qty.value,low_stock_threshold:f.low_stock_threshold.value,sku:f.sku.value,barcode:f.barcode.value,track_stock:f.track_stock.checked,in_stock:f.in_stock.checked}});toast('Inventory saved.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
   });
   $('#adjustForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const f=e.target;
@@ -218,7 +237,7 @@
     try{
       const d=await api('/system/api/sales/'+id),s=d.sale;
       const canRefund=['owner','manager'].includes(ctx.user.role)&&s.status==='completed';
-      $('#saleDetail').innerHTML=`<h2>${esc(s.sale_number)}</h2><div class="sys-kv"><b>Date</b><span>${new Date(s.created_at+'Z').toLocaleString()}</span><b>Customer</b><span>${esc(s.customer_name||'Walk-in')} ${esc(s.customer_phone||'')}</span><b>Cashier</b><span>${esc(s.cashier_name)}</span><b>Payment</b><span>${esc(s.payment_method)}</span><b>Status</b><span>${esc(s.status)}</span></div><h3 class="sys-section-title">Items</h3><table class="sys-sale-items"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${d.items.map(i=>`<tr><td>${esc(i.product_name)}</td><td>${i.quantity}</td><td>${fmt(i.unit_price)}</td><td>${fmt(i.line_total)}</td></tr>`).join('')}</tbody></table><div class="sys-kv"><b>Subtotal</b><span>${fmt(s.subtotal)}</span><b>Discount</b><span>${fmt(s.discount)}</span><b>Total</b><strong>${fmt(s.total)}</strong></div><div style="display:flex;gap:8px;margin-top:18px"><button class="sys-btn" onclick="window.print()">Print Receipt</button>${canRefund?`<button class="sys-btn" id="refundSale">Refund Sale</button>`:''}</div>`;
+      $('#saleDetail').innerHTML=`<h2>${esc(s.sale_number)}</h2><div class="sys-kv"><b>Date</b><span>${new Date(s.created_at+'Z').toLocaleString()}</span><b>Customer</b><span>${esc(s.customer_name||'Walk-in')} ${esc(s.customer_phone||'')}</span><b>Cashier</b><span>${esc(s.cashier_name)}</span><b>Payment</b><span>${esc(s.payment_method)}</span><b>Status</b><span>${esc(s.status)}</span></div><h3 class="sys-section-title">Items</h3><table class="sys-sale-items"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${d.items.map(i=>`<tr><td>${esc(i.product_name)}${i.size_ml?' · '+i.size_ml+'ml':''}</td><td>${i.quantity}</td><td>${fmt(i.unit_price)}</td><td>${fmt(i.line_total)}</td></tr>`).join('')}</tbody></table><div class="sys-kv"><b>Subtotal</b><span>${fmt(s.subtotal)}</span><b>Discount</b><span>${fmt(s.discount)}</span><b>Total</b><strong>${fmt(s.total)}</strong></div><div style="display:flex;gap:8px;margin-top:18px"><button class="sys-btn" onclick="window.print()">Print Receipt</button>${canRefund?`<button class="sys-btn" id="refundSale">Refund Sale</button>`:''}</div>`;
       $('#saleModal').classList.add('open');
       if(canRefund)$('#refundSale').onclick=async()=>{if(!confirm('Refund this full sale and return tracked stock?'))return;try{await api('/system/api/sales/'+id+'/refund',{method:'POST',body:{}});toast('Sale refunded.');$('#saleModal').classList.remove('open');loadSales();loadDashboard()}catch(e){toast(e.message,true)}};
       if(printAfter) setTimeout(()=>window.print(),180);
