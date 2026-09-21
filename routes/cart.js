@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/db');
+const db = require('../database/store-system');
 const { getSettingsMap, applyLocalRulesToProduct } = require('../helpers/localProductRules');
+const { normalizeSize, salePrice, stockDeduction } = require('../helpers/inventory');
 
 // GET /cart
 router.get('/', (req, res) => {
@@ -56,13 +57,31 @@ router.post('/add', (req, res) => {
 router.post('/update', (req, res) => {
   const productId = parseInt(req.body.productId);
   const qty = parseInt(req.body.qty);
+  const sizeMl = req.body.size_ml ? parseInt(req.body.size_ml, 10) : null;
   if (!req.session.cart) return res.redirect('/cart');
 
+  const matches = i => i.productId === productId && Number(i.size_ml || 0) === Number(sizeMl || 0);
   if (qty <= 0) {
-    req.session.cart = req.session.cart.filter(i => i.productId !== productId);
-  } else {
-    const item = req.session.cart.find(i => i.productId === productId);
-    if (item) item.qty = qty;
+    req.session.cart = req.session.cart.filter(i => !matches(i));
+    return res.redirect('/cart');
+  }
+
+  const item = req.session.cart.find(matches);
+  if (!item) return res.redirect('/cart');
+  const settings = getSettingsMap(db);
+  const rawProduct = db.prepare(`SELECT * FROM products WHERE id = ?`).get(productId);
+  const product = applyLocalRulesToProduct(rawProduct, settings);
+  if (!product) return res.redirect('/cart');
+  try {
+    const normalizedSize = product.type === 'local' ? normalizeSize(product, sizeMl) : null;
+    const needed = stockDeduction(product, qty, normalizedSize);
+    if (product.track_stock && needed > Number(product.stock_qty || 0)) {
+      req.flash('error', req.session.lang === 'ar' ? 'الكمية المطلوبة غير متوفرة.' : 'Not enough stock.');
+      return res.redirect('/cart');
+    }
+    item.qty = qty;
+  } catch (error) {
+    req.flash('error', error.message);
   }
   res.redirect('/cart');
 });
