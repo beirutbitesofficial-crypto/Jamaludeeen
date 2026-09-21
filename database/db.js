@@ -183,6 +183,28 @@ if (unisexCatalogVersion !== UNISEX_CATALOG_VERSION) {
   console.log(`Unisex catalog synchronized: ${UNISEX.length} local products.`);
 }
 
+// Synchronize curated images for local Men/Women/Unisex products on every startup.
+// This updates only image_path and never recreates products or changes IDs.
+try {
+  const { LOCAL_PRODUCT_IMAGES } = require('./local-product-images');
+  const updateLocalImage = db.prepare(`
+    UPDATE products
+    SET image_path = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE type = 'local'
+      AND category = ?
+      AND name_en = ?
+  `);
+  const synchronizeLocalImages = db.transaction(() => {
+    for (const item of LOCAL_PRODUCT_IMAGES) {
+      updateLocalImage.run(item.image, item.category, item.name);
+    }
+  });
+  synchronizeLocalImages();
+  console.log(`Local product images synchronized: ${LOCAL_PRODUCT_IMAGES.length}`);
+} catch (error) {
+  console.error('Local product image synchronization failed:', error.message);
+}
+
 // One-time production synchronization for the Excel Brand catalog only.
 const BRAND_CATALOG_VERSION = '2026-08-05-v1';
 const brandCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='brand_catalog_version'`).get()?.value;
