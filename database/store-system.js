@@ -17,14 +17,6 @@ addColumn('products', 'price_100ml REAL');
 addColumn('products', 'cost_50ml REAL');
 addColumn('products', 'cost_100ml REAL');
 
-addColumn('sale_items', 'size_ml INTEGER');
-addColumn('sale_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
-addColumn('sales', 'change_usd REAL NOT NULL DEFAULT 0');
-addColumn('expenses', 'shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL');
-addColumn('order_items', 'size_ml INTEGER');
-addColumn('order_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
-addColumn('orders', 'stock_reserved INTEGER NOT NULL DEFAULT 0');
-addColumn('orders', 'sales_id INTEGER REFERENCES sales(id) ON DELETE SET NULL');
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
@@ -86,6 +78,7 @@ db.exec(`
     tendered_lbp REAL NOT NULL DEFAULT 0,
     tendered_usd REAL NOT NULL DEFAULT 0,
     change_lbp REAL NOT NULL DEFAULT 0,
+    change_usd REAL NOT NULL DEFAULT 0,
     shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL,
     cashier_name TEXT NOT NULL,
     notes TEXT,
@@ -102,6 +95,8 @@ db.exec(`
     product_name TEXT NOT NULL,
     sku TEXT,
     quantity REAL NOT NULL,
+    size_ml INTEGER,
+    stock_deduction REAL NOT NULL DEFAULT 0,
     unit_price REAL NOT NULL,
     unit_cost REAL NOT NULL DEFAULT 0,
     line_discount REAL NOT NULL DEFAULT 0,
@@ -128,6 +123,7 @@ db.exec(`
     amount_lbp REAL NOT NULL DEFAULT 0,
     amount_usd REAL NOT NULL DEFAULT 0,
     exchange_rate REAL NOT NULL DEFAULT 89500,
+    shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL,
     staff_name TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
@@ -180,6 +176,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);
   CREATE INDEX IF NOT EXISTS idx_cash_movements_shift ON cash_movements(shift_id, created_at);
 `);
+
+// Migrations for databases created before the store-system hardening.
+addColumn('sale_items', 'size_ml INTEGER');
+addColumn('sale_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
+addColumn('sales', 'change_usd REAL NOT NULL DEFAULT 0');
+addColumn('expenses', 'shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL');
+addColumn('order_items', 'size_ml INTEGER');
+addColumn('order_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
+addColumn('orders', 'stock_reserved INTEGER NOT NULL DEFAULT 0');
+addColumn('orders', 'sales_id INTEGER REFERENCES sales(id) ON DELETE SET NULL');
 
 const setSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 [
