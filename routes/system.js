@@ -147,7 +147,7 @@ router.get('/api/products', requireSystem, (req, res) => {
   const ws = where.join(' AND ');
   const total = db.prepare('SELECT COUNT(*) c FROM products WHERE ' + ws).get(...params).c;
   const rows = db.prepare(`
-    SELECT id,name_en,name_ar,brand,category,type,price,cost_price,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
+    SELECT id,name_en,name_ar,brand,category,type,price,price_50ml,price_100ml,cost_price,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
     FROM products WHERE ${ws}
     ORDER BY name_en LIMIT ? OFFSET ?
   `).all(...params, limit, (page-1)*limit);
@@ -165,11 +165,15 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
   const barcode = String(req.body.barcode || '').trim() || null;
   try {
     db.prepare(`
-      UPDATE products SET sku=?, barcode=?, price=?, cost_price=?, stock_qty=?,
+      UPDATE products SET sku=?, barcode=?, price=?, price_50ml=?, price_100ml=?, cost_price=?, stock_qty=?,
         low_stock_threshold=?, track_stock=?, in_stock=?, updated_at=CURRENT_TIMESTAMP
       WHERE id=?
     `).run(
-      sku, barcode, num(req.body.price, p.price || 0), Math.max(0,num(req.body.cost_price,p.cost_price)),
+      sku, barcode,
+      num(req.body.price, p.price || 0),
+      req.body.price_50ml === '' || req.body.price_50ml == null ? null : Math.max(0,num(req.body.price_50ml)),
+      req.body.price_100ml === '' || req.body.price_100ml == null ? null : Math.max(0,num(req.body.price_100ml)),
+      Math.max(0,num(req.body.cost_price,p.cost_price)),
       num(req.body.stock_qty,p.stock_qty), Math.max(0,num(req.body.low_stock_threshold,p.low_stock_threshold)),
       req.body.track_stock ? 1 : 0, req.body.in_stock === false ? 0 : 1, id
     );
@@ -258,9 +262,13 @@ router.post('/api/sales', requireSystem, (req,res) => {
         const qty = num(raw.quantity);
         if (qty <= 0) throw new Error('Invalid quantity for ' + p.name_en);
         if (p.track_stock && qty > p.stock_qty) throw new Error('Not enough stock for ' + p.name_en);
-        const basePrice = num(p.price);
+        const sizeMl = p.type === 'local' ? parseInt(raw.size_ml, 10) : null;
+        if (p.type === 'local' && ![50,100].includes(sizeMl)) throw new Error('Choose 50ml or 100ml for ' + p.name_en);
+        const basePrice = p.type === 'local'
+          ? num(sizeMl === 100 ? p.price_100ml : p.price_50ml, num(p.price))
+          : num(p.price);
         const unitPrice = canOverride && raw.unit_price !== undefined ? Math.max(0,num(raw.unit_price,basePrice)) : basePrice;
-        return { p, qty, unitPrice, note:String(raw.note||'').trim()||null, total:qty*unitPrice };
+        return { p, qty, sizeMl, unitPrice, note:String(raw.note||'').trim()||null, total:qty*unitPrice };
       });
       const subtotal = items.reduce((s,i)=>s+i.total,0);
       const appliedDiscount = Math.min(discount,subtotal);
@@ -280,15 +288,15 @@ router.post('/api/sales', requireSystem, (req,res) => {
         shift?.id||null,req.systemUser.name,String(req.body.notes||'').trim()||null);
       const saleId=info.lastInsertRowid;
       const insertItem=db.prepare(`
-        INSERT INTO sale_items(sale_id,product_id,product_name,sku,quantity,unit_price,unit_cost,line_total,note)
-        VALUES (?,?,?,?,?,?,?,?,?)
+        INSERT INTO sale_items(sale_id,product_id,product_name,sku,quantity,size_ml,unit_price,unit_cost,line_total,note)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
       `);
       const movement=db.prepare(`
         INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
         VALUES (?,'sale',?,'sale',?,?,?)
       `);
       for (const i of items) {
-        insertItem.run(saleId,i.p.id,i.p.name_en,i.p.sku,i.qty,i.unitPrice,num(i.p.cost_price),i.total,i.note);
+        insertItem.run(saleId,i.p.id,i.p.name_en,i.p.sku,i.qty,i.sizeMl,i.unitPrice,num(i.p.cost_price),i.total,i.note);
         if (i.p.track_stock) {
           db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(i.qty,i.p.id);
           movement.run(i.p.id,-i.qty,saleId,number,req.systemUser.name);
