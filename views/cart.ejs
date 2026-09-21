@@ -31,16 +31,19 @@
             <div class="store-cart-item__info">
               <p class="store-cart-item__brand"><%= item.brand %></p>
               <a href="/shop/item/<%= item.id %>" class="store-cart-item__name"><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %></a>
+              <% if (item.size_ml) { %><p class="store-cart-item__brand"><%= item.size_ml %>ml</p><% } %>
               <p class="store-cart-item__unit-price price-display" data-lbp="<%= item.price || 0 %>"><%= (item.price || 0).toLocaleString() %> LBP</p>
 
               <div class="store-cart-item__actions">
                 <form action="/cart/update" method="POST" class="store-cart-qty">
                   <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
                   <label><%= t.qty %></label>
                   <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
                 </form>
                 <form action="/cart/remove" method="POST">
                   <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
                   <button type="submit" class="store-remove-link"><%= t.remove %></button>
                 </form>
               </div>
