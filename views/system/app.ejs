@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><%= title %> | JAMALUDEEN</title>
-  <link rel="stylesheet" href="/css/system.css?v=1">
+  <link rel="stylesheet" href="/css/system.css?v=2">
 </head>
 <body class="sys-body">
   <header class="sys-topbar">
@@ -73,8 +73,8 @@
           <% if (['owner','manager'].includes(currentUser.role)) { %><label>Discount (LBP)<input id="saleDiscount" type="number" min="0" value="0"></label><% } else { %><input id="saleDiscount" type="hidden" value="0"><% } %>
           <label>Payment<select id="paymentMethod"><option value="cash_lbp">Cash LBP</option><option value="cash_usd">Cash USD</option><option value="whish">Whish</option><option value="card">Card</option></select></label>
           <div class="sys-form-grid">
-            <label>Tendered LBP<input id="tenderedLbp" type="number" min="0" value="0"></label>
-            <label>Tendered USD<input id="tenderedUsd" type="number" min="0" step="0.01" value="0"></label>
+            <label id="tenderedLbpWrap">Tendered LBP<input id="tenderedLbp" type="number" min="0" value="0"></label>
+            <label id="tenderedUsdWrap">Tendered USD<input id="tenderedUsd" type="number" min="0" step="0.01" value="0"></label>
           </div>
           <label>Sale note<textarea id="saleNotes" rows="2"></textarea></label>
           <div class="sys-cart-total" id="cartTotals"></div>
@@ -111,6 +111,7 @@
     <% if (['owner','manager'].includes(currentUser.role)) { %>
     <section class="sys-tab" id="tab-purchases">
       <div class="sys-page-head"><div><h1>Purchases & Suppliers</h1><p>Receive stock and record cost</p></div></div>
+      <div class="sys-alert sys-alert--success">For local refill perfumes: receive stock as <b>ml</b> and enter purchase cost <b>per ml</b>. Brand products remain units.</div>
       <div class="sys-grid-2">
         <div class="sys-card"><h2>Supplier</h2><form id="supplierForm" class="sys-form"><label>Name<input name="name" required></label><label>Phone<input name="phone"></label><label>Notes<textarea name="notes"></textarea></label><button class="sys-btn">Add Supplier</button></form><div id="supplierList"></div></div>
         <div class="sys-card"><h2>Receive Stock</h2><label>Supplier<select id="purchaseSupplier"></select></label><label>Invoice #<input id="purchaseInvoice"></label><div class="sys-search-row"><input id="purchaseProductSearch" placeholder="Search product…"><button id="purchaseProductBtn" class="sys-btn">Find</button></div><div id="purchaseProductResults" class="sys-mini-results"></div><div id="purchaseItems"></div><button id="savePurchase" class="sys-btn sys-btn--primary sys-btn--wide">Save Purchase</button></div>
@@ -120,7 +121,7 @@
 
     <section class="sys-tab" id="tab-expenses">
       <div class="sys-page-head"><div><h1>Expenses</h1><p>Track operating expenses</p></div></div>
-      <div class="sys-grid-2"><div class="sys-card"><h2>Add Expense</h2><form id="expenseForm" class="sys-form"><label>Category<select name="category"><option>Rent</option><option>Salary</option><option>Delivery</option><option>Marketing</option><option>Utilities</option><option>Supplies</option><option>Other</option></select></label><label>Description<input name="description" required></label><div class="sys-form-grid"><label>LBP<input name="amount_lbp" type="number" min="0" value="0"></label><label>USD<input name="amount_usd" type="number" min="0" step="0.01" value="0"></label></div><button class="sys-btn sys-btn--primary">Save Expense</button></form></div><div class="sys-card"><div id="expenseList"></div></div></div>
+      <div class="sys-grid-2"><div class="sys-card"><h2>Add Expense</h2><form id="expenseForm" class="sys-form"><label>Category<select name="category"><option>Rent</option><option>Salary</option><option>Delivery</option><option>Marketing</option><option>Utilities</option><option>Supplies</option><option>Other</option></select></label><label>Description<input name="description" required></label><div class="sys-form-grid"><label>LBP<input name="amount_lbp" type="number" min="0" value="0"></label><label>USD<input name="amount_usd" type="number" min="0" step="0.01" value="0"></label></div><label class="sys-check"><input name="from_drawer" type="checkbox" checked> Paid from current cash drawer</label><button class="sys-btn sys-btn--primary">Save Expense</button></form></div><div class="sys-card"><div id="expenseList"></div></div></div>
     </section>
 
     <section class="sys-tab" id="tab-reports">
@@ -134,13 +135,13 @@
     <% if (currentUser.role === 'owner') { %>
     <section class="sys-tab" id="tab-team">
       <div class="sys-page-head"><div><h1>Team</h1><p>Cashier and manager accounts</p></div></div>
-      <div class="sys-grid-2"><div class="sys-card"><h2>Add User</h2><form id="userForm" class="sys-form"><label>Full name<input name="full_name" required></label><label>Username<input name="username" required></label><label>Password<input name="password" type="password" required minlength="4"></label><label>Role<select name="role"><option value="cashier">Cashier</option><option value="manager">Manager</option></select></label><button class="sys-btn sys-btn--primary">Create User</button></form></div><div class="sys-card"><h2>Users</h2><div id="userList"></div></div></div>
+      <div class="sys-grid-2"><div class="sys-card"><h2>Add User</h2><form id="userForm" class="sys-form"><label>Full name<input name="full_name" required></label><label>Username<input name="username" required></label><label>Password<input name="password" type="password" required minlength="8"></label><label>Role<select name="role"><option value="cashier">Cashier</option><option value="manager">Manager</option></select></label><button class="sys-btn sys-btn--primary">Create User</button></form></div><div class="sys-card"><h2>Users</h2><div id="userList"></div></div></div>
     </section>
     <% } %>
   </main>
 
-  <div class="sys-modal" id="inventoryModal"><div class="sys-modal-box"><button class="sys-modal-close" data-close="inventoryModal">×</button><h2>Edit Inventory</h2><form id="inventoryForm" class="sys-form"><input type="hidden" name="id"><strong id="inventoryProductName"></strong><div class="sys-form-grid"><label>Website / Base price LBP<input name="price" type="number" min="0"></label><label>Cost LBP<input name="cost_price" type="number" min="0"></label></div>
-<div class="sys-form-grid"><label>50ml price LBP<input name="price_50ml" type="number" min="0"></label><label>100ml price LBP<input name="price_100ml" type="number" min="0"></label></div><div class="sys-form-grid"><label>Stock qty<input name="stock_qty" type="number" step="0.01"></label><label>Low stock alert<input name="low_stock_threshold" type="number" min="0" step="0.01"></label></div><label>SKU<input name="sku"></label><label>Barcode<input name="barcode"></label><label class="sys-check"><input name="track_stock" type="checkbox"> Track stock for this product</label><label class="sys-check"><input name="in_stock" type="checkbox"> Available for sale</label><button class="sys-btn sys-btn--primary">Save</button></form><hr><form id="adjustForm" class="sys-form"><input type="hidden" name="id"><h3>Quick stock adjustment</h3><div class="sys-form-grid"><label>+ / − quantity<input name="quantity" type="number" step="0.01" required></label><label>Reason<input name="note" placeholder="Count correction…"></label></div><button class="sys-btn">Apply Adjustment</button></form></div></div>
+  <div class="sys-modal" id="inventoryModal"><div class="sys-modal-box"><button class="sys-modal-close" data-close="inventoryModal">×</button><h2>Edit Inventory</h2><form id="inventoryForm" class="sys-form"><input type="hidden" name="id"><strong id="inventoryProductName"></strong><p class="muted" id="inventoryUnitHint"></p><div class="sys-form-grid"><label>Website / Base price LBP<input name="price" type="number" min="0"></label><label>Unit cost / cost per ml LBP<input name="cost_price" type="number" min="0" step="0.01"></label></div>
+<div class="sys-form-grid"><label>50ml price LBP<input name="price_50ml" type="number" min="0"></label><label>100ml price LBP<input name="price_100ml" type="number" min="0"></label></div><div class="sys-form-grid"><label>50ml total cost LBP<input name="cost_50ml" type="number" min="0"></label><label>100ml total cost LBP<input name="cost_100ml" type="number" min="0"></label></div><div class="sys-form-grid"><label>Stock qty<input name="stock_qty" type="number" step="0.01"></label><label>Low stock alert<input name="low_stock_threshold" type="number" min="0" step="0.01"></label></div><label>SKU<input name="sku"></label><label>Barcode<input name="barcode"></label><label class="sys-check"><input name="track_stock" type="checkbox"> Track stock for this product</label><label class="sys-check"><input name="in_stock" type="checkbox"> Available for sale</label><button class="sys-btn sys-btn--primary">Save</button></form><hr><form id="adjustForm" class="sys-form"><input type="hidden" name="id"><h3>Quick stock adjustment</h3><div class="sys-form-grid"><label>+ / − quantity<input name="quantity" type="number" step="0.01" required></label><label>Reason<input name="note" placeholder="Count correction…"></label></div><button class="sys-btn">Apply Adjustment</button></form></div></div>
 
   <div class="sys-modal" id="sizeModal"><div class="sys-modal-box"><button class="sys-modal-close" data-close="sizeModal">×</button><h2 id="sizeProductName">Choose Size</h2><p class="muted">Available sizes: 50ml and 100ml only.</p><div class="sys-size-picker"><button class="sys-size-choice" data-size="50"><strong>50ml</strong><span id="size50Price"></span></button><button class="sys-size-choice" data-size="100"><strong>100ml</strong><span id="size100Price"></span></button></div></div></div>
 
@@ -149,6 +150,6 @@
   <div class="sys-toast" id="toast"></div>
 
   <script>window.SYSTEM_CONTEXT=<%- JSON.stringify({user: currentUser, exchangeRate: Number(systemSettings.system_exchange_rate || 89500)}) %>;</script>
-  <script src="/js/system.js?v=1"></script>
+  <script src="/js/system.js?v=2"></script>
 </body>
 </html>
