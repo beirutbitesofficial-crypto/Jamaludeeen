@@ -60,13 +60,21 @@
     try {
       const d=await api('/system/api/dashboard');
       const t=d.today;
-      $('#dashboardMetrics').innerHTML = [
-        ['Sales Today',fmt(t.sales_total),''],
-        ['Transactions',Number(t.sales_count).toLocaleString(),''],
-        ['Gross Profit',fmt(t.gross_profit),t.gross_profit>=0?'good':'bad'],
-        ['Expenses',fmt(t.expenses),t.expenses>0?'bad':''],
-        ['Net Profit',fmt(t.net_profit),t.net_profit>=0?'good':'bad'],
-      ].map(x=>`<div class="sys-metric ${x[2]}"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+      const metrics = ctx.user.role === 'cashier'
+        ? [
+            ['Sales Today',fmt(t.sales_total),''],
+            ['Transactions',Number(t.sales_count).toLocaleString(),''],
+            ['Low Stock',Number(d.lowStock).toLocaleString(),d.lowStock>0?'bad':'good'],
+            ['Catalog Items',Number(d.products).toLocaleString(),'']
+          ]
+        : [
+            ['Sales Today',fmt(t.sales_total),''],
+            ['Transactions',Number(t.sales_count).toLocaleString(),''],
+            ['Gross Profit',fmt(t.gross_profit),t.gross_profit>=0?'good':'bad'],
+            ['Expenses',fmt(t.expenses),t.expenses>0?'bad':''],
+            ['Net Profit',fmt(t.net_profit),t.net_profit>=0?'good':'bad']
+          ];
+      $('#dashboardMetrics').innerHTML = metrics.map(x=>`<div class="sys-metric ${x[2]}"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
       $('#recentSales').innerHTML = d.recent.length ? `<div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Sale</th><th>Customer</th><th>Cashier</th><th>Payment</th><th>Total</th></tr></thead><tbody>${d.recent.map(s=>`<tr><td>${esc(s.sale_number)}</td><td>${esc(s.customer_name||'Walk-in')}</td><td>${esc(s.cashier_name)}</td><td>${esc(s.payment_method)}</td><td><b>${fmt(s.total)}</b></td></tr>`).join('')}</tbody></table></div>` : '<div class="sys-empty">No sales yet.</div>';
       renderShift(d.shift);
       $('#posShiftBadge').innerHTML = d.shift ? '<span class="sys-pill green">Shift open</span>' : '<span class="sys-pill red">No open shift</span>';
