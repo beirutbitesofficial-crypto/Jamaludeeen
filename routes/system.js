@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../database/store-system');
+const { normalizeSize, salePrice, saleUnitCost, stockDeduction } = require('../helpers/inventory');
 
 function settings() {
   return Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
@@ -147,7 +148,7 @@ router.get('/api/products', requireSystem, (req, res) => {
   const ws = where.join(' AND ');
   const total = db.prepare('SELECT COUNT(*) c FROM products WHERE ' + ws).get(...params).c;
   const rows = db.prepare(`
-    SELECT id,name_en,name_ar,brand,category,type,price,price_50ml,price_100ml,cost_price,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
+    SELECT id,name_en,name_ar,brand,category,type,price,price_50ml,price_100ml,cost_price,cost_50ml,cost_100ml,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
     FROM products WHERE ${ws}
     ORDER BY name_en LIMIT ? OFFSET ?
   `).all(...params, limit, (page-1)*limit);
@@ -165,7 +166,7 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
   const barcode = String(req.body.barcode || '').trim() || null;
   try {
     db.prepare(`
-      UPDATE products SET sku=?, barcode=?, price=?, price_50ml=?, price_100ml=?, cost_price=?, stock_qty=?,
+      UPDATE products SET sku=?, barcode=?, price=?, price_50ml=?, price_100ml=?, cost_price=?, cost_50ml=?, cost_100ml=?, stock_qty=?,
         low_stock_threshold=?, track_stock=?, in_stock=?, updated_at=CURRENT_TIMESTAMP
       WHERE id=?
     `).run(
@@ -174,6 +175,8 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
       req.body.price_50ml === '' || req.body.price_50ml == null ? null : Math.max(0,num(req.body.price_50ml)),
       req.body.price_100ml === '' || req.body.price_100ml == null ? null : Math.max(0,num(req.body.price_100ml)),
       Math.max(0,num(req.body.cost_price,p.cost_price)),
+      req.body.cost_50ml === '' || req.body.cost_50ml == null ? null : Math.max(0,num(req.body.cost_50ml)),
+      req.body.cost_100ml === '' || req.body.cost_100ml == null ? null : Math.max(0,num(req.body.cost_100ml)),
       num(req.body.stock_qty,p.stock_qty), Math.max(0,num(req.body.low_stock_threshold,p.low_stock_threshold)),
       req.body.track_stock ? 1 : 0, req.body.in_stock === false ? 0 : 1, id
     );
@@ -261,49 +264,74 @@ router.post('/api/sales', requireSystem, (req,res) => {
         if (!p.in_stock) throw new Error(p.name_en + ' is marked unavailable.');
         const qty = num(raw.quantity);
         if (qty <= 0) throw new Error('Invalid quantity for ' + p.name_en);
-        if (p.track_stock && qty > p.stock_qty) throw new Error('Not enough stock for ' + p.name_en);
-        const sizeMl = p.type === 'local' ? parseInt(raw.size_ml, 10) : null;
-        if (p.type === 'local' && ![50,100].includes(sizeMl)) throw new Error('Choose 50ml or 100ml for ' + p.name_en);
-        const basePrice = p.type === 'local'
-          ? num(sizeMl === 100 ? p.price_100ml : p.price_50ml, num(p.price))
-          : num(p.price);
+        const sizeMl = p.type === 'local' ? normalizeSize(p, raw.size_ml) : null;
+        const needed = stockDeduction(p, qty, sizeMl);
+        if (p.track_stock && needed > num(p.stock_qty)) {
+          const unit = p.type === 'local' ? 'ml' : 'units';
+          throw new Error(`Not enough stock for ${p.name_en}. Need ${needed} ${unit}, available ${num(p.stock_qty)}.`);
+        }
+        const basePrice = salePrice(p, sizeMl);
         const unitPrice = canOverride && raw.unit_price !== undefined ? Math.max(0,num(raw.unit_price,basePrice)) : basePrice;
-        return { p, qty, sizeMl, unitPrice, note:String(raw.note||'').trim()||null, total:qty*unitPrice };
+        const unitCost = saleUnitCost(p, sizeMl);
+        return { p, qty, sizeMl, needed, unitPrice, unitCost, note:String(raw.note||'').trim()||null, total:qty*unitPrice };
       });
       const subtotal = items.reduce((s,i)=>s+i.total,0);
       const appliedDiscount = Math.min(discount,subtotal);
       const total = subtotal-appliedDiscount;
       const shift=currentShift(req);
+      if (!shift) throw new Error('Open a shift before completing a POS sale.');
       const number=saleNumber();
-      const tenderedLbp=Math.max(0,num(req.body.tendered_lbp));
-      const tenderedUsd=Math.max(0,num(req.body.tendered_usd));
-      const equivalent=tenderedLbp+tenderedUsd*exchangeRate;
-      const change=Math.max(0,equivalent-total);
+      const paymentMethod=String(req.body.payment_method||'cash_lbp');
+      if (!['cash_lbp','cash_usd','whish','card'].includes(paymentMethod)) throw new Error('Invalid payment method.');
+      let tenderedLbp=Math.max(0,num(req.body.tendered_lbp));
+      let tenderedUsd=Math.max(0,num(req.body.tendered_usd));
+      let changeLbp=0, changeUsd=0, cashLbp=0, cashUsd=0;
+      if (paymentMethod === 'cash_lbp') {
+        if (tenderedUsd > 0) throw new Error('Cash LBP sale cannot include USD tender.');
+        if (tenderedLbp <= 0) tenderedLbp=total;
+        if (tenderedLbp < total) throw new Error('Tendered LBP is less than the sale total.');
+        changeLbp=tenderedLbp-total;
+        cashLbp=total;
+      } else if (paymentMethod === 'cash_usd') {
+        if (tenderedLbp > 0) throw new Error('Cash USD sale cannot include LBP tender.');
+        const usdTotal=total/exchangeRate;
+        if (tenderedUsd <= 0) tenderedUsd=usdTotal;
+        if (tenderedUsd + 0.000001 < usdTotal) throw new Error('Tendered USD is less than the sale total.');
+        changeUsd=tenderedUsd-usdTotal;
+        cashUsd=usdTotal;
+      } else {
+        tenderedLbp=0;
+        tenderedUsd=0;
+      }
       const info=db.prepare(`
         INSERT INTO sales(sale_number,customer_id,customer_name,customer_phone,subtotal,discount,total,
-          payment_method,exchange_rate,tendered_lbp,tendered_usd,change_lbp,shift_id,cashier_name,notes)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          payment_method,exchange_rate,tendered_lbp,tendered_usd,change_lbp,change_usd,shift_id,cashier_name,notes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(number,customerId,customerName,customerPhone,subtotal,appliedDiscount,total,
-        String(req.body.payment_method||'cash_lbp'),exchangeRate,tenderedLbp,tenderedUsd,change,
-        shift?.id||null,req.systemUser.name,String(req.body.notes||'').trim()||null);
+        paymentMethod,exchangeRate,tenderedLbp,tenderedUsd,changeLbp,changeUsd,
+        shift.id,req.systemUser.name,String(req.body.notes||'').trim()||null);
       const saleId=info.lastInsertRowid;
       const insertItem=db.prepare(`
-        INSERT INTO sale_items(sale_id,product_id,product_name,sku,quantity,size_ml,unit_price,unit_cost,line_total,note)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO sale_items(sale_id,product_id,product_name,sku,quantity,size_ml,stock_deduction,unit_price,unit_cost,line_total,note)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
       `);
       const movement=db.prepare(`
         INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
         VALUES (?,'sale',?,'sale',?,?,?)
       `);
       for (const i of items) {
-        insertItem.run(saleId,i.p.id,i.p.name_en,i.p.sku,i.qty,i.sizeMl,i.unitPrice,num(i.p.cost_price),i.total,i.note);
+        insertItem.run(saleId,i.p.id,i.p.name_en,i.p.sku,i.qty,i.sizeMl,i.needed,i.unitPrice,i.unitCost,i.total,i.note);
         if (i.p.track_stock) {
-          db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(i.qty,i.p.id);
-          movement.run(i.p.id,-i.qty,saleId,number,req.systemUser.name);
+          db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(i.needed,i.p.id);
+          movement.run(i.p.id,-i.needed,saleId,`${number}${i.sizeMl ? ' · '+i.sizeMl+'ml' : ''}`,req.systemUser.name);
         }
       }
+      if (cashLbp || cashUsd) {
+        db.prepare(`INSERT INTO cash_movements(shift_id,movement_type,reference_type,reference_id,amount_lbp,amount_usd,note,staff_name)
+          VALUES (?,'sale','sale',?,?,?,?,?)`).run(shift.id,saleId,cashLbp,cashUsd,number,req.systemUser.name);
+      }
       if (customerId) db.prepare('UPDATE customers SET total_spent=total_spent+?, visits=visits+1, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(total,customerId);
-      return { saleId, number, total, change };
+      return { saleId, number, total, change_lbp: changeLbp, change_usd: changeUsd };
     })();
     res.json({ ok:true, ...result });
   } catch(e) { res.status(400).json({ error:e.message }); }
@@ -313,18 +341,30 @@ router.post('/api/sales/:id/refund', requireManager, (req,res) => {
   const id=parseInt(req.params.id,10);
   const sale=db.prepare("SELECT * FROM sales WHERE id=? AND status='completed'").get(id);
   if (!sale) return res.status(404).json({ error:'Completed sale not found.' });
+  const refundShift=currentShift(req);
+  if (['cash_lbp','cash_usd'].includes(sale.payment_method) && !refundShift) {
+    return res.status(400).json({ error:'Open a shift before refunding a cash sale.' });
+  }
   db.transaction(() => {
     const items=db.prepare('SELECT * FROM sale_items WHERE sale_id=?').all(id);
     for (const item of items) {
-      const p=db.prepare('SELECT track_stock FROM products WHERE id=?').get(item.product_id);
+      const p=db.prepare('SELECT track_stock,type FROM products WHERE id=?').get(item.product_id);
       if (p?.track_stock) {
-        db.prepare('UPDATE products SET stock_qty=stock_qty+? WHERE id=?').run(item.quantity,item.product_id);
+        const restore=num(item.stock_deduction, p.type==='local' ? num(item.size_ml)*num(item.quantity) : num(item.quantity));
+        db.prepare('UPDATE products SET stock_qty=stock_qty+?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(restore,item.product_id);
         db.prepare(`INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
-          VALUES (?,'return',?,'sale',?,'Full sale refund',?)`).run(item.product_id,item.quantity,id,req.systemUser.name);
+          VALUES (?,'return',?,'sale',?,'Full sale refund',?)`).run(item.product_id,restore,id,req.systemUser.name);
       }
     }
     db.prepare("UPDATE sales SET status='refunded', refunded_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
     if (sale.customer_id) db.prepare('UPDATE customers SET total_spent=MAX(0,total_spent-?), visits=MAX(0,visits-1), updated_at=CURRENT_TIMESTAMP WHERE id=?').run(sale.total,sale.customer_id);
+    if (sale.payment_method === 'cash_lbp') {
+      db.prepare(`INSERT INTO cash_movements(shift_id,movement_type,reference_type,reference_id,amount_lbp,amount_usd,note,staff_name)
+        VALUES (?,'refund','sale',?, ?,0,?,?)`).run(refundShift.id,id,-num(sale.total),'Refund '+sale.sale_number,req.systemUser.name);
+    } else if (sale.payment_method === 'cash_usd') {
+      db.prepare(`INSERT INTO cash_movements(shift_id,movement_type,reference_type,reference_id,amount_lbp,amount_usd,note,staff_name)
+        VALUES (?,'refund','sale',?,0,?,?,?)`).run(refundShift.id,id,-(num(sale.total)/Math.max(1,num(sale.exchange_rate,1))),'Refund '+sale.sale_number,req.systemUser.name);
+    }
   })();
   res.json({ ok:true });
 });
@@ -338,9 +378,23 @@ router.post('/api/expenses', requireManager, (req,res) => {
   const description=String(req.body.description||'').trim();
   const category=String(req.body.category||'Other').trim();
   if (!description) return res.status(400).json({ error:'Description is required.' });
-  db.prepare('INSERT INTO expenses(category,description,amount_lbp,amount_usd,exchange_rate,staff_name) VALUES (?,?,?,?,?,?)')
-    .run(category,description,Math.max(0,num(req.body.amount_lbp)),Math.max(0,num(req.body.amount_usd)),Math.max(1,num(req.body.exchange_rate,89500)),req.systemUser.name);
-  res.json({ ok:true });
+  const amountLbp=Math.max(0,num(req.body.amount_lbp));
+  const amountUsd=Math.max(0,num(req.body.amount_usd));
+  const rate=Math.max(1,num(req.body.exchange_rate,89500));
+  if (!amountLbp && !amountUsd) return res.status(400).json({ error:'Expense amount is required.' });
+  const shift=currentShift(req);
+  const fromDrawer=req.body.from_drawer !== false && String(req.body.from_drawer) !== 'false';
+  if (fromDrawer && !shift) return res.status(400).json({ error:'Open a shift or mark the expense as not paid from the drawer.' });
+  const result=db.transaction(() => {
+    const info=db.prepare('INSERT INTO expenses(category,description,amount_lbp,amount_usd,exchange_rate,shift_id,staff_name) VALUES (?,?,?,?,?,?,?)')
+      .run(category,description,amountLbp,amountUsd,rate,fromDrawer ? shift.id : null,req.systemUser.name);
+    if (fromDrawer) {
+      db.prepare(`INSERT INTO cash_movements(shift_id,movement_type,reference_type,reference_id,amount_lbp,amount_usd,note,staff_name)
+        VALUES (?,'expense','expense',?,?,?,?,?)`).run(shift.id,info.lastInsertRowid,-amountLbp,-amountUsd,description,req.systemUser.name);
+    }
+    return info.lastInsertRowid;
+  })();
+  res.json({ ok:true,id:result });
 });
 
 router.get('/api/suppliers', requireManager, (req,res) => res.json({ suppliers:db.prepare('SELECT * FROM suppliers ORDER BY name').all() }));
@@ -444,13 +498,11 @@ router.post('/api/shift/close', requireSystem, (req,res) => {
   const shift=currentShift(req);
   if(!shift) return res.status(400).json({error:'No open shift.'});
   const cash=db.prepare(`
-    SELECT
-      COALESCE(SUM(CASE WHEN payment_method='cash_lbp' AND status='completed' THEN total ELSE 0 END),0) lbp,
-      COALESCE(SUM(CASE WHEN payment_method='cash_usd' AND status='completed' THEN total/exchange_rate ELSE 0 END),0) usd
-    FROM sales WHERE shift_id=?
+    SELECT COALESCE(SUM(amount_lbp),0) lbp, COALESCE(SUM(amount_usd),0) usd
+    FROM cash_movements WHERE shift_id=?
   `).get(shift.id);
-  const expectedLbp=shift.opening_lbp+cash.lbp;
-  const expectedUsd=shift.opening_usd+cash.usd;
+  const expectedLbp=num(shift.opening_lbp)+num(cash.lbp);
+  const expectedUsd=num(shift.opening_usd)+num(cash.usd);
   const closingLbp=Math.max(0,num(req.body.closing_lbp));
   const closingUsd=Math.max(0,num(req.body.closing_usd));
   db.prepare(`UPDATE shifts SET status='closed',closed_at=CURRENT_TIMESTAMP,closing_lbp=?,closing_usd=?,
