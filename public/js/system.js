@@ -151,12 +151,18 @@
       return;
     }
     const normalizedSize=p.type==='local'?Number(sizeMl):null;
+    const neededPerUnit=p.type==='local'?normalizedSize:1;
+    if(p.track_stock && neededPerUnit>Number(p.stock_qty||0)){toast('Not enough stock for this size.',true);return;}
     const price=p.type==='local'
       ? Number(normalizedSize===100 ? (p.price_100ml ?? p.price) : (p.price_50ml ?? p.price))
       : Number(p.price||0);
     const row=cart.find(x=>x.product_id===id && x.size_ml===normalizedSize);
-    if(row){ if(p.track_stock && row.quantity+1>Number(p.stock_qty)){toast('Not enough stock.',true);return;} row.quantity+=1; }
-    else cart.push({product_id:p.id,name:p.name_en,size_ml:normalizedSize,price,quantity:1,stock:Number(p.stock_qty||0),tracked:!!p.track_stock});
+    if(row){
+      const nextNeeded=(row.quantity+1)*neededPerUnit;
+      if(p.track_stock && nextNeeded>Number(p.stock_qty)){toast('Not enough stock.',true);return;}
+      row.quantity+=1;
+    }
+    else cart.push({product_id:p.id,name:p.name_en,size_ml:normalizedSize,price,quantity:1,stock:Number(p.stock_qty||0),tracked:!!p.track_stock,stock_per_unit:neededPerUnit});
     $('#sizeModal')?.classList.remove('open');
     pendingSizeProductId=null;
     renderCart();
@@ -170,10 +176,28 @@
     const total=subtotal-discount;
     totals.innerHTML=`<div class="sys-total-line"><span>Subtotal</span><b>${fmt(subtotal)}</b></div><div class="sys-total-line"><span>Discount</span><b>− ${fmt(discount)}</b></div><div class="sys-total-line total"><span>Total</span><span>${fmt(total)}</span></div><div class="sys-total-line"><span>USD approx.</span><span>${usd(total/exchangeRate)}</span></div>`;
     $$('[data-dec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dec;cart[i].quantity-=1;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()});
-    $$('[data-inc]').forEach(b=>b.onclick=()=>{const i=+b.dataset.inc;if(cart[i].tracked&&cart[i].quantity+1>cart[i].stock)return toast('Not enough stock.',true);cart[i].quantity+=1;renderCart()});
+    $('[data-inc]').forEach(b=>b.onclick=()=>{const i=+b.dataset.inc;const needed=(cart[i].quantity+1)*(cart[i].stock_per_unit||1);if(cart[i].tracked&&needed>cart[i].stock)return toast('Not enough stock.',true);cart[i].quantity+=1;renderCart()});
     $$('[data-remove]').forEach(b=>b.onclick=()=>{cart.splice(+b.dataset.remove,1);renderCart()});
   }
   $('#saleDiscount')?.addEventListener('input',renderCart);
+  function syncTenderFields(){
+    const method=$('#paymentMethod')?.value;
+    const lbp=$('#tenderedLbp'), usdInput=$('#tenderedUsd');
+    const lbpWrap=$('#tenderedLbpWrap'), usdWrap=$('#tenderedUsdWrap');
+    if(!lbp||!usdInput)return;
+    if(method==='cash_lbp'){
+      usdInput.value='0'; usdInput.disabled=true; lbp.disabled=false;
+      if(lbpWrap)lbpWrap.style.display=''; if(usdWrap)usdWrap.style.display='none';
+    }else if(method==='cash_usd'){
+      lbp.value='0'; lbp.disabled=true; usdInput.disabled=false;
+      if(lbpWrap)lbpWrap.style.display='none'; if(usdWrap)usdWrap.style.display='';
+    }else{
+      lbp.value='0';usdInput.value='0';lbp.disabled=true;usdInput.disabled=true;
+      if(lbpWrap)lbpWrap.style.display='none'; if(usdWrap)usdWrap.style.display='none';
+    }
+  }
+  $('#paymentMethod')?.addEventListener('change',syncTenderFields);
+  syncTenderFields();
   $('#clearCart')?.addEventListener('click',()=>{cart=[];renderCart()});
   $('#completeSale')?.addEventListener('click',async()=>{
     if(!cart.length)return toast('Cart is empty.',true);
