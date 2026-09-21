@@ -23,8 +23,16 @@ jobs:
         run: |
           node --check server.js
           node --check database/store-system.js
+          node --check database/runtime-paths.js
+          node --check database/sqlite-session-store.js
+          node --check database/backup.js
+          node --check helpers/inventory.js
           node --check routes/system.js
+          node --check routes/cart.js
+          node --check routes/checkout.js
+          node --check routes/admin.js
           node --check public/js/system.js
+          node --check scripts/store-system-smoke.js
       - name: Compile EJS views
         run: |
           node - <<'NODE'
@@ -37,6 +45,8 @@ jobs:
           NODE
       - name: Database schema smoke test
         run: node -e "require('./database/store-system'); console.log('database ok')"
+      - name: Production integration smoke test
+        run: node scripts/store-system-smoke.js
       - name: Server health smoke test
         run: |
           node server.js > /tmp/jamaludeen-server.log 2>&1 &
