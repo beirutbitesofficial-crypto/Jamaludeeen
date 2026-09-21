@@ -7,13 +7,24 @@ function settings() {
   return Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
 }
 function user(req) {
-  if (req.session.systemUser) return req.session.systemUser;
+  if (req.session.systemUser?.owner) return req.session.systemUser;
+  if (req.session.systemUser?.id) {
+    const staff = db.prepare('SELECT id, full_name, username, role, active FROM staff_users WHERE id=?').get(req.session.systemUser.id);
+    if (staff?.active) {
+      req.session.systemUser = { id: staff.id, name: staff.full_name, username: staff.username, role: staff.role, owner: false };
+      return req.session.systemUser;
+    }
+    req.session.systemUser = null;
+  }
   if (req.session.isAdmin) return { id: null, name: req.session.adminUsername || 'Owner', username: req.session.adminUsername || 'admin', role: 'owner', owner: true };
   return null;
 }
 function requireSystem(req, res, next) {
   const u = user(req);
-  if (!u) return res.status(401).json(req.path.startsWith('/api/') ? { error: 'Login required' } : undefined) || res.redirect('/system/login');
+  if (!u) {
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Login required' });
+    return res.redirect('/system/login');
+  }
   req.systemUser = u;
   next();
 }
@@ -108,8 +119,11 @@ router.get('/api/dashboard', requireSystem, (req, res) => {
     SELECT id, sale_number, customer_name, total, payment_method, cashier_name, created_at
     FROM sales ORDER BY id DESC LIMIT 8
   `).all();
+  const canManage = ['owner','manager'].includes(req.systemUser.role);
   res.json({
-    today: { ...today, cogs, expenses: expense, gross_profit: today.sales_total - cogs, net_profit: today.sales_total - cogs - expense },
+    today: canManage
+      ? { ...today, cogs, expenses: expense, gross_profit: today.sales_total - cogs, net_profit: today.sales_total - cogs - expense }
+      : { ...today },
     lowStock, products, recent, shift: currentShift(req), user: req.systemUser
   });
 });
@@ -136,7 +150,10 @@ router.get('/api/products', requireSystem, (req, res) => {
     FROM products WHERE ${ws}
     ORDER BY name_en LIMIT ? OFFSET ?
   `).all(...params, limit, (page-1)*limit);
-  res.json({ products: rows, total, page, pages: Math.ceil(total/limit) });
+  const safeRows = req.systemUser.role === 'cashier'
+    ? rows.map(({ cost_price, ...product }) => product)
+    : rows;
+  res.json({ products: safeRows, total, page, pages: Math.ceil(total/limit) });
 });
 
 router.post('/api/products/:id/inventory', requireManager, (req, res) => {
@@ -206,7 +223,8 @@ router.get('/api/sales', requireSystem, (req,res) => {
 router.get('/api/sales/:id', requireSystem, (req,res) => {
   const sale = db.prepare('SELECT * FROM sales WHERE id=?').get(req.params.id);
   if (!sale) return res.status(404).json({ error:'Sale not found' });
-  const items = db.prepare('SELECT * FROM sale_items WHERE sale_id=? ORDER BY id').all(sale.id);
+  let items = db.prepare('SELECT * FROM sale_items WHERE sale_id=? ORDER BY id').all(sale.id);
+  if (req.systemUser.role === 'cashier') items = items.map(({ unit_cost, ...item }) => item);
   res.json({ sale,items });
 });
 router.post('/api/sales', requireSystem, (req,res) => {
@@ -214,7 +232,7 @@ router.post('/api/sales', requireSystem, (req,res) => {
   if (!incoming.length) return res.status(400).json({ error:'Cart is empty.' });
   const canOverride = ['owner','manager'].includes(req.systemUser.role);
   const exchangeRate = Math.max(1,num(req.body.exchange_rate, num(settings().system_exchange_rate,89500)));
-  const discount = Math.max(0,num(req.body.discount));
+  const discount = canOverride ? Math.max(0,num(req.body.discount)) : 0;
   try {
     const result = db.transaction(() => {
       let customerId = req.body.customer_id ? parseInt(req.body.customer_id,10) : null;
