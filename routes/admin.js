@@ -7,6 +7,7 @@ const multer = require('multer');
 const db = require('../database/store-system');
 const { saleUnitCost } = require('../helpers/inventory');
 const adminAuth = require('../middleware/adminAuth');
+const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
 
 // ── Multer setup ─────────────────────────────────────────────────────────────
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
@@ -74,10 +75,11 @@ router.get('/login', (req, res) => {
   res.render('admin/login', { title: 'Admin Login', layout: false });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', loginRateLimit('admin'), (req, res) => {
   const { username, password } = req.body;
   const admin = db.prepare(`SELECT * FROM admins WHERE username = ?`).get(username);
   if (admin && bcrypt.compareSync(password, admin.password)) {
+    clearLoginAttempts(req, 'admin');
     req.session.isAdmin = true;
     req.session.adminUsername = admin.username;
     return res.redirect('/admin/dashboard');
