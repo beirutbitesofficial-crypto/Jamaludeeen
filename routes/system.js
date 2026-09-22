@@ -344,6 +344,9 @@ router.post('/api/sales/:id/refund', requireManager, (req,res) => {
   const id=parseInt(req.params.id,10);
   const sale=db.prepare("SELECT * FROM sales WHERE id=? AND status='completed'").get(id);
   if (!sale) return res.status(404).json({ error:'Completed sale not found.' });
+  if (sale.source === 'online') {
+    return res.status(400).json({ error:'Online orders must be cancelled/refunded from Website Admin so stock stays synchronized.' });
+  }
   const refundShift=currentShift(req);
   if (['cash_lbp','cash_usd'].includes(sale.payment_method) && !refundShift) {
     return res.status(400).json({ error:'Open a shift before refunding a cash sale.' });
