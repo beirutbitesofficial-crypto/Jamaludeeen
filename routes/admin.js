@@ -70,6 +70,14 @@ function getSettings() {
   );
 }
 
+function managedFilePath(urlPath) {
+  if (!urlPath) return null;
+  if (String(urlPath).startsWith('/uploads/')) {
+    return path.join(persistentUploadsDir, String(urlPath).slice('/uploads/'.length));
+  }
+  return path.join(__dirname, '..', 'public', String(urlPath).replace(/^\//, ''));
+}
+
 // ── Login ─────────────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.session.isAdmin) return res.redirect('/admin/dashboard');
@@ -182,7 +190,7 @@ router.post('/products/:id(\\d+)', adminAuth, upload.single('image'), (req, res)
     // Remove old image if exists
     const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
     if (old?.image_path) {
-      const oldPath = path.join(__dirname, '..', 'public', old.image_path);
+      const oldPath = managedFilePath(old.image_path);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
     updates.image_path = `/uploads/products/${req.file.filename}`;
@@ -216,7 +224,7 @@ router.post('/products/:id(\\d+)/image', adminAuth, upload.single('image'), (req
 
   const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
   if (old?.image_path) {
-    const oldPath = path.join(__dirname, '..', 'public', old.image_path);
+    const oldPath = managedFilePath(old.image_path);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
   }
 
@@ -237,7 +245,7 @@ router.post('/products/:id(\\d+)/image', adminAuth, upload.single('image'), (req
 router.post('/products/:id(\\d+)/delete-image', adminAuth, (req, res) => {
   const product = db.prepare(`SELECT image_path, type, category FROM products WHERE id = ?`).get(req.params.id);
   if (product?.image_path) {
-    const imgPath = path.join(__dirname, '..', 'public', product.image_path);
+    const imgPath = managedFilePath(product.image_path);
     if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
     db.prepare(`UPDATE products SET image_path = NULL WHERE id = ?`).run(req.params.id);
   }
@@ -477,7 +485,7 @@ router.post('/settings/upload-image/:type', adminAuth, (req, res, next) => {
   const key = `${req.params.type}_image`;
   const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
   if (old?.value) {
-    const p = path.join(__dirname, '..', 'public', old.value);
+    const p = managedFilePath(old.value);
     if (fs.existsSync(p)) fs.unlinkSync(p);
   }
   db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(key, `/uploads/settings/${req.file.filename}`);
@@ -490,7 +498,7 @@ router.post('/settings/delete-image/:type', adminAuth, (req, res) => {
   const key = `${req.params.type}_image`;
   const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
   if (old?.value) {
-    const p = path.join(__dirname, '..', 'public', old.value);
+    const p = managedFilePath(old.value);
     if (fs.existsSync(p)) fs.unlinkSync(p);
     db.prepare(`UPDATE settings SET value = NULL WHERE key = ?`).run(key);
   }
@@ -615,7 +623,7 @@ router.post('/brands/:id/logo', adminAuth, uploadBrand.single('logo'), (req, res
   const id = parseInt(req.params.id);
   if (!req.file) { req.flash('error', 'Please choose a logo.'); return res.redirect('/admin/brands'); }
   const old = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(id);
-  if (old?.logo_path) { const p = path.join(__dirname,'..','public',old.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
+  if (old?.logo_path) { const p = managedFilePath(old.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
   db.prepare(`UPDATE brands SET logo_path = ? WHERE id = ?`).run(`/uploads/brands/${req.file.filename}`, id);
   req.flash('success', 'Logo updated.');
   res.redirect('/admin/brands');
@@ -631,7 +639,7 @@ router.post('/brands/:id/edit', adminAuth, (req, res) => {
 
 router.post('/brands/:id/delete', adminAuth, (req, res) => {
   const brand = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(req.params.id);
-  if (brand?.logo_path) { const p = path.join(__dirname,'..','public',brand.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
+  if (brand?.logo_path) { const p = managedFilePath(brand.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
   db.prepare(`DELETE FROM brands WHERE id = ?`).run(req.params.id);
   req.flash('success', 'Brand deleted.');
   res.redirect('/admin/brands');
@@ -701,7 +709,7 @@ router.post('/brands/:brandId/categories/:catId/edit', adminAuth, uploadBrandCat
 
   if (req.file) {
     if (cat.image_path) {
-      const old = path.join(__dirname, '..', 'public', cat.image_path);
+      const old = managedFilePath(cat.image_path);
       if (fs.existsSync(old)) fs.unlinkSync(old);
     }
     updates.image_path = `/uploads/brands/${req.file.filename}`;
@@ -718,7 +726,7 @@ router.post('/brands/:brandId/categories/:catId/delete', adminAuth, (req, res) =
   const { brandId, catId } = req.params;
   const cat = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
   if (cat?.image_path) {
-    const p = path.join(__dirname, '..', 'public', cat.image_path);
+    const p = managedFilePath(cat.image_path);
     if (fs.existsSync(p)) fs.unlinkSync(p);
   }
   // Unlink products from this category
