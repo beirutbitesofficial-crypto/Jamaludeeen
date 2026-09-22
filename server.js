@@ -62,6 +62,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Reject cross-site state-changing browser requests. Combined with SameSite cookies this
+// protects admin/POS forms and APIs without changing the existing form structure.
+app.use((req, res, next) => {
+  if (['GET','HEAD','OPTIONS'].includes(req.method)) return next();
+  if (req.get('Sec-Fetch-Site') === 'cross-site') return res.status(403).send('Cross-site request blocked.');
+  const origin = req.get('Origin');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== req.get('host')) return res.status(403).send('Origin mismatch.');
+    } catch (_) {
+      return res.status(403).send('Invalid origin.');
+    }
+  }
+  next();
+});
+
 // Persistent sessions survive application restarts and deployments when DATA_DIR is persistent.
 app.use(session({
   name: 'jamaludeen.sid',
