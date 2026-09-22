@@ -5,8 +5,21 @@ const flash = require('connect-flash');
 const methodOverride = require('method-override');
 const path = require('path');
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+if (IS_PRODUCTION) {
+  const missing = ['SESSION_SECRET','ADMIN_USERNAME','ADMIN_PASSWORD','DATA_DIR','BACKUP_DIR']
+    .filter(name => !String(process.env[name] || '').trim());
+  if (missing.length) throw new Error('Missing required production environment variables: ' + missing.join(', '));
+  if (String(process.env.SESSION_SECRET).length < 32) throw new Error('SESSION_SECRET must be at least 32 characters in production.');
+  if (String(process.env.ADMIN_PASSWORD).length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
+}
+const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
+const SQLiteSessionStore = require('./database/sqlite-session-store');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+if (IS_PRODUCTION) app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
 // View engine
 app.set('view engine', 'ejs');
@@ -15,6 +28,9 @@ app.set('views', path.join(__dirname, 'views'));
 // Static files. Explicit mounts and headers keep Hostinger/CDN from serving
 // stale HTML or treating stylesheets as generic downloads.
 const publicDir = path.join(__dirname, 'public');
+app.use('/uploads', express.static(uploadsDir, {
+  setHeaders: res => res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate')
+}));
 app.use('/css', express.static(path.join(publicDir, 'css'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.css')) {
@@ -33,12 +49,49 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
 
-// Sessions
+// Baseline browser security headers.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (IS_PRODUCTION) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (req.path.startsWith('/admin') || req.path.startsWith('/system')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
+
+// Reject cross-site state-changing browser requests. Combined with SameSite cookies this
+// protects admin/POS forms and APIs without changing the existing form structure.
+app.use((req, res, next) => {
+  if (['GET','HEAD','OPTIONS'].includes(req.method)) return next();
+  if (req.get('Sec-Fetch-Site') === 'cross-site') return res.status(403).send('Cross-site request blocked.');
+  const origin = req.get('Origin');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== req.get('host')) return res.status(403).send('Origin mismatch.');
+    } catch (_) {
+      return res.status(403).send('Invalid origin.');
+    }
+  }
+  next();
+});
+
+// Persistent sessions survive application restarts and deployments when DATA_DIR is persistent.
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'jamaludeen-secret',
+  name: 'jamaludeen.sid',
+  store: new SQLiteSessionStore({ filename: sessionDbPath }),
+  secret: process.env.SESSION_SECRET || 'development-session-secret-change-before-production',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
+  rolling: true,
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: IS_PRODUCTION
+  }
 }));
 
 // Flash messages
@@ -100,6 +153,7 @@ app.use('/collections', require('./routes/collections'));
 app.use('/cart', require('./routes/cart'));
 app.use('/checkout', require('./routes/checkout'));
 app.use('/admin', require('./routes/admin'));
+app.use('/system', require('./routes/system'));
 
 // 404 handler
 app.use((req, res) => {

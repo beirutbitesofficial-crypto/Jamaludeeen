@@ -24,19 +24,23 @@
     <a href="/shop/item/<%= p.id %>" class="store-product-card__name"><%= lang === 'ar' && p.name_ar ? p.name_ar : p.name_en %></a>
 
     <div class="store-product-card__buy-row">
-      <% if (p.price) { %>
+      <% if (p.type === 'local' && p.price_50ml) { %>
+        <span class="store-product-card__price price-display" data-lbp="<%= p.price_50ml %>">50ml · <%= p.price_50ml.toLocaleString() %> LBP</span>
+      <% } else if (p.price) { %>
         <span class="store-product-card__price price-display" data-lbp="<%= p.price %>"><%= p.price.toLocaleString() %> LBP</span>
       <% } else { %>
         <span class="store-product-card__price store-product-card__price--muted"><%= t.price_not_set %></span>
       <% } %>
     </div>
 
-    <% if (p.in_stock && p.price) { %>
+    <% if (p.in_stock && p.price && p.type !== 'local') { %>
       <form action="/cart/add" method="POST" class="store-product-card__form">
         <input type="hidden" name="productId" value="<%= p.id %>"/>
         <input type="hidden" name="qty" value="1"/>
         <button type="submit" class="store-product-card__add"><%= lang === 'ar' ? 'أضف إلى السلة' : 'Add to bag' %></button>
       </form>
+    <% } else if (p.in_stock && p.type === 'local') { %>
+      <a href="/shop/item/<%= p.id %>" class="store-product-card__add"><%= lang === 'ar' ? 'اختار 50ml أو 100ml' : 'Choose 50ml or 100ml' %></a>
     <% } else { %>
       <a href="/shop/item/<%= p.id %>" class="store-product-card__add store-product-card__add--secondary"><%= lang === 'ar' ? 'عرض المنتج' : 'View product' %></a>
     <% } %>

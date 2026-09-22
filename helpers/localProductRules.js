@@ -16,11 +16,16 @@ function applyLocalRulesToProduct(product, settings = {}) {
   const category = product.category;
   const sharedImage = settings[`${category}_image`];
   const sharedPrice = parsePrice(settings[`local_price_${category}`]);
+  const basePrice = parsePrice(product.price);
+  const price50 = parsePrice(product.price_50ml) ?? sharedPrice ?? basePrice;
+  const price100 = parsePrice(product.price_100ml) ?? sharedPrice ?? basePrice;
 
   return {
     ...product,
     image_path: sharedImage || product.image_path || null,
-    price: sharedPrice !== null ? sharedPrice : product.price,
+    price: price50,
+    price_50ml: price50,
+    price_100ml: price100,
   };
 }
 

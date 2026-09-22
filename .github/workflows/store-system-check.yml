@@ -1,0 +1,66 @@
+name: Store System Check
+
+on:
+  push:
+    branches:
+      - feature/store-pos-system
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: JavaScript syntax
+        run: |
+          node --check server.js
+          node --check database/store-system.js
+          node --check database/runtime-paths.js
+          node --check database/sqlite-session-store.js
+          node --check database/backup.js
+          node --check helpers/inventory.js
+          node --check routes/system.js
+          node --check routes/cart.js
+          node --check routes/checkout.js
+          node --check routes/admin.js
+          node --check public/js/system.js
+          node --check scripts/store-system-smoke.js
+      - name: Compile EJS views
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const ejs = require('ejs');
+          for (const file of ['views/system/login.ejs','views/system/app.ejs']) {
+            ejs.compile(fs.readFileSync(file,'utf8'), { filename:file });
+            console.log('compiled', file);
+          }
+          NODE
+      - name: Database schema smoke test
+        run: node -e "require('./database/store-system'); console.log('database ok')"
+      - name: Production integration smoke test
+        run: node scripts/store-system-smoke.js
+      - name: Server health smoke test
+        run: |
+          node server.js > /tmp/jamaludeen-server.log 2>&1 &
+          PID=$!
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:3000/healthz >/dev/null; then
+              kill $PID || true
+              echo "health check ok"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/jamaludeen-server.log
+          kill $PID || true
+          exit 1

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> | JAMALUDEEN</title>
+  <link rel="stylesheet" href="/css/system.css?v=1">
+</head>
+<body class="sys-login-body">
+  <main class="sys-login-card">
+    <div class="sys-brand">JAMALUDEEN</div>
+    <h1>Store System</h1>
+    <p class="muted">POS · Inventory · Reports</p>
+    <% if (error && error.length) { %><div class="sys-alert sys-alert--error"><%= error[0] %></div><% } %>
+    <form method="POST" action="/system/login" class="sys-form">
+      <label>Username<input name="username" autocomplete="username" required autofocus></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="sys-btn sys-btn--primary" type="submit">Sign in</button>
+    </form>
+    <a href="/" class="sys-back-link">← Back to store</a>
+  </main>
+</body>
+</html>

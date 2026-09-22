@@ -4,11 +4,14 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
-const db = require('../database/db');
+const db = require('../database/store-system');
+const { saleUnitCost } = require('../helpers/inventory');
 const adminAuth = require('../middleware/adminAuth');
+const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
+const { uploadsDir: persistentUploadsDir } = require('../database/runtime-paths');
 
 // ── Multer setup ─────────────────────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
+const uploadsDir = path.join(persistentUploadsDir, 'products');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -29,7 +32,7 @@ const upload = multer({
 });
 
 // Brand logo uploader
-const brandUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'brands');
+const brandUploadsDir = path.join(persistentUploadsDir, 'brands');
 if (!fs.existsSync(brandUploadsDir)) fs.mkdirSync(brandUploadsDir, { recursive: true });
 
 const brandStorage = multer.diskStorage({
@@ -42,7 +45,7 @@ const brandStorage = multer.diskStorage({
 const uploadBrand = multer({ storage: brandStorage, limits: { fileSize: 2 * 1024 * 1024 } });
 
 // Settings images uploader (banner, category images)
-const settingsUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'settings');
+const settingsUploadsDir = path.join(persistentUploadsDir, 'settings');
 if (!fs.existsSync(settingsUploadsDir)) fs.mkdirSync(settingsUploadsDir, { recursive: true });
 
 const uploadSettings = multer({
@@ -67,16 +70,25 @@ function getSettings() {
   );
 }
 
+function managedFilePath(urlPath) {
+  if (!urlPath) return null;
+  if (String(urlPath).startsWith('/uploads/')) {
+    return path.join(persistentUploadsDir, String(urlPath).slice('/uploads/'.length));
+  }
+  return path.join(__dirname, '..', 'public', String(urlPath).replace(/^\//, ''));
+}
+
 // ── Login ─────────────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.session.isAdmin) return res.redirect('/admin/dashboard');
   res.render('admin/login', { title: 'Admin Login', layout: false });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', loginRateLimit('admin'), (req, res) => {
   const { username, password } = req.body;
   const admin = db.prepare(`SELECT * FROM admins WHERE username = ?`).get(username);
   if (admin && bcrypt.compareSync(password, admin.password)) {
+    clearLoginAttempts(req, 'admin');
     req.session.isAdmin = true;
     req.session.adminUsername = admin.username;
     return res.redirect('/admin/dashboard');
@@ -178,7 +190,7 @@ router.post('/products/:id(\\d+)', adminAuth, upload.single('image'), (req, res)
     // Remove old image if exists
     const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
     if (old?.image_path) {
-      const oldPath = path.join(__dirname, '..', 'public', old.image_path);
+      const oldPath = managedFilePath(old.image_path);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
     updates.image_path = `/uploads/products/${req.file.filename}`;
@@ -212,7 +224,7 @@ router.post('/products/:id(\\d+)/image', adminAuth, upload.single('image'), (req
 
   const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
   if (old?.image_path) {
-    const oldPath = path.join(__dirname, '..', 'public', old.image_path);
+    const oldPath = managedFilePath(old.image_path);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
   }
 
@@ -233,7 +245,7 @@ router.post('/products/:id(\\d+)/image', adminAuth, upload.single('image'), (req
 router.post('/products/:id(\\d+)/delete-image', adminAuth, (req, res) => {
   const product = db.prepare(`SELECT image_path, type, category FROM products WHERE id = ?`).get(req.params.id);
   if (product?.image_path) {
-    const imgPath = path.join(__dirname, '..', 'public', product.image_path);
+    const imgPath = managedFilePath(product.image_path);
     if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
     db.prepare(`UPDATE products SET image_path = NULL WHERE id = ?`).run(req.params.id);
   }
@@ -327,9 +339,96 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
   const { status } = req.body;
   const valid = ['pending','confirmed','shipped','delivered','cancelled'];
   if (!valid.includes(status)) return res.redirect(`/admin/orders/${req.params.id}`);
-  db.prepare(`UPDATE orders SET status = ? WHERE id = ?`).run(status, req.params.id);
-  req.flash('success', 'Order status updated.');
-  res.redirect(`/admin/orders/${req.params.id}`);
+
+  const orderId = parseInt(req.params.id, 10);
+  const order = db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);
+  if (!order) return res.status(404).send('Not found');
+  if (order.status === status) return res.redirect(`/admin/orders/${orderId}`);
+
+  try {
+    db.transaction(() => {
+      const items = db.prepare('SELECT * FROM order_items WHERE order_id=?').all(orderId);
+
+      // Re-activate a cancelled order by reserving its stock again.
+      if (order.status === 'cancelled' && status !== 'cancelled' && !order.stock_reserved) {
+        for (const item of items) {
+          if (!item.product_id || !Number(item.stock_deduction)) continue;
+          const p = db.prepare('SELECT * FROM products WHERE id=?').get(item.product_id);
+          if (!p || !p.track_stock) continue;
+          if (Number(item.stock_deduction) > Number(p.stock_qty || 0)) {
+            throw new Error(`Not enough stock to reactivate ${item.product_name}.`);
+          }
+        }
+        for (const item of items) {
+          if (!item.product_id || !Number(item.stock_deduction)) continue;
+          const p = db.prepare('SELECT track_stock FROM products WHERE id=?').get(item.product_id);
+          if (!p?.track_stock) continue;
+          db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
+            .run(item.stock_deduction, item.product_id);
+          db.prepare(`INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
+            VALUES (?,'sale',?,'online_order',?,'Order reactivated','Website Admin')`)
+            .run(item.product_id, -Number(item.stock_deduction), orderId);
+        }
+        db.prepare('UPDATE orders SET stock_reserved=1 WHERE id=?').run(orderId);
+      }
+
+      // Cancelling a reserved order returns exactly what was reserved.
+      if (status === 'cancelled' && order.status !== 'cancelled' && order.stock_reserved) {
+        for (const item of items) {
+          if (!item.product_id || !Number(item.stock_deduction)) continue;
+          const p = db.prepare('SELECT track_stock FROM products WHERE id=?').get(item.product_id);
+          if (!p?.track_stock) continue;
+          db.prepare('UPDATE products SET stock_qty=stock_qty+?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
+            .run(item.stock_deduction, item.product_id);
+          db.prepare(`INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
+            VALUES (?,'return',?,'online_order',?,'Online order cancelled','Website Admin')`)
+            .run(item.product_id, Number(item.stock_deduction), orderId);
+        }
+        db.prepare('UPDATE orders SET stock_reserved=0 WHERE id=?').run(orderId);
+      }
+
+      let salesId = order.sales_id;
+      if (status === 'delivered') {
+        if (!salesId) {
+          const saleNumber = 'WEB-' + order.order_number;
+          const saleInfo = db.prepare(`
+            INSERT INTO sales(sale_number,customer_name,customer_phone,subtotal,discount,total,payment_method,
+              exchange_rate,tendered_lbp,tendered_usd,change_lbp,change_usd,shift_id,cashier_name,notes,status,source)
+            VALUES (?,?,?,?,0,?,?,?,?,0,0,0,NULL,'Online Store',?,'completed','online')
+          `).run(
+            saleNumber, order.customer_name, order.customer_phone, order.subtotal, order.total,
+            order.payment_method, Number(db.prepare("SELECT value FROM settings WHERE key='system_exchange_rate'").get()?.value || 89500),
+            0, `Website order ${order.order_number}`
+          );
+          salesId = saleInfo.lastInsertRowid;
+          const insertSaleItem = db.prepare(`
+            INSERT INTO sale_items(sale_id,product_id,product_name,quantity,size_ml,stock_deduction,unit_price,unit_cost,line_total,note)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+          `);
+          for (const item of items) {
+            const p = item.product_id ? db.prepare('SELECT * FROM products WHERE id=?').get(item.product_id) : null;
+            const cost = p ? saleUnitCost(p, item.size_ml) : 0;
+            insertSaleItem.run(salesId,item.product_id,item.product_name,item.quantity,item.size_ml,item.stock_deduction,item.price,cost,item.price*item.quantity,'Online order');
+          }
+          db.prepare('UPDATE orders SET sales_id=? WHERE id=?').run(salesId,orderId);
+        } else {
+          db.prepare("UPDATE sales SET status='completed', refunded_at=NULL WHERE id=?").run(salesId);
+        }
+      } else if (salesId && order.status === 'delivered') {
+        db.prepare(`UPDATE sales SET status=?, refunded_at=CASE WHEN ?='refunded' THEN CURRENT_TIMESTAMP ELSE refunded_at END WHERE id=?`)
+          .run(status === 'cancelled' ? 'refunded' : 'voided', status === 'cancelled' ? 'refunded' : 'voided', salesId);
+      } else if (salesId && status === 'cancelled') {
+        db.prepare("UPDATE sales SET status='refunded', refunded_at=CURRENT_TIMESTAMP WHERE id=?").run(salesId);
+      }
+
+      db.prepare('UPDATE orders SET status=? WHERE id=?').run(status, orderId);
+    })();
+
+    req.flash('success', 'Order status updated and inventory synchronized.');
+  } catch (error) {
+    req.flash('error', error.message);
+  }
+  res.redirect(`/admin/orders/${orderId}`);
 });
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -386,7 +485,7 @@ router.post('/settings/upload-image/:type', adminAuth, (req, res, next) => {
   const key = `${req.params.type}_image`;
   const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
   if (old?.value) {
-    const p = path.join(__dirname, '..', 'public', old.value);
+    const p = managedFilePath(old.value);
     if (fs.existsSync(p)) fs.unlinkSync(p);
   }
   db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(key, `/uploads/settings/${req.file.filename}`);
@@ -399,7 +498,7 @@ router.post('/settings/delete-image/:type', adminAuth, (req, res) => {
   const key = `${req.params.type}_image`;
   const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
   if (old?.value) {
-    const p = path.join(__dirname, '..', 'public', old.value);
+    const p = managedFilePath(old.value);
     if (fs.existsSync(p)) fs.unlinkSync(p);
     db.prepare(`UPDATE settings SET value = NULL WHERE key = ?`).run(key);
   }
@@ -524,7 +623,7 @@ router.post('/brands/:id/logo', adminAuth, uploadBrand.single('logo'), (req, res
   const id = parseInt(req.params.id);
   if (!req.file) { req.flash('error', 'Please choose a logo.'); return res.redirect('/admin/brands'); }
   const old = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(id);
-  if (old?.logo_path) { const p = path.join(__dirname,'..','public',old.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
+  if (old?.logo_path) { const p = managedFilePath(old.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
   db.prepare(`UPDATE brands SET logo_path = ? WHERE id = ?`).run(`/uploads/brands/${req.file.filename}`, id);
   req.flash('success', 'Logo updated.');
   res.redirect('/admin/brands');
@@ -540,7 +639,7 @@ router.post('/brands/:id/edit', adminAuth, (req, res) => {
 
 router.post('/brands/:id/delete', adminAuth, (req, res) => {
   const brand = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(req.params.id);
-  if (brand?.logo_path) { const p = path.join(__dirname,'..','public',brand.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
+  if (brand?.logo_path) { const p = managedFilePath(brand.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
   db.prepare(`DELETE FROM brands WHERE id = ?`).run(req.params.id);
   req.flash('success', 'Brand deleted.');
   res.redirect('/admin/brands');
@@ -610,7 +709,7 @@ router.post('/brands/:brandId/categories/:catId/edit', adminAuth, uploadBrandCat
 
   if (req.file) {
     if (cat.image_path) {
-      const old = path.join(__dirname, '..', 'public', cat.image_path);
+      const old = managedFilePath(cat.image_path);
       if (fs.existsSync(old)) fs.unlinkSync(old);
     }
     updates.image_path = `/uploads/brands/${req.file.filename}`;
@@ -627,7 +726,7 @@ router.post('/brands/:brandId/categories/:catId/delete', adminAuth, (req, res) =
   const { brandId, catId } = req.params;
   const cat = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
   if (cat?.image_path) {
-    const p = path.join(__dirname, '..', 'public', cat.image_path);
+    const p = managedFilePath(cat.image_path);
     if (fs.existsSync(p)) fs.unlinkSync(p);
   }
   // Unlink products from this category

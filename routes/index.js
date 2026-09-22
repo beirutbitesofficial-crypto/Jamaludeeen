@@ -57,7 +57,7 @@ router.get('/api/products', (req, res) => {
   db.prepare(`SELECT key, value FROM settings`).all().forEach(r => settings[r.key] = r.value);
 
   const rawProducts = db.prepare(
-    `SELECT id, name_en, brand, category, type, price, in_stock, image_path FROM products WHERE id IN (${placeholders})`
+    `SELECT id, name_en, brand, category, type, price, price_50ml, price_100ml, in_stock, image_path FROM products WHERE id IN (${placeholders})`
   ).all(...ids);
   const products = applyLocalRulesToProducts(rawProducts, settings);
   res.json(products);
