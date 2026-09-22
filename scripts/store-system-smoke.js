@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const Database = require('better-sqlite3');
+const { backupNow } = require('../database/backup');
 
 const root = path.join(__dirname, '..');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jamaludeen-smoke-'));
@@ -145,6 +146,9 @@ async function main() {
     });
     assert(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(productId).stock_qty === 1100, 'Purchase did not add ml stock.');
     assert(db.prepare('SELECT cost_price FROM products WHERE id=?').get(productId).cost_price === 400, 'Purchase did not update cost per ml.');
+
+    const backupPath = await backupNow(db, backupDir);
+    assert(fs.existsSync(backupPath) && fs.statSync(backupPath).size > 0, 'Database backup was not created.');
 
     db.close();
     await stopServer();
