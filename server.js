@@ -13,7 +13,7 @@ if (IS_PRODUCTION) {
   if (String(process.env.SESSION_SECRET).length < 32) throw new Error('SESSION_SECRET must be at least 32 characters in production.');
   if (String(process.env.ADMIN_PASSWORD).length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
 }
-const { sessionDbPath } = require('./database/runtime-paths');
+const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
 
 const app = express();
@@ -28,6 +28,9 @@ app.set('views', path.join(__dirname, 'views'));
 // Static files. Explicit mounts and headers keep Hostinger/CDN from serving
 // stale HTML or treating stylesheets as generic downloads.
 const publicDir = path.join(__dirname, 'public');
+app.use('/uploads', express.static(uploadsDir, {
+  setHeaders: res => res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate')
+}));
 app.use('/css', express.static(path.join(publicDir, 'css'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.css')) {
