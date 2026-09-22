@@ -8,9 +8,10 @@ const db = require('../database/store-system');
 const { saleUnitCost } = require('../helpers/inventory');
 const adminAuth = require('../middleware/adminAuth');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
+const { uploadsDir: persistentUploadsDir } = require('../database/runtime-paths');
 
 // ── Multer setup ─────────────────────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
+const uploadsDir = path.join(persistentUploadsDir, 'products');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -31,7 +32,7 @@ const upload = multer({
 });
 
 // Brand logo uploader
-const brandUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'brands');
+const brandUploadsDir = path.join(persistentUploadsDir, 'brands');
 if (!fs.existsSync(brandUploadsDir)) fs.mkdirSync(brandUploadsDir, { recursive: true });
 
 const brandStorage = multer.diskStorage({
@@ -44,7 +45,7 @@ const brandStorage = multer.diskStorage({
 const uploadBrand = multer({ storage: brandStorage, limits: { fileSize: 2 * 1024 * 1024 } });
 
 // Settings images uploader (banner, category images)
-const settingsUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'settings');
+const settingsUploadsDir = path.join(persistentUploadsDir, 'settings');
 if (!fs.existsSync(settingsUploadsDir)) fs.mkdirSync(settingsUploadsDir, { recursive: true });
 
 const uploadSettings = multer({
