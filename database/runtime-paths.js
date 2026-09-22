@@ -13,10 +13,12 @@ const dataDir = resolveDir('DATA_DIR', defaultDataDir);
 const backupDir = process.env.BACKUP_DIR
   ? resolveDir('BACKUP_DIR', path.join(dataDir, 'backups'))
   : path.join(dataDir, 'backups');
+const uploadsDir = resolveDir('UPLOADS_DIR', path.join(dataDir, 'uploads'));
 
 module.exports = {
   dataDir,
   backupDir,
+  uploadsDir,
   storeDbPath: path.join(dataDir, 'store.db'),
   sessionDbPath: path.join(dataDir, 'sessions.db'),
 };
