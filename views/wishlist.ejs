@@ -72,7 +72,7 @@
         <p class="product-card__brand">${p.brand || ''}</p>
         <a href="/shop/item/${p.id}"><h3 class="product-card__name">${p.name_en}</h3></a>
         <div class="product-card__footer">
-          <span class="product-card__price${!p.price ? ' product-card__price--na' : ''}${p.price ? ' price-display' : ''}" ${p.price ? `data-lbp="${p.price}"` : ''}>${price}</span>
+          <span class="product-card__price${!p.price ? ' product-card__price--na' : ''}${p.price && p.type !== 'local' ? ' price-display' : ''}" ${p.price && p.type !== 'local' ? `data-lbp="${p.price}"` : ''}>${price}</span>
         </div>
       </div>
     </div>`;
