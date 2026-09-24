@@ -7,7 +7,7 @@ const path = require('path');
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 if (IS_PRODUCTION) {
-  const missing = ['SESSION_SECRET','ADMIN_USERNAME','ADMIN_PASSWORD','DATA_DIR','BACKUP_DIR']
+  const missing = ['SESSION_SECRET','ADMIN_USERNAME','ADMIN_PASSWORD']
     .filter(name => !String(process.env[name] || '').trim());
   if (missing.length) throw new Error('Missing required production environment variables: ' + missing.join(', '));
   if (String(process.env.SESSION_SECRET).length < 32) throw new Error('SESSION_SECRET must be at least 32 characters in production.');
