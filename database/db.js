@@ -97,20 +97,26 @@ const setSetting = db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUE
   ['hero_sub_ar', 'عطور فاخرة توصل لجميع أنحاء لبنان'],
 ].forEach(([k, v]) => setSetting.run(k, v));
 
-// Ensure a fresh database has an administrator without allowing production defaults.
+// Ensure a fresh database can create an administrator without taking the
+// public storefront offline when Hostinger credentials are temporarily missing.
 const adminCount = db.prepare('SELECT COUNT(*) AS count FROM admins').get().count;
 if (adminCount === 0) {
   const isProduction = process.env.NODE_ENV === 'production';
-  const username = process.env.ADMIN_USERNAME || (isProduction ? '' : 'admin');
-  const configuredPassword = process.env.ADMIN_PASSWORD;
+  const username = String(process.env.ADMIN_USERNAME || (isProduction ? '' : 'admin')).trim();
+  const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
   const developmentPassword = ['admin', '123'].join('');
   const initialPassword = configuredPassword || (isProduction ? '' : developmentPassword);
-  if (!username || !initialPassword || (isProduction && initialPassword.length < 12)) {
-    throw new Error('Production requires administrator environment credentials and a password of at least 12 characters for a fresh database.');
+
+  if (!username || !initialPassword) {
+    console.warn('WARNING: No administrator was created because ADMIN_USERNAME/ADMIN_PASSWORD are not configured.');
+  } else {
+    if (isProduction && initialPassword.length < 12) {
+      console.warn('WARNING: ADMIN_PASSWORD is shorter than 12 characters; use a stronger password in Hostinger.');
+    }
+    const passwordHash = bcrypt.hashSync(initialPassword, 12);
+    db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run(username, passwordHash);
+    console.log('Initial administrator created: ' + username);
   }
-  const passwordHash = bcrypt.hashSync(initialPassword, 12);
-  db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run(username, passwordHash);
-  console.log('Initial administrator created: ' + username);
 }
 
 module.exports = db;
