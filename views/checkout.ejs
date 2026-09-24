@@ -83,7 +83,130 @@
               <small><%= item.brand %></small>
               <strong><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %><% if (item.size_ml) { %> · <%= item.size_ml %>ml<% } %></strong>
             </div>
-            <b><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</b>
+            <b><%= item.type === 'local' ? '
+          </div>
+          <% }) %>
+        </div>
+
+        <div class="store-order-card__rows store-order-card__rows--checkout">
+          <div><span><%= t.subtotal %></span><strong><%= currency === 'USD' ? '
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
+          </div>
+          <% }) %>
+        </div>
+
+        <div class="store-order-card__rows store-order-card__rows--checkout">
+          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
+          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
+          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + subtotal.toFixed(2).replace(/\.00$/, '') : subtotal.toLocaleString() + ' LBP' %></strong></div>
+          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? (currency === 'USD' ? '
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
+          </div>
+          <% }) %>
+        </div>
+
+        <div class="store-order-card__rows store-order-card__rows--checkout">
+          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
+          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
+          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + deliveryFee.toFixed(2).replace(/\.00$/, '') : deliveryFee.toLocaleString() + ' LBP') : t.free %></strong></div>
+          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= currency === 'USD' ? '
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
+          </div>
+          <% }) %>
+        </div>
+
+        <div class="store-order-card__rows store-order-card__rows--checkout">
+          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
+          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
+          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + total.toFixed(2).replace(/\.00$/, '') : total.toLocaleString() + ' LBP' %></strong></div>
+        </div>
+
+        <div class="store-checkout-summary__trust">
+          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
+          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
           </div>
           <% }) %>
         </div>
