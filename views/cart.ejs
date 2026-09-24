@@ -32,7 +32,560 @@
               <p class="store-cart-item__brand"><%= item.brand %></p>
               <a href="/shop/item/<%= item.id %>" class="store-cart-item__name"><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %></a>
               <% if (item.size_ml) { %><p class="store-cart-item__brand"><%= item.size_ml %>ml</p><% } %>
-              <p class="store-cart-item__unit-price price-display" data-lbp="<%= item.price || 0 %>"><%= (item.price || 0).toLocaleString() %> LBP</p>
+              <p class="store-cart-item__unit-price"><%= item.type === 'local' ? '
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal"><%= item.type === 'local' ? '
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong><%= currency === 'USD' ? '
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + subtotal.toFixed(2).replace(/\.00$/, '') : subtotal.toLocaleString() + ' LBP' %></strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><%= currency === 'USD' ? '
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + deliveryFee.toFixed(2).replace(/\.00$/, '') : deliveryFee.toLocaleString() + ' LBP' %><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong><%= currency === 'USD' ? '
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + total.toFixed(2).replace(/\.00$/, '') : total.toLocaleString() + ' LBP' %></strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
+
+              <div class="store-cart-item__actions">
+                <form action="/cart/update" method="POST" class="store-cart-qty">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <label><%= t.qty %></label>
+                  <input type="number" name="qty" value="<%= item.qty %>" min="1" max="99" onchange="this.form.submit()"/>
+                </form>
+                <form action="/cart/remove" method="POST">
+                  <input type="hidden" name="productId" value="<%= item.id %>"/>
+                  <% if (item.size_ml) { %><input type="hidden" name="size_ml" value="<%= item.size_ml %>"/><% } %>
+                  <button type="submit" class="store-remove-link"><%= t.remove %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="store-cart-item__subtotal price-display" data-lbp="<%= (item.price || 0) * item.qty %>"><%= ((item.price || 0) * item.qty).toLocaleString() %> LBP</div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></div>
+          </article>
+          <% }) %>
+
+          <div class="store-cart-footer-actions">
+            <a href="/shop/men" class="store-text-link">← <%= t.continue_shopping %></a>
+            <form action="/cart/clear" method="POST"><button type="submit" class="store-clear-cart"><%= lang === 'ar' ? 'إفراغ السلة' : 'Clear bag' %></button></form>
+          </div>
+        </section>
+
+        <aside class="store-order-card">
+          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'ملخص الطلب' : 'ORDER SUMMARY' %></p>
+          <h2><%= t.order_summary %></h2>
+          <div class="store-order-card__rows">
+            <div><span><%= t.subtotal %></span><strong class="price-display" data-lbp="<%= subtotal %>"><%= subtotal.toLocaleString() %> LBP</strong></div>
+            <div><span><%= t.delivery_fee %></span><strong><% if (deliveryFee > 0) { %><span class="price-display" data-lbp="<%= deliveryFee %>"><%= deliveryFee.toLocaleString() %> LBP</span><% } else { %><%= t.free %><% } %></strong></div>
+            <div class="store-order-card__total"><span><%= t.total %></span><strong class="price-display" data-lbp="<%= total %>"><%= total.toLocaleString() %> LBP</strong></div>
+          </div>
+          <p class="store-order-card__note"><%= lang === 'ar' ? 'التوصيل النهائي وطريقة الدفع بيتأكدوا عند إتمام الطلب.' : 'Final delivery details and payment method are confirmed at checkout.' %></p>
+          <a href="/checkout" class="store-btn store-btn--dark store-btn--full"><%= t.proceed_to_checkout %></a>
+          <div class="store-order-card__trust">
+            <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
+            <span>Whish Money</span>
+          </div>
+        </aside>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+ + (item.price || 0) : (item.price || 0).toLocaleString() + ' LBP' %></p>
 
               <div class="store-cart-item__actions">
                 <form action="/cart/update" method="POST" class="store-cart-qty">
