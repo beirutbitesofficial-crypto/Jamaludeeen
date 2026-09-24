@@ -27,8 +27,8 @@
         <div class="store-product-detail__price-row">
           <% if (product.type === 'local') { %>
             <div>
-              <span class="store-product-detail__price price-display" data-lbp="<%= product.price_50ml || 0 %>">50ml · <%= (product.price_50ml || 0).toLocaleString() %> LBP</span><br>
-              <span class="store-product-detail__price price-display" data-lbp="<%= product.price_100ml || 0 %>">100ml · <%= (product.price_100ml || 0).toLocaleString() %> LBP</span>
+              <span class="store-product-detail__price">50ml · $<%= product.price_50ml || 7 %></span><br>
+              <span class="store-product-detail__price">100ml · $<%= product.price_100ml || 13 %></span>
             </div>
           <% } else if (product.price) { %>
             <span class="store-product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
@@ -55,8 +55,8 @@
           <div class="store-qty-field">
             <label for="productSize"><%= lang === 'ar' ? 'الحجم' : 'Size' %></label>
             <select id="productSize" name="size_ml" required>
-              <option value="50">50ml — <%= (product.price_50ml || product.price || 0).toLocaleString() %> LBP</option>
-              <option value="100">100ml — <%= (product.price_100ml || product.price || 0).toLocaleString() %> LBP</option>
+              <option value="50">50ml — $<%= product.price_50ml || 7 %></option>
+              <option value="100">100ml — $<%= product.price_100ml || 13 %></option>
             </select>
           </div>
           <% } %>
