@@ -40,8 +40,9 @@ router.get('/', (req, res) => {
   );
   const subtotal = items.reduce((s, i) => s + (i.price || 0) * i.qty, 0);
   const total = subtotal + (subtotal > 0 ? deliveryFee : 0);
+  const currency = items.length && items.every(i => i.type === 'local') ? 'USD' : 'LBP';
 
-  res.render('cart', { title: 'Cart', items, subtotal, deliveryFee, total });
+  res.render('cart', { title: 'Cart', items, subtotal, deliveryFee, total, currency });
 });
 
 // POST /cart/add
