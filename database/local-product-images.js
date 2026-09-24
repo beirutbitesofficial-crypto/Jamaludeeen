@@ -32,6 +32,16 @@ const LOCAL_PRODUCT_IMAGES = [
   { category: 'men', name: 'Bad Boy Cobalt Elixir Carolina Herrera', image: '/images/men/bad-boy-cobalt-elixir-carolina-herrera.png' },
   { category: 'men', name: 'Bleu de Chanel', image: '/images/men/bleu-de-chanel.png' },
   { category: 'men', name: 'Boss Bottled', image: '/images/men/boss-bottled.png' },
+  { category: 'men', name: 'Armani Code Colonia', image: '/images/men/armani-code-colonia.webp' },
+  { category: 'men', name: 'Armani Code Profumo', image: '/images/men/armani-code-profumo.webp' },
+  { category: 'men', name: 'Armani Code Ultimate', image: '/images/men/armani-code-ultimate.webp' },
+  { category: 'men', name: 'Armani Oud Royal Privé', image: '/images/men/armani-oud-royal-prive.webp' },
+  { category: 'men', name: 'Armani You', image: '/images/men/armani-you.webp' },
+  { category: 'men', name: 'Azzaro Chrome', image: '/images/men/azzaro-chrome.webp' },
+  { category: 'men', name: 'Azzaro Chrome Extreme', image: '/images/men/azzaro-chrome-extreme.webp' },
+  { category: 'men', name: 'Azzaro Forever Wanted Elixir', image: '/images/men/azzaro-forever-wanted-elixir.webp' },
+  { category: 'men', name: 'Azzaro Pour Homme', image: '/images/men/azzaro-pour-homme.webp' },
+  { category: 'men', name: 'Azzaro Silver Black', image: '/images/men/azzaro-silver-black.webp' },
 ];
 
 module.exports = { LOCAL_PRODUCT_IMAGES };
