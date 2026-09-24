@@ -6,12 +6,17 @@ const methodOverride = require('method-override');
 const path = require('path');
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// Do not crash the web process before it can bind Hostinger's port because of
+// deployment-time credential validation. Missing/weak configuration is surfaced
+// as a warning here; database admin creation still validates credentials when a
+// fresh database actually needs an initial administrator.
 if (IS_PRODUCTION) {
-  const missing = ['SESSION_SECRET','ADMIN_USERNAME','ADMIN_PASSWORD']
-    .filter(name => !String(process.env[name] || '').trim());
-  if (missing.length) throw new Error('Missing required production environment variables: ' + missing.join(', '));
-  if (String(process.env.SESSION_SECRET).length < 32) throw new Error('SESSION_SECRET must be at least 32 characters in production.');
-  if (String(process.env.ADMIN_PASSWORD).length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
+  if (!String(process.env.SESSION_SECRET || '').trim()) {
+    console.warn('WARNING: SESSION_SECRET is not configured; set a long random value in Hostinger.');
+  } else if (String(process.env.SESSION_SECRET).length < 32) {
+    console.warn('WARNING: SESSION_SECRET should be at least 32 characters in production.');
+  }
 }
 const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
