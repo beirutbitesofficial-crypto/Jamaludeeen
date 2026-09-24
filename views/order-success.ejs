@@ -14,7 +14,35 @@
       </div>
 
       <div class="success-card__total">
-        <%= t.total %>: <strong><%= order.total.toLocaleString() %> LBP</strong>
+        <%= t.total %>: <strong><%= order.currency === 'USD' ? '
+      </div>
+
+      <% if (order.paymentMethod === 'whish' && order.whishNumber) { %>
+      <div class="success-card__whish">
+        <div class="whish-box">
+          <p class="whish-box__title">📱 <%= t.bywhish_money %></p>
+          <p><%= t.whish_instructions %>:</p>
+          <p class="whish-box__number"><%= order.whishNumber %></p>
+          <p><%= t.whish_ref %></p>
+          <p class="whish-box__ref"><%= order.orderNumber %></p>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (settings.store_whatsapp) { %>
+      <a href="https://wa.me/<%= settings.store_whatsapp.replace(/[^0-9]/g,'') %>?text=<%= encodeURIComponent('Order: ' + order.orderNumber) %>"
+         target="_blank" class="btn btn--whatsapp">
+        💬 <%= t.track_order %>
+      </a>
+      <% } %>
+
+      <a href="/" class="btn btn--outline" style="margin-top:12px"><%= t.continue_shopping %></a>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
+ + Number(order.total || 0).toFixed(2).replace(/\.00$/, '') : Number(order.total || 0).toLocaleString() + ' LBP' %></strong>
       </div>
 
       <% if (order.paymentMethod === 'whish' && order.whishNumber) { %>
