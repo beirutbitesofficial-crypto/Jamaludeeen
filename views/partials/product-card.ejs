@@ -25,7 +25,7 @@
 
     <div class="store-product-card__buy-row">
       <% if (p.type === 'local' && p.price_50ml) { %>
-        <span class="store-product-card__price price-display" data-lbp="<%= p.price_50ml %>">50ml · <%= p.price_50ml.toLocaleString() %> LBP</span>
+        <span class="store-product-card__price">50ml · $<%= p.price_50ml %> &nbsp;|&nbsp; 100ml · $<%= p.price_100ml %></span>
       <% } else if (p.price) { %>
         <span class="store-product-card__price price-display" data-lbp="<%= p.price %>"><%= p.price.toLocaleString() %> LBP</span>
       <% } else { %>
