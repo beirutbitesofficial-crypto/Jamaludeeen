@@ -42,6 +42,16 @@ const LOCAL_PRODUCT_IMAGES = [
   { category: 'men', name: 'Azzaro Forever Wanted Elixir', image: '/images/men/azzaro-forever-wanted-elixir.webp' },
   { category: 'men', name: 'Azzaro Pour Homme', image: '/images/men/azzaro-pour-homme.webp' },
   { category: 'men', name: 'Azzaro Silver Black', image: '/images/men/azzaro-silver-black.webp' },
+  { category: 'men', name: 'Azzaro Wanted By Night', image: '/images/men/azzaro-wanted-by-night.webp' },
+  { category: 'men', name: 'Bentley Azure', image: '/images/men/bentley-azure.webp' },
+  { category: 'men', name: 'Black Afghano', image: '/images/men/black-afgano.webp' },
+  { category: 'men', name: 'Black Orchid Tom Ford', image: '/images/men/black-orchid-tom-ford.webp' },
+  { category: 'men', name: 'Black Seduction', image: '/images/men/black-seduction.webp' },
+  { category: 'men', name: 'Black XS', image: '/images/men/black-xs.webp' },
+  { category: 'men', name: "Black XS L'Aphrodisiaque", image: '/images/men/black-xs-laphrodisiaque.webp' },
+  { category: 'men', name: "Black XS L'Excess", image: '/images/men/black-xs-lexcess.webp' },
+  { category: 'men', name: 'Black XS Top Legend', image: '/images/men/black-xs-top-legend.webp' },
+  { category: 'men', name: 'Blue Ajmal', image: '/images/men/blue-ajmal.webp' },
 ];
 
 module.exports = { LOCAL_PRODUCT_IMAGES };
