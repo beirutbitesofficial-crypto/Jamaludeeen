@@ -1,100 +1,104 @@
 <%- include('partials/header', { title: product.name_en }) %>
+<% const ar = lang === 'ar';
+   const pName = ar && product.name_ar ? product.name_ar : product.name_en;
+   const catName = product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex;
+   const isLocal = product.type === 'local';
+   const catLink = isLocal ? `/shop/${product.category}` : '/collections'; %>
 
-<main class="store-product-page">
+<main class="section section--pdp">
   <div class="container">
-    <nav class="store-breadcrumb">
+    <nav class="crumbs">
       <a href="/"><%= t.home %></a><span>/</span>
-      <a href="/shop/<%= product.category %>"><%= product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex %></a><span>/</span>
-      <span><%= lang === 'ar' && product.name_ar ? product.name_ar : product.name_en %></span>
+      <a href="<%= catLink %>"><%= isLocal ? catName : t.brands %></a><span>/</span>
+      <span><%= pName %></span>
     </nav>
 
-    <section class="store-product-detail">
-      <div class="store-product-detail__visual">
-        <div class="store-product-detail__image">
+    <section class="pdp">
+      <div class="pdp__visual">
+        <div class="pdp__frame">
           <% if (product.image_path) { %>
-            <img src="<%= product.image_path %>" alt="<%= product.name_en %>"/>
+            <img src="<%= product.image_path %>" alt="<%= product.name_en %>" referrerpolicy="no-referrer" data-fallback="<%= product.brand || 'Jamaludeen' %>"/>
           <% } else { %>
-            <div class="store-product-detail__placeholder"><span>J</span></div>
+            <div class="pdp__placeholder"><span class="card__monogram">J</span><span><%= product.brand || 'Jamaludeen' %></span></div>
           <% } %>
         </div>
       </div>
 
-      <div class="store-product-detail__info">
-        <p class="store-kicker store-kicker--dark"><%= product.brand || 'JAMALUDEEN' %></p>
-        <h1><%= lang === 'ar' && product.name_ar ? product.name_ar : product.name_en %></h1>
-        <% if (lang === 'ar' && product.name_ar && product.name_en) { %><p class="store-product-detail__alt-name"><%= product.name_en %></p><% } %>
+      <div class="pdp__info">
+        <p class="eyebrow"><span></span><bdi><%= product.brand || 'Jamaludeen' %></bdi></p>
+        <h1 class="pdp__title"><%= pName %></h1>
+        <% if (ar && product.name_ar && product.name_en) { %><p class="pdp__alt"><%= product.name_en %></p><% } %>
 
-        <div class="store-product-detail__price-row">
-          <% if (product.type === 'local') { %>
-            <div>
-              <span class="store-product-detail__price">50ml · $<%= product.price_50ml || 7 %></span><br>
-              <span class="store-product-detail__price">100ml · $<%= product.price_100ml || 13 %></span>
-            </div>
+        <div class="pdp__price-row">
+          <% if (isLocal) { %>
+            <span class="pdp__price" id="pdpPrice" dir="ltr">$<%= product.price_50ml || 7 %></span>
+            <span class="pdp__unit" id="pdpUnit" dir="ltr">50 ml</span>
           <% } else if (product.price) { %>
-            <span class="store-product-detail__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString() %> LBP</span>
+            <span class="pdp__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString('en-US') %> LBP</span>
           <% } else { %>
-            <span class="store-product-detail__price store-product-detail__price--muted"><%= t.price_not_set %></span>
+            <span class="pdp__price is-muted"><%= t.price_not_set %></span>
           <% } %>
-          <span class="store-stock <%= product.in_stock ? 'is-in' : 'is-out' %>"><i></i><%= product.in_stock ? t.in_stock : t.out_of_stock %></span>
+          <span class="stock <%= product.in_stock ? 'is-in' : 'is-out' %>"><i></i><%= product.in_stock ? t.in_stock : t.out_of_stock %></span>
         </div>
 
         <% if (product.description_en || product.description_ar) { %>
-        <div class="store-product-detail__description">
-          <% if (lang === 'ar' && product.description_ar) { %>
-            <p><%= product.description_ar %></p>
-          <% } else if (product.description_en) { %>
-            <p><%= product.description_en %></p>
-          <% } %>
-        </div>
+        <div class="pdp__desc"><p><%= ar && product.description_ar ? product.description_ar : (product.description_en || product.description_ar) %></p></div>
+        <% } else if (isLocal) { %>
+        <div class="pdp__desc"><p><%= ar ? 'عطر توقيع جمال الدين المستوحى من ' + product.name_en + '، يُعبّأ عند الطلب بتركيز غني وثبات يدوم.' : 'A Jamaludeen signature inspired by ' + product.name_en + ' — filled to order with a rich concentration and a lasting trail.' %></p></div>
         <% } %>
 
         <% if (product.in_stock && product.price) { %>
-        <form action="/cart/add" method="POST" class="store-product-detail__cart">
+        <form action="/cart/add" method="POST" class="pdp__form">
           <input type="hidden" name="productId" value="<%= product.id %>"/>
-          <% if (product.type === 'local') { %>
-          <div class="store-qty-field">
-            <label for="productSize"><%= lang === 'ar' ? 'الحجم' : 'Size' %></label>
-            <select id="productSize" name="size_ml" required>
-              <option value="50">50ml — $<%= product.price_50ml || 7 %></option>
-              <option value="100">100ml — $<%= product.price_100ml || 13 %></option>
-            </select>
-          </div>
+          <% if (isLocal) { %>
+          <fieldset class="sizes">
+            <legend><%= ar ? 'اختر الحجم' : 'Select size' %></legend>
+            <label class="size">
+              <input type="radio" name="size_ml" value="50" data-price="<%= product.price_50ml || 7 %>" checked/>
+              <span class="size__box"><strong dir="ltr">50 ml</strong><em>$<%= product.price_50ml || 7 %></em></span>
+            </label>
+            <label class="size">
+              <input type="radio" name="size_ml" value="100" data-price="<%= product.price_100ml || 13 %>"/>
+              <span class="size__box"><strong dir="ltr">100 ml</strong><em>$<%= product.price_100ml || 13 %></em><b><%= ar ? 'قيمة أفضل' : 'Best value' %></b></span>
+            </label>
+          </fieldset>
           <% } %>
-          <div class="store-qty-field">
-            <label for="productQty"><%= t.qty %></label>
-            <input id="productQty" type="number" name="qty" value="1" min="1" max="99"/>
+          <div class="pdp__buy">
+            <div class="stepper" data-stepper>
+              <button type="button" data-step="-1" aria-label="-">−</button>
+              <input type="number" name="qty" value="1" min="1" max="99" aria-label="<%= t.qty %>"/>
+              <button type="button" data-step="1" aria-label="+">+</button>
+            </div>
+            <button type="submit" class="btn btn--dark btn--grow"><%= ar ? 'أضف إلى السلة' : 'Add to bag' %></button>
+            <button class="wish-btn wish-btn--square btn-wishlist" type="button" data-id="<%= product.id %>" aria-label="<%= ar ? 'احفظ بالمفضلة' : 'Save to wishlist' %>">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
           </div>
-          <button type="submit" class="store-btn store-btn--dark store-btn--full"><%= lang === 'ar' ? 'أضف إلى السلة' : 'Add to bag' %></button>
         </form>
         <% } else { %>
-          <div class="store-product-detail__unavailable"><%= product.in_stock ? t.price_not_set : t.out_of_stock %></div>
+          <div class="pdp__unavailable"><%= product.in_stock ? t.price_not_set : t.out_of_stock %></div>
+          <a class="btn btn--line" href="https://wa.me/<%= waNumber %>?text=<%= encodeURIComponent('Hello Jamaludeen, I am interested in ' + product.name_en) %>" target="_blank" rel="noopener"><%= ar ? 'اسألنا على واتساب' : 'Ask us on WhatsApp' %></a>
         <% } %>
 
-        <button class="btn-wishlist store-product-detail__wishlist" data-id="<%= product.id %>">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <span><%= lang === 'ar' ? 'احفظ بالمفضلة' : 'Save to wishlist' %></span>
-        </button>
-
-        <div class="store-product-detail__assurances">
-          <div><span>01</span><div><strong><%= lang === 'ar' ? 'توصيل لكل لبنان' : 'Delivery across Lebanon' %></strong><p><%= lang === 'ar' ? 'توصيل لجميع المناطق.' : 'Available to all regions.' %></p></div></div>
-          <div><span>02</span><div><strong><%= lang === 'ar' ? 'دفع مرن' : 'Flexible payment' %></strong><p><%= lang === 'ar' ? 'كاش عند الاستلام أو Whish Money.' : 'Cash on delivery or Whish Money.' %></p></div></div>
-          <div><span>03</span><div><strong><%= lang === 'ar' ? 'دعم مباشر' : 'Direct support' %></strong><p><%= lang === 'ar' ? 'تواصل معنا على واتساب لأي مساعدة.' : 'Message us on WhatsApp for help choosing.' %></p></div></div>
-        </div>
+        <ul class="pdp__assure">
+          <li><span>✦</span><div><strong><%= ar ? 'توصيل لكل لبنان' : 'Delivery across Lebanon' %></strong><p><%= ar ? 'توصيل لجميع المناطق.' : 'Carefully packed, to every region.' %></p></div></li>
+          <li><span>✦</span><div><strong><%= ar ? 'دفع مرن' : 'Flexible payment' %></strong><p><%= ar ? 'كاش عند الاستلام أو ويش موني.' : 'Cash on delivery or Whish Money.' %></p></div></li>
+          <li><span>✦</span><div><strong><%= ar ? 'خدمة شخصية' : 'Personal service' %></strong><p><%= ar ? 'تواصل معنا على واتساب لأي مساعدة.' : 'Message us on WhatsApp for help choosing.' %></p></div></li>
+        </ul>
       </div>
     </section>
 
     <% if (related && related.length) { %>
-    <section class="store-section store-related-products">
-      <div class="store-section__head">
+    <section class="related">
+      <div class="section-head reveal">
         <div>
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'قد يعجبك أيضاً' : 'YOU MAY ALSO LIKE' %></p>
-          <h2><%= lang === 'ar' ? 'عطور مشابهة' : 'More to discover' %></h2>
+          <p class="eyebrow"><span></span><%= ar ? 'قد يعجبك أيضاً' : 'You may also like' %></p>
+          <h2 class="display"><%= ar ? 'عطور مشابهة' : 'More to discover' %></h2>
         </div>
+        <a href="<%= catLink %>" class="link-arrow"><%= t.view_all %></a>
       </div>
-      <div class="products-grid store-products-grid">
-        <% related.forEach(p => { %>
-          <%- include('partials/product-card', { p }) %>
-        <% }) %>
+      <div class="grid-products">
+        <% related.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
       </div>
     </section>
     <% } %>

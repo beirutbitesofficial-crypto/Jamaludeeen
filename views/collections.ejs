@@ -1,74 +1,63 @@
 <%- include('partials/header', { title: title }) %>
+<% const ar = lang === 'ar'; %>
 
-<div class="brands-page">
-  <div class="container">
-
-    <div class="page-header">
-      <p class="page-header__eyebrow"><%= lang === 'ar' ? 'دليل دور العطور' : 'THE HOUSE DIRECTORY' %></p>
-      <h1 class="page-header__title"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></h1>
-      <p class="page-header__intro"><%= lang === 'ar' ? 'اكتشف مجموعتنا المختارة من أشهر دور العطور العالمية والخليجية.' : 'Explore a considered edit of international and Khaleeji fragrance houses.' %></p>
-      <nav class="collection-tabs" aria-label="Catalog categories">
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <nav class="crumbs"><a href="/"><%= t.home %></a><span>/</span><span><%= t.brands %></span></nav>
+      <div class="page-hero__row">
+        <div>
+          <p class="eyebrow"><span></span><%= ar ? 'دليل دور العطور' : 'The House Directory' %></p>
+          <h1 class="display display--xl"><%= ar ? 'الماركات' : 'The Houses' %></h1>
+          <p class="page-hero__lede"><%= ar ? 'اكتشف مجموعتنا المختارة من أشهر دور العطور العالمية والخليجية.' : 'A considered edit of international and Khaleeji fragrance houses.' %></p>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Collections">
         <a href="/shop/men"><%= t.men %></a>
         <a href="/shop/women"><%= t.women %></a>
         <a href="/shop/unisex"><%= t.unisex %></a>
-        <a href="/collections" class="active"><%= t.brands %></a>
+        <a href="/collections" class="is-active"><%= t.brands %></a>
       </nav>
     </div>
+  </section>
 
-    <div class="brand-search catalog-toolbar">
-      <label class="catalog-search">
-        <span class="catalog-search__label"><%= lang === 'ar' ? 'ابحث عن ماركة' : 'Find a fragrance house' %></span>
-        <span class="catalog-search__row">
-          <input type="search" id="brandSearch" class="catalog-search__input" placeholder="<%= lang === 'ar' ? 'اكتب اسم الماركة...' : 'Search brands...' %>" autocomplete="off"/>
-        </span>
-      </label>
-    </div>
-
-    <!-- International Brands -->
-    <% if (western.length) { %>
-    <section class="brands-section">
-      <h2 class="brands-section__title"><%= t.western_brands %></h2>
-      <div class="brands-grid">
-        <% western.forEach(b => { %>
-        <a href="/collections/<%= b.id %>" class="brand-card" data-brand-name="<%= b.name.toLowerCase() %>">
-          <% if (b.logo_path) { %>
-            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
-          <% } %>
-          <div class="brand-card__name"><%= b.name %></div>
-          <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
-        </a>
-        <% }) %>
+  <section class="section section--flush">
+    <div class="container">
+      <div class="toolbar">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="brandSearch" placeholder="<%= ar ? 'ابحث عن ماركة...' : 'Find a fragrance house…' %>" autocomplete="off" aria-label="Search brands"/>
+        </label>
+        <p class="toolbar__count"><%= western.length + khaleeji.length %> <%= ar ? 'ماركة' : 'houses' %></p>
       </div>
-    </section>
-    <% } %>
 
-    <!-- Arabic & Khaleeji Brands -->
-    <% if (khaleeji.length) { %>
-    <section class="brands-section">
-      <h2 class="brands-section__title"><%= t.khaleeji_brands %></h2>
-      <div class="brands-grid">
-        <% khaleeji.forEach(b => { %>
-        <a href="/collections/<%= b.id %>" class="brand-card brand-card--khaleeji" data-brand-name="<%= b.name.toLowerCase() %>">
-          <% if (b.logo_path) { %>
-            <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="brand-card__logo"/>
-          <% } %>
-          <div class="brand-card__name"><%= b.name %></div>
-          <% if (b.name_ar) { %><div class="brand-card__name-ar"><%= b.name_ar %></div><% } %>
-        </a>
-        <% }) %>
+      <% [[t.western_brands, western, 'I'], [t.khaleeji_brands, khaleeji, 'II']].forEach(([heading, list, num]) => { if (!list.length) return; %>
+      <section class="house-group" data-brand-group>
+        <h2 class="house-group__title"><span><%= num %></span><%= heading %></h2>
+        <div class="house-grid">
+          <% list.forEach(b => { %>
+          <a href="/collections/<%= b.id %>" class="house-card" data-brand-name="<%= b.name.toLowerCase() %> <%= (b.name_ar || '').toLowerCase() %>">
+            <% if (b.logo_path) { %>
+              <img src="<%= b.logo_path %>" alt="<%= b.name %>" class="house-card__logo"/>
+            <% } else { %>
+              <span class="house-card__initial"><%= b.name.charAt(0) %></span>
+            <% } %>
+            <span class="house-card__name"><bdi><%= b.name %></bdi></span>
+            <% if (b.name_ar) { %><span class="house-card__ar" lang="ar"><%= b.name_ar %></span><% } %>
+            <span class="house-card__cta"><%= t.shop_now %></span>
+          </a>
+          <% }) %>
+        </div>
+      </section>
+      <% }) %>
+
+      <div class="empty" id="brandEmpty" <% if (western.length || khaleeji.length) { %>hidden<% } %>>
+        <span class="empty__mark">✦</span>
+        <h2><%= ar ? 'لا توجد ماركات' : 'No houses found' %></h2>
+        <p><%= ar ? 'جرّب اسماً آخر.' : 'Try another name.' %></p>
       </div>
-    </section>
-    <% } %>
-
-    <% if (!western.length && !khaleeji.length) { %>
-    <div class="empty-state">
-      <p class="empty-state__icon">✦</p>
-      <h3><%= lang === 'ar' ? 'لا توجد ماركات بعد' : 'No brands yet' %></h3>
-      <p><%= lang === 'ar' ? 'سيتم إضافة الماركات قريباً' : 'Brands will be added soon' %></p>
     </div>
-    <% } %>
-
-  </div>
-</div>
+  </section>
+</main>
 
 <%- include('partials/footer') %>

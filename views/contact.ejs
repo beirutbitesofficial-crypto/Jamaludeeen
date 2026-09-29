@@ -1,44 +1,45 @@
 <%- include('partials/header', { title: 'Contact' }) %>
+<% const ar = lang === 'ar'; const waPretty = '+' + waNumber.replace(/^961(\d{2})(\d{3})(\d+)$/, '961 $1 $2 $3'); %>
 
-<div class="contact-page contact-page--luxury">
-  <div class="container">
-    <header class="contact-hero reveal">
-      <p class="page-header__eyebrow"><%= lang === 'ar' ? 'نحن هنا لخدمتكم' : 'PERSONAL SERVICE' %></p>
-      <h1><%= lang === 'ar' ? 'تواصل معنا' : 'Let’s find your signature scent' %></h1>
-      <p><%= lang === 'ar' ? 'زورونا في مزبود أو تواصلوا معنا مباشرة عبر واتساب. يسعدنا مساعدتكم في اختيار عطركم.' : 'Visit our boutique in Mazboud or speak with us directly on WhatsApp. We are here to help you discover the right fragrance.' %></p>
-    </header>
-
-    <div class="contact-luxury-grid reveal">
-      <section class="contact-details-card">
-        <p class="contact-card__kicker"><%= lang === 'ar' ? 'بوتيك جمال الدين' : 'JAMALUDEEN BOUTIQUE' %></p>
-        <h2><%= lang === 'ar' ? 'زيارتكم تسعدنا' : 'Visit our boutique' %></h2>
-
-        <div class="contact-detail">
-          <span><%= lang === 'ar' ? 'الموقع' : 'Location' %></span>
-          <strong>JMR Mall, Mazboud, Lebanon</strong>
-          <a href="https://www.google.com/maps/search/?api=1&query=JMR+Mall+Mazboud+Lebanon" target="_blank" rel="noopener"><%= lang === 'ar' ? 'افتح الخريطة' : 'Get directions' %> &rarr;</a>
-        </div>
-
-        <div class="contact-detail">
-          <span>WhatsApp</span>
-          <strong dir="ltr">+961 76 927 146</strong>
-          <a href="https://wa.me/96176927146" target="_blank" rel="noopener"><%= lang === 'ar' ? 'ابدأ المحادثة' : 'Start a conversation' %> &rarr;</a>
-        </div>
-
-        <div class="contact-detail">
-          <span><%= lang === 'ar' ? 'خدمة التوصيل' : 'Delivery service' %></span>
-          <strong><%= lang === 'ar' ? 'توصيل إلى جميع المناطق اللبنانية' : 'Available across Lebanon' %></strong>
-        </div>
-
-        <a class="btn btn--primary btn--lg contact-whatsapp" href="https://wa.me/96176927146?text=Hello%20Jamaludeen%2C%20I%20would%20like%20help%20choosing%20a%20perfume." target="_blank" rel="noopener"><%= lang === 'ar' ? 'تواصل عبر واتساب' : 'Chat on WhatsApp' %></a>
-      </section>
-
-      <section class="contact-map contact-map--luxury" aria-label="JMR Mall, Mazboud map">
-        <iframe src="https://www.google.com/maps?q=JMR%20Mall%2C%20Mazboud%2C%20Lebanon&output=embed" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
-        <div class="contact-map__label"><span>JAMALUDEEN</span><strong>JMR Mall · Mazboud</strong></div>
-      </section>
+<main>
+  <section class="page-hero page-hero--dark">
+    <div class="container">
+      <p class="eyebrow eyebrow--light"><span></span><%= ar ? 'نحن هنا لخدمتكم' : 'Personal service' %></p>
+      <h1 class="display display--xl display--light"><%= ar ? 'تواصل معنا' : 'Let’s find your signature scent.' %></h1>
+      <p class="page-hero__lede"><%= ar ? 'زورونا في مزبود أو تواصلوا معنا مباشرة عبر واتساب. يسعدنا مساعدتكم في اختيار عطركم.' : 'Visit our boutique in Mazboud or speak with us directly on WhatsApp. We would be delighted to help you choose.' %></p>
     </div>
-  </div>
-</div>
+  </section>
+
+  <section class="section">
+    <div class="container visit">
+      <div class="visit__details reveal">
+        <p class="eyebrow"><span></span><%= ar ? 'بوتيك جمال الدين' : 'Jamaludeen Boutique' %></p>
+        <h2 class="display"><%= ar ? 'زيارتكم تسعدنا' : 'Visit the boutique' %></h2>
+
+        <div class="visit__row">
+          <span><%= ar ? 'الموقع' : 'Location' %></span>
+          <strong>JMR Mall, Mazboud, Lebanon</strong>
+          <a class="link-arrow" href="https://www.google.com/maps/search/?api=1&query=JMR+Mall+Mazboud+Lebanon" target="_blank" rel="noopener"><%= ar ? 'افتح الخريطة' : 'Get directions' %></a>
+        </div>
+        <div class="visit__row">
+          <span>WhatsApp</span>
+          <strong dir="ltr"><%= waPretty %></strong>
+          <a class="link-arrow" href="https://wa.me/<%= waNumber %>" target="_blank" rel="noopener"><%= ar ? 'ابدأ المحادثة' : 'Start a conversation' %></a>
+        </div>
+        <div class="visit__row">
+          <span><%= ar ? 'خدمة التوصيل' : 'Delivery' %></span>
+          <strong><%= ar ? 'توصيل إلى جميع المناطق اللبنانية' : 'Available across Lebanon' %></strong>
+        </div>
+
+        <a class="btn btn--gold" href="https://wa.me/<%= waNumber %>?text=<%= encodeURIComponent(ar ? 'مرحباً جمال الدين، بدي مساعدة باختيار عطر.' : 'Hello Jamaludeen, I would like help choosing a perfume.') %>" target="_blank" rel="noopener"><%= ar ? 'تواصل عبر واتساب' : 'Chat on WhatsApp' %></a>
+      </div>
+
+      <div class="visit__map reveal">
+        <iframe title="JMR Mall, Mazboud" src="https://www.google.com/maps?q=JMR%20Mall%2C%20Mazboud%2C%20Lebanon&output=embed" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div class="visit__label"><span>JAMALUDEEN</span><strong>JMR Mall · Mazboud</strong></div>
+      </div>
+    </div>
+  </section>
+</main>
 
 <%- include('partials/footer') %>

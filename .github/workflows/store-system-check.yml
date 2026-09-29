@@ -33,14 +33,19 @@ jobs:
           node --check routes/cart.js
           node --check routes/checkout.js
           node --check routes/admin.js
+          node --check helpers/pricing.js
+          node --check public/js/main.js
           node --check public/js/system.js
           node --check scripts/store-system-smoke.js
       - name: Compile EJS views
         run: |
           node - <<'NODE'
           const fs = require('fs');
+          const path = require('path');
           const ejs = require('ejs');
-          for (const file of ['views/system/login.ejs','views/system/app.ejs']) {
+          const walk = d => fs.readdirSync(d, { withFileTypes: true })
+            .flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+          for (const file of walk('views').filter(f => f.endsWith('.ejs'))) {
             ejs.compile(fs.readFileSync(file,'utf8'), { filename:file });
             console.log('compiled', file);
           }

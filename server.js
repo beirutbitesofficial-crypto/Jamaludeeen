@@ -20,6 +20,7 @@ if (IS_PRODUCTION) {
 }
 const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
+const { exchangeRate, whatsappNumber } = require('./helpers/pricing');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -139,7 +140,11 @@ app.use((req, res, next) => {
   const settings = {};
   sRows.forEach(r => settings[r.key] = r.value);
   res.locals.settings = settings;
-  res.locals.logo = settings.logo_path || null;
+  // /images/logo.png shipped as a non-image file; only trust uploaded logos.
+  res.locals.logo = settings.logo_path && settings.logo_path !== '/images/logo.png' ? settings.logo_path : null;
+  res.locals.usdRate = exchangeRate(settings);
+  res.locals.waNumber = whatsappNumber(settings.store_whatsapp);
+  res.locals.currentPath = req.path;
   next();
 });
 

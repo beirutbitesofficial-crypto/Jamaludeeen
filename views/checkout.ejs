@@ -1,226 +1,85 @@
 <%- include('partials/header', { title: t.checkout }) %>
+<% const ar = lang === 'ar';
+   const money = n => currency === 'USD' ? '$' + Number(n || 0).toFixed(2).replace(/\.00$/, '') : Math.round(n || 0).toLocaleString('en-US') + ' LBP'; %>
 
-<main class="store-checkout-page">
+<main class="section section--page">
   <div class="container">
-    <div class="store-page-heading store-page-heading--checkout">
-      <p class="store-kicker store-kicker--dark">JAMALUDEEN CHECKOUT</p>
-      <h1><%= t.checkout %></h1>
-      <p><%= lang === 'ar' ? 'كمّل معلوماتك، اختار طريقة الدفع، وبنجهّز طلبك مباشرة.' : 'Add your details, choose a payment method and place your order.' %></p>
-    </div>
+    <header class="page-title">
+      <p class="eyebrow"><span></span><%= ar ? 'إتمام الطلب' : 'Secure checkout' %></p>
+      <h1 class="display display--xl"><%= t.checkout %></h1>
+      <p><%= ar ? 'كمّل معلوماتك، اختار طريقة الدفع، وبنجهّز طلبك مباشرة.' : 'Add your details, choose how to pay, and we will prepare your order.' %></p>
+    </header>
 
-    <div class="store-checkout-layout">
-      <form class="store-checkout-form" action="/checkout" method="POST">
-        <section class="store-checkout-section">
-          <div class="store-checkout-section__head">
-            <span>01</span>
-            <div><h2><%= t.customer_info %></h2><p><%= lang === 'ar' ? 'معلومات التواصل والتوصيل' : 'Contact & delivery information' %></p></div>
-          </div>
-
-          <div class="store-form-grid">
-            <label class="store-form-field">
+    <div class="bag bag--checkout">
+      <form class="checkout" action="/checkout" method="POST">
+        <section class="checkout__step">
+          <h2><span>01</span><%= t.customer_info %></h2>
+          <div class="fields">
+            <label class="field">
               <span><%= t.full_name %> *</span>
-              <input type="text" name="name" required autocomplete="name" placeholder="<%= lang === 'ar' ? 'الاسم الكامل' : 'Full name' %>"/>
+              <input type="text" name="name" required autocomplete="name" maxlength="120" placeholder="<%= ar ? 'الاسم الكامل' : 'Full name' %>"/>
             </label>
-            <label class="store-form-field">
+            <label class="field">
               <span><%= t.phone %> *</span>
-              <input type="tel" name="phone" required autocomplete="tel" placeholder="+961 70 000 000"/>
+              <input type="tel" name="phone" required autocomplete="tel" inputmode="tel" pattern="[0-9+\s\-()]{6,20}" maxlength="20" placeholder="+961 70 000 000" dir="ltr"/>
             </label>
-            <label class="store-form-field store-form-field--full">
+            <label class="field field--full">
               <span><%= t.address %> *</span>
-              <input type="text" name="address" required autocomplete="street-address" placeholder="<%= lang === 'ar' ? 'الشارع، البناية، الطابق...' : 'Street, building, floor...' %>"/>
+              <input type="text" name="address" required autocomplete="street-address" maxlength="250" placeholder="<%= ar ? 'الشارع، البناية، الطابق...' : 'Street, building, floor…' %>"/>
             </label>
-            <label class="store-form-field store-form-field--full">
+            <label class="field field--full">
               <span><%= t.city %> *</span>
-              <input type="text" name="city" required autocomplete="address-level2" placeholder="<%= lang === 'ar' ? 'المدينة / المنطقة' : 'City / region' %>"/>
+              <input type="text" name="city" required autocomplete="address-level2" maxlength="120" placeholder="<%= ar ? 'المدينة / المنطقة' : 'City / region' %>"/>
             </label>
-            <label class="store-form-field store-form-field--full">
+            <label class="field field--full">
               <span><%= t.notes %></span>
-              <textarea name="notes" rows="4" placeholder="<%= lang === 'ar' ? 'ملاحظات للتوصيل أو الطلب...' : 'Delivery or order notes...' %>"></textarea>
+              <textarea name="notes" rows="3" maxlength="1000" placeholder="<%= ar ? 'ملاحظات للتوصيل أو الطلب...' : 'Delivery or gifting notes…' %>"></textarea>
             </label>
           </div>
         </section>
 
-        <section class="store-checkout-section">
-          <div class="store-checkout-section__head">
-            <span>02</span>
-            <div><h2><%= t.payment_method %></h2><p><%= lang === 'ar' ? 'اختار الطريقة الأنسب إلك' : 'Choose what works best for you' %></p></div>
-          </div>
-
-          <div class="store-payment-options">
-            <label class="store-payment-option">
+        <section class="checkout__step">
+          <h2><span>02</span><%= t.payment_method %></h2>
+          <div class="pay">
+            <label class="pay__opt">
               <input type="radio" name="payment_method" value="cod" required checked/>
-              <span class="store-payment-option__radio"></span>
-              <div><strong><%= t.cash_on_delivery %></strong><p><%= t.cod_desc %></p></div>
-              <b>COD</b>
+              <span class="pay__box"><i></i><span><strong><%= t.cash_on_delivery %></strong><em><%= t.cod_desc %></em></span><b>COD</b></span>
             </label>
-            <label class="store-payment-option">
+            <label class="pay__opt">
               <input type="radio" name="payment_method" value="whish"/>
-              <span class="store-payment-option__radio"></span>
-              <div><strong><%= t.bywhish_money %></strong><p><%= t.whish_desc %></p></div>
-              <b>WHISH</b>
+              <span class="pay__box"><i></i><span><strong><%= t.bywhish_money %></strong><em><%= t.whish_desc %></em></span><b>WHISH</b></span>
             </label>
           </div>
         </section>
 
-        <button type="submit" class="store-btn store-btn--dark store-btn--full store-btn--checkout"><%= t.place_order %></button>
-        <p class="store-checkout-hint"><%= lang === 'ar' ? 'بعد حفظ الطلب، رح يفتح واتساب برسالة الطلب كاملة وجاهزة للإرسال.' : 'After the order is saved, WhatsApp will open with your complete order message ready to send.' %></p>
+        <button type="submit" class="btn btn--gold btn--block btn--lg"><%= t.place_order %> · <%= money(total) %></button>
+        <p class="checkout__hint"><%= ar ? 'بعد حفظ الطلب، رح يفتح واتساب برسالة الطلب كاملة وجاهزة للإرسال.' : 'Once your order is saved, WhatsApp opens with your complete order ready to send.' %></p>
       </form>
 
-      <aside class="store-checkout-summary">
-        <div class="store-checkout-summary__head">
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'طلبك' : 'YOUR ORDER' %></p>
-          <h2><%= t.order_summary %></h2>
-        </div>
-
-        <div class="store-checkout-summary__items">
+      <aside class="summary summary--sticky">
+        <p class="eyebrow"><span></span><%= ar ? 'طلبك' : 'Your order' %></p>
+        <ul class="mini-items">
           <% items.forEach(item => { %>
-          <div class="store-checkout-item">
-            <div class="store-checkout-item__image">
-              <% if (item.image_path) { %><img src="<%= item.image_path %>" alt="<%= item.name_en %>"/><% } else { %><span>J</span><% } %>
+          <li>
+            <span class="mini-items__media">
+              <% if (item.image_path) { %><img src="<%= item.image_path %>" alt="" referrerpolicy="no-referrer" data-fallback=""/><% } else { %><span class="card__monogram">J</span><% } %>
               <i><%= item.qty %></i>
-            </div>
-            <div class="store-checkout-item__info">
-              <small><%= item.brand %></small>
-              <strong><%= lang === 'ar' && item.name_ar ? item.name_ar : item.name_en %><% if (item.size_ml) { %> · <%= item.size_ml %>ml<% } %></strong>
-            </div>
-            <b><%= item.type === 'local' ? '
-          </div>
+            </span>
+            <span class="mini-items__info">
+              <small><bdi><%= item.brand || 'Jamaludeen' %></bdi></small>
+              <strong><%= ar && item.name_ar ? item.name_ar : item.name_en %></strong>
+              <% if (item.size_ml) { %><small><%= item.size_ml %> ml</small><% } %>
+            </span>
+            <b><%= money(item.price * item.qty) %></b>
+          </li>
           <% }) %>
-        </div>
-
-        <div class="store-order-card__rows store-order-card__rows--checkout">
-          <div><span><%= t.subtotal %></span><strong><%= currency === 'USD' ? '
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
-          </div>
-          <% }) %>
-        </div>
-
-        <div class="store-order-card__rows store-order-card__rows--checkout">
-          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
-          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
-          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + subtotal.toFixed(2).replace(/\.00$/, '') : subtotal.toLocaleString() + ' LBP' %></strong></div>
-          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? (currency === 'USD' ? '
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
-          </div>
-          <% }) %>
-        </div>
-
-        <div class="store-order-card__rows store-order-card__rows--checkout">
-          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
-          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
-          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + deliveryFee.toFixed(2).replace(/\.00$/, '') : deliveryFee.toLocaleString() + ' LBP') : t.free %></strong></div>
-          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= currency === 'USD' ? '
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
-          </div>
-          <% }) %>
-        </div>
-
-        <div class="store-order-card__rows store-order-card__rows--checkout">
-          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
-          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
-          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + total.toFixed(2).replace(/\.00$/, '') : total.toLocaleString() + ' LBP' %></strong></div>
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
-      </aside>
-    </div>
-  </div>
-</main>
-
-<%- include('partials/footer') %>
- + (((item.price || 0) * item.qty).toFixed(2).replace(/\.00$/, '')) : ((item.price || 0) * item.qty).toLocaleString() + ' LBP' %></b>
-          </div>
-          <% }) %>
-        </div>
-
-        <div class="store-order-card__rows store-order-card__rows--checkout">
-          <div><span><%= t.subtotal %></span><strong><%= subtotal.toLocaleString() %> LBP</strong></div>
-          <div><span><%= t.delivery_fee %></span><strong><%= deliveryFee > 0 ? deliveryFee.toLocaleString() + ' LBP' : t.free %></strong></div>
-          <div class="store-order-card__total"><span><%= t.total %></span><strong><%= total.toLocaleString() %> LBP</strong></div>
-        </div>
-
-        <div class="store-checkout-summary__trust">
-          <div><span>01</span><p><%= lang === 'ar' ? 'طلبك محفوظ بالنظام قبل فتح واتساب.' : 'Your order is saved before WhatsApp opens.' %></p></div>
-          <div><span>02</span><p><%= lang === 'ar' ? 'تأكيد سريع ومباشر مع المتجر.' : 'Fast direct confirmation with the store.' %></p></div>
-        </div>
+        </ul>
+        <dl class="summary__rows">
+          <div><dt><%= t.subtotal %></dt><dd><%= money(subtotal) %></dd></div>
+          <div><dt><%= t.delivery_fee %></dt><dd><%= deliveryFee > 0 ? money(deliveryFee) : t.free %></dd></div>
+          <div class="summary__total"><dt><%= t.total %></dt><dd><%= money(total) %></dd></div>
+        </dl>
+        <div class="summary__trust"><span><%= ar ? 'طلبك محفوظ قبل فتح واتساب' : 'Saved before WhatsApp opens' %></span><span><%= ar ? 'تأكيد مباشر' : 'Direct confirmation' %></span></div>
       </aside>
     </div>
   </div>

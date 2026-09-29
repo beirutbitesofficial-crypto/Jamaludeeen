@@ -1,9 +1,12 @@
 <%- include('partials/header', { title: '404' }) %>
-<div class="error-page">
+<main class="section section--page">
   <div class="container">
-    <h1 class="error-page__code">404</h1>
-    <p class="error-page__msg"><%= lang === 'ar' ? 'الصفحة غير موجودة' : 'Page not found' %></p>
-    <a href="/" class="btn btn--primary"><%= t.home %></a>
+    <div class="empty empty--large">
+      <span class="lost">404</span>
+      <h2><%= lang === 'ar' ? 'الصفحة غير موجودة' : 'This page has evaporated.' %></h2>
+      <p><%= lang === 'ar' ? 'يمكن الرابط تغيّر. ارجع للرئيسية وكمّل اكتشافك.' : 'The link may have changed. Return home and keep exploring.' %></p>
+      <a href="/" class="btn btn--dark"><%= t.home %></a>
+    </div>
   </div>
-</div>
+</main>
 <%- include('partials/footer') %>

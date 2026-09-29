@@ -1,72 +1,35 @@
 <%- include('partials/header', { title: t.order_success }) %>
+<% const ar = lang === 'ar';
+   const cur = order.currency || 'LBP';
+   const money = n => cur === 'USD' ? '$' + Number(n || 0).toFixed(2).replace(/\.00$/, '') : Math.round(n || 0).toLocaleString('en-US') + ' LBP';
+   const waLink = order.whatsappUrl || `https://wa.me/${waNumber}?text=${encodeURIComponent('Order: ' + order.orderNumber)}`; %>
 
-<div class="success-page">
+<main class="section section--page">
   <div class="container">
-    <div class="success-card">
-      <div class="success-card__icon">✓</div>
-      <h1 class="success-card__title"><%= t.order_success %></h1>
-      <p class="success-card__sub"><%= t.thank_you %></p>
-      <p class="success-card__msg"><%= t.order_success_msg %></p>
+    <section class="receipt">
+      <div class="receipt__seal">✓</div>
+      <p class="eyebrow eyebrow--center"><span></span><%= t.thank_you %><span></span></p>
+      <h1 class="display"><%= t.order_success %></h1>
+      <p class="receipt__lede"><%= ar ? 'طلبك محفوظ. أرسل رسالة الطلب على واتساب ليتم تأكيده مباشرة.' : 'Your order is saved. Send it to us on WhatsApp and we will confirm it right away.' %></p>
 
-      <div class="success-card__number">
-        <span class="success-card__number-label"><%= t.order_number %></span>
-        <span class="success-card__number-val"><%= order.orderNumber %></span>
-      </div>
-
-      <div class="success-card__total">
-        <%= t.total %>: <strong><%= order.currency === 'USD' ? '
-      </div>
+      <dl class="receipt__rows">
+        <div><dt><%= t.order_number %></dt><dd class="receipt__number"><%= order.orderNumber %></dd></div>
+        <div><dt><%= t.total %></dt><dd><%= money(order.total) %></dd></div>
+        <div><dt><%= t.payment_method %></dt><dd><%= order.paymentMethod === 'whish' ? t.bywhish_money : t.cash_on_delivery %></dd></div>
+      </dl>
 
       <% if (order.paymentMethod === 'whish' && order.whishNumber) { %>
-      <div class="success-card__whish">
-        <div class="whish-box">
-          <p class="whish-box__title">📱 <%= t.bywhish_money %></p>
-          <p><%= t.whish_instructions %>:</p>
-          <p class="whish-box__number"><%= order.whishNumber %></p>
-          <p><%= t.whish_ref %></p>
-          <p class="whish-box__ref"><%= order.orderNumber %></p>
-        </div>
+      <div class="receipt__whish">
+        <p><%= t.whish_instructions %></p>
+        <strong dir="ltr"><%= order.whishNumber %></strong>
+        <p><%= t.whish_ref %> <b><%= order.orderNumber %></b></p>
       </div>
       <% } %>
 
-      <% if (settings.store_whatsapp) { %>
-      <a href="https://wa.me/<%= settings.store_whatsapp.replace(/[^0-9]/g,'') %>?text=<%= encodeURIComponent('Order: ' + order.orderNumber) %>"
-         target="_blank" class="btn btn--whatsapp">
-        💬 <%= t.track_order %>
-      </a>
-      <% } %>
-
-      <a href="/" class="btn btn--outline" style="margin-top:12px"><%= t.continue_shopping %></a>
-    </div>
+      <a href="<%= waLink %>" class="btn btn--gold btn--block btn--lg" id="sendOrder" data-order="<%= order.orderNumber %>" target="_blank" rel="noopener"><%= ar ? 'أرسل الطلب على واتساب' : 'Send order on WhatsApp' %></a>
+      <a href="/" class="btn btn--line btn--block"><%= t.continue_shopping %></a>
+    </section>
   </div>
-</div>
-
-<%- include('partials/footer') %>
- + Number(order.total || 0).toFixed(2).replace(/\.00$/, '') : Number(order.total || 0).toLocaleString() + ' LBP' %></strong>
-      </div>
-
-      <% if (order.paymentMethod === 'whish' && order.whishNumber) { %>
-      <div class="success-card__whish">
-        <div class="whish-box">
-          <p class="whish-box__title">📱 <%= t.bywhish_money %></p>
-          <p><%= t.whish_instructions %>:</p>
-          <p class="whish-box__number"><%= order.whishNumber %></p>
-          <p><%= t.whish_ref %></p>
-          <p class="whish-box__ref"><%= order.orderNumber %></p>
-        </div>
-      </div>
-      <% } %>
-
-      <% if (settings.store_whatsapp) { %>
-      <a href="https://wa.me/<%= settings.store_whatsapp.replace(/[^0-9]/g,'') %>?text=<%= encodeURIComponent('Order: ' + order.orderNumber) %>"
-         target="_blank" class="btn btn--whatsapp">
-        💬 <%= t.track_order %>
-      </a>
-      <% } %>
-
-      <a href="/" class="btn btn--outline" style="margin-top:12px"><%= t.continue_shopping %></a>
-    </div>
-  </div>
-</div>
+</main>
 
 <%- include('partials/footer') %>

@@ -1,51 +1,49 @@
 <%- include('partials/header', { title: title }) %>
+<% const ar = lang === 'ar'; %>
 
-<div class="brands-page">
-  <div class="container">
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <nav class="crumbs"><a href="/"><%= t.home %></a><span>/</span><a href="/collections"><%= t.brands %></a><span>/</span><span><bdi><%= brand.name %></bdi></span></nav>
+      <div class="page-hero__row">
+        <div>
+          <p class="eyebrow"><span></span><%= ar ? 'دار العطور' : 'The House' %></p>
+          <% if (brand.logo_path) { %><img src="<%= brand.logo_path %>" alt="<%= brand.name %>" class="page-hero__logo"/><% } %>
+          <h1 class="display display--xl"><bdi><%= brand.name %></bdi></h1>
+          <% if (brand.name_ar) { %><p class="page-hero__lede" lang="ar"><%= brand.name_ar %></p><% } %>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <a href="/collections" class="back-link"><%= lang === 'ar' ? 'الماركات' : 'Brands' %></a>
-
-    <!-- Brand header -->
-    <div class="page-header" style="flex-direction:column;align-items:flex-start;gap:12px">
-      <% if (brand.logo_path) { %>
-        <img src="<%= brand.logo_path %>" alt="<%= brand.name %>" style="max-height:64px;object-fit:contain"/>
+  <section class="section section--flush">
+    <div class="container">
+      <% if (categories.length) { %>
+      <div class="lines">
+        <% categories.forEach((cat, i) => { %>
+        <a href="/collections/<%= brand.id %>/category/<%= cat.id %>" class="line reveal">
+          <div class="line__media">
+            <% if (cat.image_path) { %><img src="<%= cat.image_path %>" alt="<%= cat.name_en %>" loading="lazy"/><% } else { %><span class="card__monogram"><%= brand.name.charAt(0) %></span><% } %>
+          </div>
+          <div class="line__body">
+            <span class="line__num"><%= String(i + 1).padStart(2, '0') %></span>
+            <h3><%= ar && cat.name_ar ? cat.name_ar : cat.name_en %></h3>
+            <p><%= cat.product_count %> <%= t.products %></p>
+            <span class="link-arrow"><%= t.shop_now %></span>
+          </div>
+        </a>
+        <% }) %>
+      </div>
+      <% } else { %>
+      <div class="empty">
+        <span class="empty__mark">✦</span>
+        <h2><%= ar ? 'لا توجد تصنيفات بعد' : 'No lines yet' %></h2>
+        <p><%= ar ? 'سيتم إضافة التصنيفات قريباً' : 'This house will be stocked soon.' %></p>
+        <a href="/collections" class="btn btn--dark"><%= ar ? 'كل الماركات' : 'All houses' %></a>
+      </div>
       <% } %>
-      <h1 class="page-header__title"><bdi><%= brand.name %></bdi></h1>
-      <% if (brand.name_ar) { %><p style="color:var(--gray-600);font-size:.9rem;direction:rtl"><%= brand.name_ar %></p><% } %>
     </div>
-
-    <!-- Categories grid -->
-    <% if (categories.length) { %>
-    <div class="brand-cats-grid">
-      <% categories.forEach(cat => { %>
-      <a href="/collections/<%= brand.id %>/category/<%= cat.id %>" class="brand-cat-card">
-        <div class="brand-cat-card__image">
-          <% if (cat.image_path) { %>
-            <img src="<%= cat.image_path %>" alt="<%= cat.name_en %>"/>
-          <% } else { %>
-            <div class="brand-cat-card__placeholder"><span>✦</span></div>
-          <% } %>
-          <div class="brand-cat-card__overlay"></div>
-        </div>
-        <div class="brand-cat-card__body">
-          <h3 class="brand-cat-card__name"><%= cat.name_en %></h3>
-          <% if (cat.name_ar) { %><p class="brand-cat-card__name-ar"><%= cat.name_ar %></p><% } %>
-          <p class="brand-cat-card__count"><%= cat.product_count %> <%= t.products %></p>
-          <span class="brand-cat-card__cta"><%= lang === 'ar' ? '← ' : '' %><%= t.shop_now %><%= lang === 'ar' ? '' : ' →' %></span>
-        </div>
-      </a>
-      <% }) %>
-    </div>
-    <% } else { %>
-    <div class="empty-state">
-      <p class="empty-state__icon">✦</p>
-      <h3><%= lang === 'ar' ? 'لا توجد تصنيفات بعد' : 'No categories yet' %></h3>
-      <p><%= lang === 'ar' ? 'سيتم إضافة التصنيفات قريباً' : 'Categories will be added soon' %></p>
-      <a href="/collections" class="btn btn--outline" style="margin-top:20px"><%= lang === 'ar' ? 'الماركات →' : '← Back to Brands' %></a>
-    </div>
-    <% } %>
-
-  </div>
-</div>
+  </section>
+</main>
 
 <%- include('partials/footer') %>

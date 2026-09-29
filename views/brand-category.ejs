@@ -1,66 +1,53 @@
 <%- include('partials/header', { title: title }) %>
+<% const ar = lang === 'ar';
+   const base = `/collections/${brand.id}/category/${category.id}`;
+   const pageLink = n => `${base}?${new URLSearchParams(Object.assign({}, filters.q ? { q: filters.q } : {}, { page: n })).toString()}`; %>
 
-<div class="shop-page">
-  <div class="container">
-
-    <a href="/collections/<%= brand.id %>" class="back-link"><bdi><%= brand.name %></bdi></a>
-
-    <div class="page-header">
-      <h1 class="page-header__title"><%= category.name_en %></h1>
-      <% if (category.name_ar) { %><p style="color:var(--gray-600);font-size:.9rem;direction:rtl"><%= category.name_ar %></p><% } %>
-      <p class="page-header__count"><%= pagination.total %> <%= t.products %></p>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <nav class="crumbs"><a href="/"><%= t.home %></a><span>/</span><a href="/collections"><%= t.brands %></a><span>/</span><a href="/collections/<%= brand.id %>"><bdi><%= brand.name %></bdi></a><span>/</span><span><%= category.name_en %></span></nav>
+      <div class="page-hero__row">
+        <div>
+          <p class="eyebrow"><span></span><bdi><%= brand.name %></bdi></p>
+          <h1 class="display display--xl"><%= ar && category.name_ar ? category.name_ar : category.name_en %></h1>
+          <% if (!ar && category.name_ar) { %><p class="page-hero__lede" lang="ar"><%= category.name_ar %></p><% } %>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <div class="shop-layout">
+  <section class="section section--flush">
+    <div class="container">
+      <div class="toolbar">
+        <form method="GET" action="<%= base %>" class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" aria-label="Search"/>
+          <button type="submit"><%= ar ? 'بحث' : 'Search' %></button>
+        </form>
+        <p class="toolbar__count"><%= pagination.total %> <%= t.products %><% if (filters.q) { %> · <a href="<%= base %>"><%= ar ? 'مسح' : 'Clear' %></a><% } %></p>
+      </div>
 
-      <!-- Sidebar: search only -->
-      <aside class="shop-sidebar" id="shopSidebar">
-        <div class="shop-sidebar__inner">
-          <h3 class="shop-sidebar__title"><%= t.filter %></h3>
-          <form method="GET" action="/collections/<%= brand.id %>/category/<%= category.id %>" id="filterForm">
-            <div class="filter-group">
-              <label class="filter-label"><%= lang === 'ar' ? 'بحث' : 'Search' %></label>
-              <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="<%= t.search_placeholder %>" class="filter-input"/>
-            </div>
-            <button type="submit" class="btn btn--primary btn--full"><%= t.filter %></button>
-            <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline btn--full" style="margin-top:8px"><%= lang === 'ar' ? 'مسح' : 'Clear' %></a>
-          </form>
+      <% if (!products.length) { %>
+        <div class="empty">
+          <span class="empty__mark">✦</span>
+          <h2><%= t.no_products %></h2>
+          <a href="<%= base %>" class="btn btn--dark"><%= ar ? 'مسح البحث' : 'Clear search' %></a>
         </div>
-      </aside>
-
-      <!-- Products grid -->
-      <main class="shop-main">
-        <button class="shop-filter-toggle" id="filterToggle">☰ <%= t.filter %></button>
-
-        <% if (!products.length) { %>
-        <div class="empty-state">
-          <p class="empty-state__icon">✦</p>
-          <h3><%= t.no_products %></h3>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>" class="btn btn--outline"><%= lang === 'ar' ? 'مسح الفلتر' : 'Clear filters' %></a>
+      <% } else { %>
+        <div class="grid-products grid-products--catalog">
+          <% products.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
         </div>
-        <% } else { %>
-        <div class="products-grid">
-          <% products.forEach(p => { %>
-          <%- include('partials/product-card', { p }) %>
-          <% }) %>
-        </div>
-
         <% if (pagination.totalPages > 1) { %>
-        <div class="pagination">
-          <% if (pagination.page > 1) { %>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page - 1}).toString() %>" class="pagination__btn">← <%= t.prev %></a>
-          <% } %>
-          <span class="pagination__info"><%= t.page %> <%= pagination.page %> <%= t.of %> <%= pagination.totalPages %></span>
-          <% if (pagination.page < pagination.totalPages) { %>
-          <a href="/collections/<%= brand.id %>/category/<%= category.id %>?<%= new URLSearchParams({...filters, page: pagination.page + 1}).toString() %>" class="pagination__btn"><%= t.next_page %> →</a>
-          <% } %>
-        </div>
+        <nav class="pager" aria-label="Pagination">
+          <% if (pagination.page > 1) { %><a href="<%= pageLink(pagination.page - 1) %>" class="pager__step">← <%= t.prev %></a><% } else { %><span class="pager__step is-disabled">← <%= t.prev %></span><% } %>
+          <span class="pager__info"><em><%= pagination.page %></em> / <%= pagination.totalPages %></span>
+          <% if (pagination.page < pagination.totalPages) { %><a href="<%= pageLink(pagination.page + 1) %>" class="pager__step"><%= t.next_page %> →</a><% } else { %><span class="pager__step is-disabled"><%= t.next_page %> →</span><% } %>
+        </nav>
         <% } %>
-        <% } %>
-      </main>
-
+      <% } %>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
 <%- include('partials/footer') %>
