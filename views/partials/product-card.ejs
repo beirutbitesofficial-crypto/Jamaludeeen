@@ -1,7 +1,7 @@
 <% const pName = lang === 'ar' && p.name_ar ? p.name_ar : p.name_en; %>
 <article class="card reveal">
   <div class="card__media-wrap">
-    <a href="/shop/item/<%= p.id %>" class="card__media" aria-label="<%= p.name_en %>">
+    <a href="/shop/item/<%= p.id %>" class="card__media<%= p.type === 'brand' && p.image_path ? ' card__media--contain' : '' %>" aria-label="<%= p.name_en %>">
       <% if (p.image_path) { %>
         <img src="<%= p.image_path %>" alt="<%= p.name_en %>" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-fallback="<%= p.brand || 'Jamaludeen' %>"/>
       <% } else { %>

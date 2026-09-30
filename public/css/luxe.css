@@ -1241,3 +1241,9 @@ a.pager__step:hover { background: var(--noir); color: var(--ivory); border-color
 .mini-items__media .card__monogram { font-size: 1.6rem; }
 .pdp__frame .card__placeholder .card__monogram { font-size: 8rem; }
 .pdp__frame .card__ph-name { font-size: 1.8rem; }
+
+/* Brand-house product shots: show the whole bottle and box on white */
+.card__media--contain { background: #fff; }
+.card__media--contain img { object-fit: contain; padding: 7%; }
+.pdp__frame--contain { background: #fff; }
+.pdp__frame--contain img { object-fit: contain; }

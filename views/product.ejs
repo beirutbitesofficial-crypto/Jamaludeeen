@@ -15,7 +15,7 @@
 
     <section class="pdp">
       <div class="pdp__visual">
-        <div class="pdp__frame">
+        <div class="pdp__frame<%= product.type === 'brand' && product.image_path ? ' pdp__frame--contain' : '' %>">
           <% if (product.image_path) { %>
             <img src="<%= product.image_path %>" alt="<%= product.name_en %>" referrerpolicy="no-referrer" data-fallback="<%= product.brand || 'Jamaludeen' %>"/>
           <% } else { %>

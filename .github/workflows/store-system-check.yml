@@ -33,6 +33,7 @@ jobs:
           node --check routes/cart.js
           node --check routes/checkout.js
           node --check routes/admin.js
+          node --check database/brand-product-images.js
           node --check helpers/pricing.js
           node --check public/js/main.js
           node --check public/js/system.js
