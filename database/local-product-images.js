@@ -54,11 +54,10 @@ const LOCAL_PRODUCT_IMAGES = [
   { category: 'men', name: 'Blue Ajmal', image: '/images/men/blue-ajmal.webp' },
   { category: 'men', name: 'Blue Channel', image: '/images/men/bleu-de-chanel.png' },
   { category: 'men', name: 'Blue Channel Exclusive', image: 'https://www.pieper.de/media/image/83/d0/ff/56127_3efb43e8-b276-4e66-b535-4a8d22fa4b4c.jpg' },
-  { category: 'men', name: 'Blue Jeans', image: 'https://product-data.raiadrogasil.io/images/4603297.webp' },
-  { category: 'men', name: 'Blue Polo', image: 'https://www.maxaroma.com/productimages/large/UP3605970859299.jpg?ver=1690663253' },
-  { category: 'men', name: 'Blue Seduction', image: 'https://darksecretsfragrance.com/core/public/storage/images/Antonio-Banderas-Blue-Seduction-M-EDT-100ML.png' },
-  { category: 'men', name: 'Blue for Man', image: 'https://theperfumewarehouse.com.au/cdn/shop/files/B0162BM.jpg?v=1780644664' },
-  { category: 'men', name: "Bois d'Argent Dior", image: 'https://parfumsamples.be/cdn/shop/files/christian-dior-bois-d-argent-edp-parfumsamples.png?v=1773889162' },
+  { category: 'men', name: 'Blue Jeans', image: '/images/men/blue-jeans.webp' },
+  { category: 'men', name: 'Blue Polo', image: '/images/men/blue-polo.webp' },
+  { category: 'men', name: 'Blue Seduction', image: '/images/men/blue-seduction.webp' },
+  { category: 'men', name: 'Blue for Man', image: '/images/men/blue-for-man.webp' },
   { category: 'men', name: 'Boss Bottled Absolute', image: 'https://cdn.notinoimg.com/detail_main_hq/hugo-boss/3614229646498_02-o/boss-bottled-absolute___220421.jpg' },
   { category: 'men', name: 'Boss Bottled Elixir', image: 'https://www.aeliadutyfree.co.nz/media/catalog/product/1/0/101200206_f076.jpg?bg-color=255%2C255%2C255&canvas=800%2C&fit=bounds&height=&optimize=medium&width=800' },
   { category: 'men', name: 'Boss Bottled Triumph Elixir', image: 'https://i5.walmartimages.com/asr/7aed0cbc-0118-4c0c-96bc-76bffb0de872.f00ce327c8a4da5c4bbe94b5439ef343.jpeg' },
@@ -69,6 +68,7 @@ const LOCAL_PRODUCT_IMAGES = [
   { category: 'men', name: 'Bvlgari Man', image: 'https://disfragancias.com/cdn/shop/products/Bvlgari-man-2.jpg?v=1699805073' },
   { category: 'men', name: 'Bvlgari Man in Black', image: 'https://www.scentbox.com/images/product/Bvlgari-man-in-blk-m.jpg' },
   { category: 'men', name: 'Bvlgari Tygar', image: 'https://www.scentsuave.com/cdn/shop/files/BVLGARI_Le_Gemme_Tygar_5297765a-638c-4a89-b772-a45b9211e1fe.png?v=1756501616&width=990' },
+  { category: 'men', name: "Bois d'Argent Dior", image: '/images/men/bois-dargent-dior.webp' },
 ];
 
 module.exports = { LOCAL_PRODUCT_IMAGES };
