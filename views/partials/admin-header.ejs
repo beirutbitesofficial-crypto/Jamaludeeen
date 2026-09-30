@@ -1,50 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= a.lang %>" dir="<%= a.dir %>">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title><%= title %> | Admin · JAMALUDEEN</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/admin.css?v=20260805-5" type="text/css"/>
+  <meta name="robots" content="noindex"/>
+  <meta name="theme-color" content="#0f0e0c"/>
+  <title><%= title %> · <%= a('admin_panel') %> · JAMALUDEEN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261001-2"/>
 </head>
-<body class="admin-body">
+<body>
+<%
+  const p = currentPath || '';
+  const on = (prefix) => p === prefix || p.startsWith(prefix + '/') ? 'is-active' : '';
+  const nav = [
+    { label: a('overview'), items: [
+      { href: '/admin/dashboard', icon: 'dashboard', text: a('dashboard'), active: on('/admin/dashboard') },
+    ]},
+    { label: a('catalog'), items: [
+      { href: '/admin/catalog', icon: 'grid', text: a('collections'), active: on('/admin/catalog') },
+      { href: '/admin/products', icon: 'bottle', text: a('products'), active: on('/admin/products') },
+      { href: '/admin/brands', icon: 'tag', text: a('brands'), active: on('/admin/brands') },
+      { href: '/admin/prices', icon: 'coin', text: a('prices'), active: on('/admin/prices') },
+      { href: '/admin/images', icon: 'image', text: a('images'), active: on('/admin/images') },
+    ]},
+    { label: a('sales'), items: [
+      { href: '/admin/orders', icon: 'receipt', text: a('orders'), active: on('/admin/orders'), badge: true },
+      { href: '/system', icon: 'pos', text: a('store_system') },
+    ]},
+    { label: a('settings'), items: [
+      { href: '/admin/settings', icon: 'settings', text: a('settings'), active: on('/admin/settings') },
+    ]},
+  ];
+%>
+<div class="bo">
+  <aside class="bo-side" id="boSide" aria-label="<%= a('menu') %>">
+    <a href="/admin/dashboard" class="bo-brand">
+      <span class="bo-brand__mark">J</span>
+      <span><span class="bo-brand__name">JAMALUDEEN</span><br/><span class="bo-brand__sub"><%= a('admin_panel') %></span></span>
+    </a>
+    <nav class="bo-nav">
+      <% nav.forEach(group => { %>
+      <div class="bo-nav-group">
+        <div class="bo-nav-label"><%= group.label %></div>
+        <% group.items.forEach(item => { %>
+        <a href="<%= item.href %>" class="<%= item.active || '' %>"><%- icon(item.icon) %><span><%= item.text %></span><% if (item.badge) { %><span class="bo-nav__count" id="pendingNavBadge"></span><% } %></a>
+        <% }) %>
+      </div>
+      <% }) %>
+    </nav>
+    <div class="bo-side__foot bo-nav">
+      <a href="/" target="_blank" rel="noopener"><%- icon('store') %><span><%= a('view_store') %></span><%- icon('external', 'muted') %></a>
+      <form action="/admin/logout" method="POST"><button type="submit"><%- icon('logout', 'ico-flip') %><span><%= a('logout') %></span></button></form>
+    </div>
+  </aside>
+  <div class="bo-scrim" id="boScrim"></div>
 
-<header class="admin-mobile-bar">
-  <button type="button" class="admin-menu-toggle" id="adminMenuToggle" aria-label="Open admin menu" aria-controls="adminSidebar" aria-expanded="false">
-    <span></span><span></span><span></span>
-  </button>
-  <a href="/admin/dashboard" class="admin-mobile-bar__logo">JAMALUDEEN</a>
-  <a href="/" target="_blank" class="admin-mobile-bar__store" aria-label="View store">Store</a>
-</header>
-<button type="button" class="admin-sidebar-overlay" id="adminSidebarOverlay" aria-label="Close admin menu"></button>
-
-<aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
-  <div class="admin-sidebar__brand-row">
-    <div class="admin-sidebar__logo">JAMALUDEEN</div>
-    <button type="button" class="admin-sidebar__close" id="adminMenuClose" aria-label="Close admin menu">&times;</button>
-  </div>
-  <nav class="admin-nav">
-    <a href="/admin/catalog" class="admin-nav__link">Catalog Categories</a>
-    <a href="/admin/dashboard" class="admin-nav__link">📊 Dashboard</a>
-    <a href="/system" class="admin-nav__link admin-nav__link--highlight">🧾 Store POS System</a>
-    <a href="/admin/products" class="admin-nav__link">📦 Products</a>
-    <a href="/admin/brands" class="admin-nav__link">🏷️ Brands</a>
-    <a href="/admin/images" class="admin-nav__link">🖼️ Images</a>
-    <a href="/admin/orders" class="admin-nav__link">📋 Orders</a>
-    <a href="/admin/orders?status=pending" class="admin-nav__link admin-nav__link--highlight">⏳ Pending <span id="pendingNavBadge" class="nav-badge"></span></a>
-    <a href="/admin/settings" class="admin-nav__link">⚙️ Settings</a>
-    <a href="/" class="admin-nav__link" target="_blank">🌐 View Store</a>
-  </nav>
-  <form action="/admin/logout" method="POST" style="padding:16px">
-    <button type="submit" class="btn-logout">↩ Logout</button>
-  </form>
-</aside>
-
-<div class="admin-main">
-  <!-- Flash -->
-  <% if (success_msg && success_msg.length) { %>
-  <div class="alert alert--success"><%= success_msg[0] %> <button onclick="this.parentElement.remove()">✕</button></div>
-  <% } %>
-  <% if (error_msg && error_msg.length) { %>
-  <div class="alert alert--error"><%= error_msg[0] %> <button onclick="this.parentElement.remove()">✕</button></div>
-  <% } %>
+  <div class="bo-main">
+    <header class="bo-top">
+      <button class="bo-burger" id="boBurger" type="button" aria-label="<%= a('menu') %>"><%- icon('menu') %></button>
+      <div class="bo-top__title"><%= title %></div>
+      <div class="bo-top__actions">
+        <form action="/set-lang" method="POST"><button class="btn btn--sm lang-btn" name="lang" value="<%= a.lang === 'ar' ? 'en' : 'ar' %>" type="submit"><%- icon('globe') %><%= a('language') %></button></form>
+        <a href="/system" class="btn btn--sm btn--dark"><%- icon('pos') %><span><%= a('store_system') %></span></a>
+      </div>
+    </header>
+    <main class="bo-content">
+      <% if (success_msg && success_msg.length) { %><div class="flash flash--success"><%- icon('check') %><span><%= success_msg[0] %></span><button class="flash__close" type="button" aria-label="<%= a('close') %>"><%- icon('x') %></button></div><% } %>
+      <% if (error_msg && error_msg.length) { %><div class="flash flash--error"><%- icon('alert') %><span><%= error_msg[0] %></span><button class="flash__close" type="button" aria-label="<%= a('close') %>"><%- icon('x') %></button></div><% } %>

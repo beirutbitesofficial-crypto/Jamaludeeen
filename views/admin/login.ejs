@@ -1,34 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= a.lang %>" dir="<%= a.dir %>">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Login | JAMALUDEEN</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/admin.css"/>
+  <meta name="robots" content="noindex"/>
+  <title><%= a('admin_panel') %> · JAMALUDEEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261001-2"/>
 </head>
-<body class="admin-login-body">
-  <div class="login-card">
-    <h1 class="login-card__title">JAMALUDEEN</h1>
-    <p class="login-card__sub">Admin Panel</p>
-
-    <% if (error_msg && error_msg.length) { %>
-    <div class="alert alert--error"><%= error_msg[0] %></div>
-    <% } %>
-
-    <form action="/admin/login" method="POST" class="login-form">
-      <div class="form-group">
-        <label class="form-label">Username</label>
-        <input type="text" name="username" class="form-input" required autocomplete="username"/>
+<body>
+  <div class="login">
+    <section class="login__art">
+      <div class="login__word">JAMALUDEEN</div>
+      <h2><%= a.lang === 'ar' ? 'إدارة متجرك بكل أناقة.' : 'Run your maison with ease.' %></h2>
+      <p><%= a('catalog') %> · <%= a('orders') %> · <%= a('prices') %> · <%= a('images') %></p>
+    </section>
+    <section class="login__panel">
+      <div class="login__card">
+        <p class="bo-kicker"><%= a('admin_panel') %></p>
+        <h1><%= a('welcome') %></h1>
+        <p><%= a('please_login') %></p>
+        <% if (error_msg && error_msg.length) { %><div class="flash flash--error"><%- icon('alert') %><span><%= error_msg[0] %></span></div><% } %>
+        <form action="/admin/login" method="POST" class="form">
+          <label class="field"><span><%= a('username') %></span><input type="text" name="username" required autocomplete="username" autofocus/></label>
+          <label class="field"><span><%= a('password') %></span><input type="password" name="password" required autocomplete="current-password"/></label>
+          <button type="submit" class="btn btn--dark btn--lg btn--block"><%= a('login') %></button>
+        </form>
+        <div class="login__foot">
+          <a href="/"><%= a('back_to_store') %></a>
+          <form action="/set-lang" method="POST"><button class="btn btn--sm lang-btn" name="lang" value="<%= a.lang === 'ar' ? 'en' : 'ar' %>"><%- icon('globe') %><%= a('language') %></button></form>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" name="password" class="form-input" required autocomplete="current-password"/>
-      </div>
-      <button type="submit" class="btn btn--primary btn--full">Login</button>
-    </form>
-
-    <a href="/" class="login-card__back">← Back to Store</a>
+    </section>
   </div>
 </body>
 </html>

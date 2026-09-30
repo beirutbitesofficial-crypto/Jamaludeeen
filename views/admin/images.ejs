@@ -1,182 +1,89 @@
-<%- include('../partials/admin-header', { title: 'Product Images' }) %>
-
-<div class="admin-page">
-  <div class="admin-page__header">
-    <div>
-      <h1 class="admin-page__title">🖼️ Product Images</h1>
-      <p class="admin-page__sub">Local sections use one image per category, while brands use one image per perfume.</p>
-    </div>
+<%- include('../partials/admin-header', { title: a('images') }) %>
+<%
+  const qs = o => new URLSearchParams(Object.fromEntries(Object.entries(Object.assign({}, filters, o)).filter(([, v]) => v !== '' && v != null))).toString();
+  const siteImgs = [
+    { key: 'banner', label: a('hero_image') },
+    { key: 'men', label: a('collection_cover') + ' · ' + a('men') },
+    { key: 'women', label: a('collection_cover') + ' · ' + a('women') },
+    { key: 'unisex', label: a('collection_cover') + ' · ' + a('unisex') },
+  ];
+%>
+<div class="bo-head">
+  <div>
+    <p class="bo-kicker"><%= a('catalog') %></p>
+    <h1><%= a('images') %></h1>
+    <p><%= a('images_intro') %></p>
   </div>
+</div>
 
-  <section class="cat-images-panel">
-    <h3 class="panel-title">Local Section Images</h3>
-    <div class="cat-img-grid">
-      <% [['men','Men'],['women','Women'],['unisex','Unisex']].forEach(([cat,label]) => { %>
-      <% const key = cat + '_image'; const img = settings[key]; %>
-      <div class="cat-img-card">
-        <p class="cat-img-card__label"><%= label %></p>
-        <% if (img) { %>
-          <img src="<%= img %>" alt="<%= label %>" class="cat-img-card__img"/>
-          <form action="/admin/settings/delete-image/<%= cat %>" method="POST">
-            <button type="submit" class="btn btn--ghost btn--sm btn--danger" onclick="return confirm('Remove this image?')">✕ Remove</button>
-          </form>
-        <% } else { %>
-          <div class="cat-img-placeholder">No image</div>
-        <% } %>
-        <form action="/admin/settings/upload-image/<%= cat %>" method="POST" enctype="multipart/form-data">
-          <label class="upload-btn-big upload-btn-big--sm">
-            📷 <%= img ? 'Change Image' : 'Upload Image' %>
-            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" onchange="this.form.submit()"/>
-          </label>
-        </form>
-      </div>
-      <% }) %>
-    </div>
-  </section>
-
-  <div class="admin-page__header" style="margin-top: 22px;">
-    <div>
-      <h2 class="admin-page__title" style="font-size:1.2rem">Brand Perfume Images</h2>
-      <p class="admin-page__sub"><%= products.length %> brand products</p>
-    </div>
-  </div>
-
-  <!-- Brand filter -->
-  <form method="GET" action="/admin/images" class="img-filter-bar">
-    <select name="brand" class="filter-select" onchange="this.form.submit()" style="max-width:280px">
-      <option value="">— All Brands —</option>
-      <% brandsList.forEach(b => { %>
-        <option value="<%= b %>" <%= filters.brand === b ? 'selected' : '' %>><%= b %></option>
-      <% }) %>
-    </select>
-    <% if (filters.brand) { %>
-      <a href="/admin/images" class="btn btn--ghost btn--sm">✕ Clear</a>
-    <% } %>
-  </form>
-
-  <!-- Product image grid -->
-  <% if (!products.length) { %>
-    <div class="empty-state" style="padding:60px 0">
-      <div class="empty-state__icon">🖼️</div>
-      <h3>No products found</h3>
-      <p>Try a different brand filter.</p>
-    </div>
-  <% } else { %>
-  <div class="img-grid">
-    <% products.forEach(p => { %>
+<section class="card" style="margin-bottom:24px">
+  <div class="card__head"><h2><%- icon('image') %> <%= a('homepage_images') %></h2></div>
+  <div class="card__body img-grid">
+    <% siteImgs.forEach(s => { const src = settings[s.key + '_image']; %>
     <div class="img-card">
-      <!-- Image or placeholder -->
-      <a href="/admin/products/<%= p.id %>/edit" class="img-card__preview">
-        <% if (p.image_path) { %>
-          <img src="<%= p.image_path %>" alt="<%= p.name_en %>" loading="lazy"/>
-          <span class="img-card__has-img">✓</span>
-        <% } else { %>
-          <div class="img-card__empty">
-            <span>📷</span>
-          </div>
+      <div class="img-card__media"><% if (src) { %><img src="<%= src %>" alt="" style="object-fit:cover"/><% } else { %><span class="monogram">J</span><% } %></div>
+      <div class="img-card__body">
+        <strong><%= s.label %></strong>
+        <form action="/admin/settings/upload-image/<%= s.key %>" method="POST" enctype="multipart/form-data">
+          <label class="btn btn--sm btn--block upload"><%- icon('upload') %><%= src ? a('change') : a('upload') %><input type="file" name="image" accept="image/jpeg,image/png,image/webp" data-autosubmit/></label>
+        </form>
+        <% if (src && src.startsWith('/uploads/')) { %>
+        <form action="/admin/settings/delete-image/<%= s.key %>" method="POST" data-confirm="<%= a('confirm_delete') %>"><button class="btn btn--sm btn--ghost btn--danger btn--block"><%- icon('trash') %><%= a('remove') %></button></form>
         <% } %>
-      </a>
-
-      <!-- Name -->
-      <div class="img-card__info">
-        <p class="img-card__brand"><%= p.brand %></p>
-        <p class="img-card__name"><%= p.name_en %></p>
       </div>
-
-      <!-- Upload button — auto-submit on select, works great on phone -->
-      <form action="/admin/products/<%= p.id %>/image" method="POST" enctype="multipart/form-data" class="img-card__form">
-        <label class="img-card__upload-btn">
-          <% if (p.image_path) { %>🔄 Change<% } else { %>📷 Upload<% } %>
-          <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
-                 onchange="this.form.submit()"/>
-        </label>
-      </form>
     </div>
     <% }) %>
   </div>
-  <% } %>
+</section>
+
+<nav class="tabs">
+  <% ['men','women','unisex','brands'].forEach(k => { %>
+  <a href="/admin/images?section=<%= k %>" class="<%= filters.section === k ? 'is-active' : '' %>"><%= a(k) %><span class="tabs__count num"><%= counts[k] %></span></a>
+  <% }) %>
+</nav>
+
+<% if (filters.section === 'brands') { %>
+<div class="chips chips--scroll" style="margin-top:14px">
+  <a class="chip <%= !filters.brand ? 'is-active' : '' %>" href="?<%= qs({ brand: '', page: '' }) %>"><%= a('all_brands') %></a>
+  <% brands.forEach(b => { %><a class="chip <%= filters.brand === b.name ? 'is-active' : '' %>" href="?<%= qs({ brand: b.name, page: '' }) %>"><%= b.name %></a><% }) %>
+</div>
+<% } %>
+
+<div class="chips" style="margin:14px 0">
+  <a class="chip <%= !filters.photo ? 'is-active' : '' %>" href="?<%= qs({ photo: '', page: '' }) %>"><%= a('all') %></a>
+  <a class="chip <%= filters.photo === 'without' ? 'is-active' : '' %>" href="?<%= qs({ photo: 'without', page: '' }) %>"><%= a('without_photo') %></a>
+  <a class="chip <%= filters.photo === 'with' ? 'is-active' : '' %>" href="?<%= qs({ photo: 'with', page: '' }) %>"><%= a('with_photo') %></a>
+  <span class="muted num" style="margin-inline-start:auto"><%= pagination.total %> <%= a('items') %></span>
 </div>
 
-<style>
-.img-filter-bar { display:flex; gap:12px; align-items:center; margin-bottom:24px; flex-wrap:wrap; }
-.cat-images-panel {
-  border: 1px solid #e5e2dc;
-  background: #f9f8f6;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-.img-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
-}
-@media (max-width: 480px) { .img-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+<% if (!products.length) { %>
+<div class="card empty-block"><%- icon('image') %><p><%= a('no_results') %></p></div>
+<% } else { %>
+<div class="img-grid">
+  <% products.forEach(p => { %>
+  <div class="img-card">
+    <a class="img-card__media" href="/admin/products/<%= p.id %>/edit">
+      <% if (p.image_path) { %><img src="<%= p.image_path %>" alt="" loading="lazy"/><span class="img-card__ok"><%- icon('check') %></span><% } else { %><span class="monogram">J</span><% } %>
+    </a>
+    <div class="img-card__body">
+      <small><%= p.brand %></small>
+      <strong><%= p.name_en %></strong>
+      <form action="/admin/products/<%= p.id %>/image" method="POST" enctype="multipart/form-data">
+        <label class="btn btn--sm btn--block upload <%= p.image_path ? '' : 'btn--dark' %>"><%- icon('upload') %><%= p.image_path ? a('change') : a('upload') %><input type="file" name="image" accept="image/jpeg,image/png,image/webp" data-autosubmit/></label>
+      </form>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>
 
-.img-card {
-  background: #fff; border: 1px solid #e5e2dc; border-radius: 4px;
-  overflow: hidden; display: flex; flex-direction: column;
-  transition: box-shadow .2s ease;
-}
-.img-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
-
-.img-card__preview {
-  display: block; aspect-ratio: 1; overflow: hidden;
-  background: #f4f2ef; position: relative;
-}
-.img-card__preview img { width:100%; height:100%; object-fit:cover; }
-.img-card__has-img {
-  position: absolute; top:6px; right:6px; width:22px; height:22px;
-  background: #2a7a2a; color:#fff; border-radius:50%;
-  font-size:.7rem; display:flex; align-items:center; justify-content:center;
-}
-.img-card__empty {
-  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-  font-size:2.2rem; color:#a8a49c;
-  background: linear-gradient(145deg, #f4f2ef, #e5e2dc);
-}
-
-.img-card__info { padding: 8px 10px 4px; flex:1; }
-.img-card__brand { font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:#c9a96e; margin-bottom:3px; }
-.img-card__name { font-size:.76rem; font-weight:500; line-height:1.3; word-break:break-word; }
-
-.img-card__form { padding: 8px 10px 10px; }
-.img-card__upload-btn {
-  display: block; width: 100%; padding: 10px 0; text-align: center;
-  background: #0a0a0a; color: #fff; border-radius: 3px;
-  font-size: .72rem; font-weight: 600; letter-spacing: .08em;
-  cursor: pointer; transition: background .2s;
-}
-.img-card__upload-btn:hover { background: #c9a96e; }
-.img-card__upload-btn input[type="file"] { display: none; }
-
-/* Settings page additions */
-.img-preview-wrap { margin-bottom:16px; }
-.settings-img-preview { width:100%; max-height:220px; object-fit:cover; border-radius:4px; display:block; margin-bottom:8px; }
-.img-placeholder-box {
-  width:100%; height:120px; background:#f4f2ef; border:2px dashed #e5e2dc;
-  border-radius:4px; display:flex; align-items:center; justify-content:center;
-  color:#a8a49c; font-size:.84rem; margin-bottom:16px;
-}
-.upload-form-inline { margin-top:4px; }
-.upload-btn-big {
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  width:100%; padding:16px; background:#0a0a0a; color:#fff; border-radius:4px;
-  font-size:.84rem; font-weight:600; cursor:pointer; transition:background .2s;
-  text-align:center;
-}
-.upload-btn-big:hover { background:#c9a96e; }
-.upload-btn-big input[type="file"] { display:none; }
-.upload-btn-big--sm { padding:12px; font-size:.76rem; }
-
-.cat-img-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-@media (max-width: 600px) { .cat-img-grid { grid-template-columns:1fr; } }
-.cat-img-card { background:#f9f8f6; border:1px solid #e5e2dc; border-radius:4px; padding:16px; display:flex; flex-direction:column; gap:10px; }
-.cat-img-card__label { font-weight:600; font-size:.84rem; letter-spacing:.06em; }
-.cat-img-card__img { width:100%; height:110px; object-fit:cover; border-radius:3px; display:block; }
-.cat-img-placeholder { height:80px; background:#e5e2dc; border-radius:3px; display:flex; align-items:center; justify-content:center; color:#a8a49c; font-size:.76rem; }
-.btn--danger { color:#c00; border-color:#ffd0d0; }
-.btn--danger:hover { background:#c00; color:#fff; border-color:#c00; }
-</style>
-
+<% if (pagination.totalPages > 1) { %>
+<div class="pager">
+  <span class="num"><%= a('page') %> <%= pagination.page %> <%= a('of') %> <%= pagination.totalPages %></span>
+  <span class="pager__links">
+    <% if (pagination.page > 1) { %><a class="btn btn--sm" href="?<%= qs({ page: pagination.page - 1 }) %>"><%= a('prev') %></a><% } %>
+    <% if (pagination.page < pagination.totalPages) { %><a class="btn btn--sm" href="?<%= qs({ page: pagination.page + 1 }) %>"><%= a('next') %></a><% } %>
+  </span>
+</div>
+<% } %>
 <%- include('../partials/admin-footer') %>

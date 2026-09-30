@@ -107,13 +107,18 @@ async function main() {
       items: [{ product_id: productId, quantity: 1, size_ml: 50 }],
       payment_method: 'cash_lbp',
       exchange_rate: 89500,
-      tendered_lbp: 60000,
+      tendered_lbp: 2000000,
       tendered_usd: 0,
     });
     assert(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(productId).stock_qty === 950, '50ml sale did not deduct 50ml.');
     let saleItem = db.prepare('SELECT * FROM sale_items WHERE sale_id=?').get(sale50.saleId);
     assert(saleItem.size_ml === 50 && saleItem.stock_deduction === 50, '50ml sale item stock deduction is wrong.');
     assert(saleItem.unit_cost === 25000, '50ml COGS is wrong.');
+    // POS refill prices must match the website: USD refill price × exchange rate.
+    const cfg = Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
+    const rate = parseFloat(cfg.usd_rate || cfg.system_exchange_rate) || 89500;
+    const usd50 = parseFloat(cfg.refill_price_50ml_usd) || 7, usd100 = parseFloat(cfg.refill_price_100ml_usd) || 13;
+    assert(saleItem.unit_price === Math.round(usd50 * rate), 'POS 50ml price does not match the website price.');
 
     const sale100 = await json('/system/api/sales', {
       items: [{ product_id: productId, quantity: 1, size_ml: 100 }],
@@ -123,6 +128,12 @@ async function main() {
     assert(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(productId).stock_qty === 850, '100ml sale did not deduct 100ml.');
     saleItem = db.prepare('SELECT * FROM sale_items WHERE sale_id=?').get(sale100.saleId);
     assert(saleItem.unit_cost === 50000, '100ml COGS is wrong.');
+    assert(saleItem.unit_price === Math.round(usd100 * rate), 'POS 100ml price does not match the website price.');
+
+    const catalog = await (await request('/system/api/catalog')).json();
+    assert(catalog.counts && 'men' in catalog.counts && 'brands' in catalog.counts, 'POS catalog sections are missing.');
+    const menOnly = await (await request('/system/api/products?section=men&limit=20')).json();
+    assert(menOnly.products.every(p => p.type === 'local' && p.category === 'men'), 'POS section filter is wrong.');
 
     await json('/system/api/sales/' + sale50.saleId + '/refund', {});
     assert(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(productId).stock_qty === 900, 'Refund did not restore 50ml.');

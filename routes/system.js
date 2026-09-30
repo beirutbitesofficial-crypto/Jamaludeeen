@@ -4,6 +4,75 @@ const router = express.Router();
 const db = require('../database/store-system');
 const { normalizeSize, salePrice, saleUnitCost, stockDeduction } = require('../helpers/inventory');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
+const { SECTION_KEYS, sectionWhere, sectionCounts, brandList, refillPricesUsd } = require('../helpers/catalog');
+const { exchangeRate: rateOf } = require('../helpers/pricing');
+const { translator, STRINGS } = require('../helpers/back-office-i18n');
+
+// Arabic versions of API error messages (the English text stays the key).
+const AR_ERRORS = [
+  [/^Login required$/, 'يجب تسجيل الدخول'],
+  [/^Owner access required$/, 'هذه الصلاحية للمالك فقط'],
+  [/^Manager access required$/, 'هذه الصلاحية للمدير فقط'],
+  [/^Product not found$/, 'المنتج غير موجود'],
+  [/^SKU or barcode is already used\.$/, 'رمز المنتج أو الباركود مستخدم مسبقاً.'],
+  [/^Adjustment quantity cannot be zero\.$/, 'كمية التعديل لا يمكن أن تكون صفراً.'],
+  [/^Adjustment would make stock negative\.$/, 'هذا التعديل يجعل المخزون سالباً.'],
+  [/^Customer name is required\.$/, 'اسم الزبون مطلوب.'],
+  [/^This phone number already exists\.$/, 'رقم الهاتف موجود مسبقاً.'],
+  [/^Sale not found$/, 'عملية البيع غير موجودة'],
+  [/^Cart is empty\.$/, 'السلة فارغة.'],
+  [/^One product no longer exists\.$/, 'أحد المنتجات لم يعد موجوداً.'],
+  [/^(.+) is marked unavailable\.$/, '$1 غير متوفر حالياً.'],
+  [/^Invalid quantity for (.+)$/, 'كمية غير صحيحة لـ $1'],
+  [/^Not enough stock for (.+)\. Need ([\d.]+) (ml|units), available ([\d.-]+)\.$/, 'لا يوجد مخزون كافٍ لـ $1. المطلوب $2، المتوفر $4.'],
+  [/^Choose 50ml or 100ml for (.+)\.$/, 'اختر 50 مل أو 100 مل لـ $1.'],
+  [/^Quantity must be positive\.$/, 'الكمية يجب أن تكون أكبر من صفر.'],
+  [/^Open a shift before completing a POS sale\.$/, 'افتح وردية قبل إتمام البيع.'],
+  [/^Invalid payment method\.$/, 'طريقة دفع غير صحيحة.'],
+  [/^Cash LBP sale cannot include USD tender\.$/, 'البيع النقدي بالليرة لا يقبل دولارات.'],
+  [/^Tendered LBP is less than the sale total\.$/, 'المبلغ المدفوع بالليرة أقل من المجموع.'],
+  [/^Cash USD sale cannot include LBP tender\.$/, 'البيع النقدي بالدولار لا يقبل ليرات.'],
+  [/^Tendered USD is less than the sale total\.$/, 'المبلغ المدفوع بالدولار أقل من المجموع.'],
+  [/^Completed sale not found\.$/, 'عملية البيع غير موجودة.'],
+  [/^Online orders must be cancelled/, 'طلبات الموقع تُلغى من لوحة الإدارة حتى يبقى المخزون متطابقاً.'],
+  [/^Open a shift before refunding a cash sale\.$/, 'افتح وردية قبل استرجاع بيع نقدي.'],
+  [/^Description is required\.$/, 'الوصف مطلوب.'],
+  [/^Expense amount is required\.$/, 'قيمة المصروف مطلوبة.'],
+  [/^Open a shift or mark the expense/, 'افتح وردية أو ألغِ خيار الدفع من الصندوق.'],
+  [/^Supplier name is required\.$/, 'اسم المورد مطلوب.'],
+  [/^Purchase has no items\.$/, 'لا يوجد منتجات في المشتريات.'],
+  [/^Purchase contains a missing product\.$/, 'المشتريات تحتوي على منتج غير موجود.'],
+  [/^Purchase quantity must be positive\.$/, 'كمية الشراء يجب أن تكون أكبر من صفر.'],
+  [/^Name, username and a password/, 'الاسم واسم المستخدم وكلمة مرور من 8 أحرف على الأقل مطلوبة.'],
+  [/^Username already exists\.$/, 'اسم المستخدم موجود مسبقاً.'],
+  [/^A shift is already open\.$/, 'يوجد وردية مفتوحة مسبقاً.'],
+  [/^No open shift\.$/, 'لا يوجد وردية مفتوحة.'],
+  [/^Invalid exchange rate\.$/, 'سعر صرف غير صحيح.'],
+  [/^Not enough stock to reactivate (.+)\.$/, 'لا يوجد مخزون كافٍ لإعادة تفعيل $1.'],
+];
+function translateError(message, lang) {
+  if (lang !== 'ar' || !message) return message;
+  for (const [re, ar] of AR_ERRORS) if (re.test(message)) return message.replace(re, ar);
+  return message;
+}
+router.use((req, res, next) => {
+  const json = res.json.bind(res);
+  res.json = body => {
+    if (body && typeof body.error === 'string') body = { ...body, error: translateError(body.error, req.session.lang) };
+    return json(body);
+  };
+  next();
+});
+
+// POS prices follow the website: refills use the USD refill list × exchange rate,
+// brand products use their LBP price.
+function withPosPrices(p, s) {
+  if (!p || p.type !== 'local') return p;
+  const usd = refillPricesUsd(s);
+  const rate = rateOf(s);
+  const p50 = Math.round(usd[50] * rate), p100 = Math.round(usd[100] * rate);
+  return { ...p, price: p50, price_50ml: p50, price_100ml: p100, usd_50ml: usd[50], usd_100ml: usd[100] };
+}
 
 function settings() {
   return Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
@@ -68,7 +137,7 @@ function dateRange(query) {
 
 router.get('/login', (req, res) => {
   if (user(req)) return res.redirect('/system');
-  res.render('system/login', { title: 'Store System Login', error: req.flash('error') });
+  res.render('system/login', { title: translator(req.session.lang)('store_system'), error: req.flash('error') });
 });
 router.post('/login', loginRateLimit('system'), (req, res) => {
   const username = String(req.body.username || '').trim();
@@ -85,7 +154,7 @@ router.post('/login', loginRateLimit('system'), (req, res) => {
     req.session.systemUser = { id: staff.id, name: staff.full_name, username: staff.username, role: staff.role, owner: false };
     return res.redirect('/system');
   }
-  req.flash('error', 'Invalid username or password.');
+  req.flash('error', translator(req.session.lang)('invalid_login'));
   res.redirect('/system/login');
 });
 router.post('/logout', (req, res) => {
@@ -95,10 +164,15 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/', requireSystem, (req, res) => {
+  const s = settings();
+  const a = translator(req.session.lang);
   res.render('system/app', {
-    title: 'Store System',
+    dict: Object.fromEntries(Object.keys(STRINGS).map(k => [k, a(k)])),
+    title: translator(req.session.lang)('store_system'),
     currentUser: req.systemUser,
-    systemSettings: settings()
+    systemRate: rateOf(s),
+    counts: sectionCounts(db),
+    brands: brandList(db),
   });
 });
 
@@ -146,19 +220,30 @@ router.get('/api/products', requireSystem, (req, res) => {
     const like = '%' + q + '%';
     params.push(like, like, like, like, like);
   }
+  const section = SECTION_KEYS.includes(req.query.section) ? req.query.section : '';
+  if (section) {
+    const f = sectionWhere(section, section === 'brands' ? String(req.query.brand || '') : '');
+    where.push(...f.where); params.push(...f.params);
+  }
   if (low) where.push('track_stock=1 AND stock_qty <= low_stock_threshold');
   if (tracked) where.push('track_stock=1');
   const ws = where.join(' AND ');
+  const s = settings();
   const total = db.prepare('SELECT COUNT(*) c FROM products WHERE ' + ws).get(...params).c;
   const rows = db.prepare(`
     SELECT id,name_en,name_ar,brand,category,type,price,price_50ml,price_100ml,cost_price,cost_50ml,cost_100ml,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
     FROM products WHERE ${ws}
-    ORDER BY name_en LIMIT ? OFFSET ?
-  `).all(...params, limit, (page-1)*limit);
+    ORDER BY in_stock DESC, name_en LIMIT ? OFFSET ?
+  `).all(...params, limit, (page-1)*limit).map(p => withPosPrices(p, s));
   const safeRows = req.systemUser.role === 'cashier'
     ? rows.map(({ cost_price, cost_50ml, cost_100ml, ...product }) => product)
     : rows;
   res.json({ products: safeRows, total, page, pages: Math.ceil(total/limit) });
+});
+
+router.get('/api/catalog', requireSystem, (req, res) => {
+  const s = settings();
+  res.json({ counts: sectionCounts(db), brands: brandList(db), refill_usd: refillPricesUsd(s), exchange_rate: rateOf(s) });
 });
 
 router.post('/api/products/:id/inventory', requireManager, (req, res) => {
@@ -174,9 +259,10 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
       WHERE id=?
     `).run(
       sku, barcode,
-      num(req.body.price, p.price || 0),
-      req.body.price_50ml === '' || req.body.price_50ml == null ? null : Math.max(0,num(req.body.price_50ml)),
-      req.body.price_100ml === '' || req.body.price_100ml == null ? null : Math.max(0,num(req.body.price_100ml)),
+      // Refill prices are managed centrally (Admin → Prices), so they are left untouched here.
+      p.type === 'local' ? p.price : Math.max(0, num(req.body.price, p.price || 0)),
+      p.type === 'local' ? p.price_50ml : (req.body.price_50ml === '' || req.body.price_50ml == null ? null : Math.max(0,num(req.body.price_50ml))),
+      p.type === 'local' ? p.price_100ml : (req.body.price_100ml === '' || req.body.price_100ml == null ? null : Math.max(0,num(req.body.price_100ml))),
       Math.max(0,num(req.body.cost_price,p.cost_price)),
       req.body.cost_50ml === '' || req.body.cost_50ml == null ? null : Math.max(0,num(req.body.cost_50ml)),
       req.body.cost_100ml === '' || req.body.cost_100ml == null ? null : Math.max(0,num(req.body.cost_100ml)),
@@ -243,7 +329,8 @@ router.post('/api/sales', requireSystem, (req,res) => {
   const incoming = Array.isArray(req.body.items) ? req.body.items : [];
   if (!incoming.length) return res.status(400).json({ error:'Cart is empty.' });
   const canOverride = ['owner','manager'].includes(req.systemUser.role);
-  const exchangeRate = Math.max(1,num(req.body.exchange_rate, num(settings().system_exchange_rate,89500)));
+  const S = settings();
+  const exchangeRate = rateOf(S);
   const discount = canOverride ? Math.max(0,num(req.body.discount)) : 0;
   try {
     const result = db.transaction(() => {
@@ -262,7 +349,7 @@ router.post('/api/sales', requireSystem, (req,res) => {
         if (c) { customerId=c.id; customerName=c.name; }
       }
       const items = incoming.map(raw => {
-        const p = db.prepare('SELECT * FROM products WHERE id=?').get(parseInt(raw.product_id,10));
+        const p = withPosPrices(db.prepare('SELECT * FROM products WHERE id=?').get(parseInt(raw.product_id,10)), S);
         if (!p) throw new Error('One product no longer exists.');
         if (!p.in_stock) throw new Error(p.name_en + ' is marked unavailable.');
         const qty = num(raw.quantity);
@@ -386,7 +473,7 @@ router.post('/api/expenses', requireManager, (req,res) => {
   if (!description) return res.status(400).json({ error:'Description is required.' });
   const amountLbp=Math.max(0,num(req.body.amount_lbp));
   const amountUsd=Math.max(0,num(req.body.amount_usd));
-  const rate=Math.max(1,num(req.body.exchange_rate,89500));
+  const rate=rateOf(settings());
   if (!amountLbp && !amountUsd) return res.status(400).json({ error:'Expense amount is required.' });
   const shift=currentShift(req);
   const fromDrawer=req.body.from_drawer !== false && String(req.body.from_drawer) !== 'false';
@@ -518,8 +605,11 @@ router.post('/api/shift/close', requireSystem, (req,res) => {
 });
 
 router.post('/api/settings/exchange-rate', requireManager, (req,res) => {
-  const rate=Math.max(1,num(req.body.exchange_rate,89500));
-  db.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES ('system_exchange_rate',?)").run(String(rate));
+  const rate=num(req.body.exchange_rate,0);
+  if (!(rate > 0)) return res.status(400).json({ error:'Invalid exchange rate.' });
+  // Website and Store System share one exchange rate.
+  const upsert=db.prepare('INSERT OR REPLACE INTO settings(key,value) VALUES (?,?)');
+  db.transaction(() => { upsert.run('usd_rate',String(rate)); upsert.run('system_exchange_rate',String(rate)); })();
   res.json({ok:true,exchange_rate:rate});
 });
 

@@ -203,6 +203,7 @@ try {
     WHERE type = 'local'
       AND category = ?
       AND name_en = ?
+      AND COALESCE(image_path, '') NOT LIKE '/uploads/%'
   `);
   const synchronizeLocalImages = db.transaction(() => {
     for (const item of LOCAL_PRODUCT_IMAGES) {

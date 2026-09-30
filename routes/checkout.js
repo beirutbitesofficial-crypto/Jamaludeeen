@@ -172,8 +172,8 @@ router.post('/', (req, res) => {
       const info = db.prepare(`
         INSERT INTO orders
           (order_number, customer_name, customer_phone, customer_address, customer_city,
-           payment_method, subtotal, delivery_fee, total, notes, stock_reserved)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+           payment_method, subtotal, delivery_fee, total, notes, stock_reserved, currency)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
       `).run(
         orderNumber,
         name.trim(),
@@ -184,7 +184,8 @@ router.post('/', (req, res) => {
         subtotal,
         deliveryFee,
         total,
-        notes?.trim() || null
+        notes?.trim() || null,
+        currency
       );
 
       const orderId = info.lastInsertRowid;

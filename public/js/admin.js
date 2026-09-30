@@ -1,113 +1,71 @@
-// Close alerts
-document.querySelectorAll('.alert button').forEach(btn => {
-  btn.addEventListener('click', () => btn.parentElement.remove());
-});
+(function () {
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
 
-// Modal close on backdrop click
-document.querySelectorAll('.modal').forEach(modal => {
-  modal.addEventListener('click', e => {
-    if (e.target === modal) modal.style.display = 'none';
+  // Mobile sidebar
+  const side = $('#boSide'), scrim = $('#boScrim');
+  const setMenu = open => { side?.classList.toggle('open', open); scrim?.classList.toggle('open', open); };
+  $('#boBurger')?.addEventListener('click', () => setMenu(!side.classList.contains('open')));
+  scrim?.addEventListener('click', () => setMenu(false));
+
+  // Flash messages
+  $$('.flash__close').forEach(b => b.addEventListener('click', () => b.parentElement.remove()));
+
+  // Modals: <button data-open="id"> / <button data-close>
+  const openModal = id => document.getElementById(id)?.classList.add('open');
+  $$('[data-open]').forEach(b => b.addEventListener('click', () => openModal(b.dataset.open)));
+  $$('.modal').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('open'); });
   });
-});
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { $$('.modal.open').forEach(m => m.classList.remove('open')); setMenu(false); }
+  });
+  window.openModal = openModal;
 
-// Responsive admin navigation
-(function () {
-  const sidebar = document.getElementById('adminSidebar');
-  const toggle = document.getElementById('adminMenuToggle');
-  const close = document.getElementById('adminMenuClose');
-  const overlay = document.getElementById('adminSidebarOverlay');
-  if (!sidebar || !toggle || !overlay) return;
-  function setMenu(open) {
-    sidebar.classList.toggle('open', open);
-    overlay.classList.toggle('open', open);
-    toggle.setAttribute('aria-expanded', String(open));
-    document.body.classList.toggle('admin-menu-open', open);
-  }
-  toggle.addEventListener('click', () => setMenu(!sidebar.classList.contains('open')));
-  close?.addEventListener('click', () => setMenu(false));
-  overlay.addEventListener('click', () => setMenu(false));
-  sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)));
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') setMenu(false); });
-  window.addEventListener('resize', () => { if (window.innerWidth > 700) setMenu(false); });
-})();
+  // Confirm before destructive actions: <form data-confirm="…">
+  $$('form[data-confirm]').forEach(f => f.addEventListener('submit', e => { if (!confirm(f.dataset.confirm)) e.preventDefault(); }));
 
-// ── Live Order Notifications ──────────────────────────────────────────────────
-(function () {
-  const LAST_ID_KEY = 'jm_lastOrderId';
-  let lastId = parseInt(localStorage.getItem(LAST_ID_KEY) || '0');
-  let initialized = false;
+  // Auto-submit file inputs: <input type="file" data-autosubmit>
+  $$('input[type=file][data-autosubmit]').forEach(i => i.addEventListener('change', () => i.files.length && i.form.submit()));
 
-  function playAlert() {
+  // Live new-order alerts
+  const I18N = window.ADMIN_I18N || {};
+  const KEY = 'jm_lastOrderId';
+  let lastId = 0, first = true;
+  try { lastId = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (_) {}
+  function chime() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [880, 1100, 880].forEach((freq, i) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.18);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.3);
-        o.start(ctx.currentTime + i * 0.18);
-        o.stop(ctx.currentTime + i * 0.18 + 0.3);
+      [880, 1175, 1480].forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination); o.frequency.value = f;
+        g.gain.setValueAtTime(.2, ctx.currentTime + i * .16);
+        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + i * .16 + .3);
+        o.start(ctx.currentTime + i * .16); o.stop(ctx.currentTime + i * .16 + .3);
       });
-    } catch (e) {}
+    } catch (_) {}
   }
-
-  function showBrowserNotif(order) {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
-      new Notification('🛍️ طلب جديد / New Order!', {
-        body: `${order.customer_name} — ${(order.total || 0).toLocaleString()} LBP`,
-        icon: '/images/logo.png',
-        tag: 'jm-new-order'
-      });
-    }
+  function toast(msg, href) {
+    const t = $('#toast'); if (!t) return;
+    t.textContent = msg; t.classList.add('show'); t.style.pointerEvents = href ? 'auto' : 'none'; t.style.cursor = href ? 'pointer' : '';
+    t.onclick = href ? () => { location.href = href; } : null;
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 9000);
   }
-
-  function updateBadges(pending) {
-    ['pendingCount', 'pendingBadge'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = pending;
-    });
-    const badge = document.getElementById('pendingNavBadge');
-    if (badge) { badge.textContent = pending > 0 ? pending : ''; badge.style.display = pending > 0 ? 'inline-flex' : 'none'; }
+  function check() {
+    fetch('/admin/api/orders/stats', { headers: { accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      const badge = $('#pendingNavBadge'); if (badge) badge.textContent = d.pending > 0 ? d.pending : '';
+      $$('[data-pending-count]').forEach(el => { el.textContent = d.pending; });
+      const id = d.latest ? d.latest.id : 0;
+      if (first) { first = false; if (!lastId) lastId = id; }
+      else if (id > lastId) {
+        lastId = id; chime(); toast(I18N.newOrder || 'New order', '/admin/orders/' + id);
+        if ('Notification' in window && Notification.permission === 'granted') new Notification(I18N.newOrder || 'New order', { body: d.latest.customer_name });
+      }
+      try { localStorage.setItem(KEY, String(lastId)); } catch (_) {}
+    }).catch(() => {});
   }
-
-  function checkOrders() {
-    fetch('/admin/api/orders/stats')
-      .then(r => r.json())
-      .then(data => {
-        updateBadges(data.pending);
-        const latestId = data.latest?.id || 0;
-
-        if (!initialized) {
-          // First poll — just set baseline, don't alert
-          initialized = true;
-          if (lastId === 0) lastId = latestId;
-          localStorage.setItem(LAST_ID_KEY, lastId);
-          return;
-        }
-
-        if (latestId > lastId) {
-          // New order!
-          lastId = latestId;
-          localStorage.setItem(LAST_ID_KEY, lastId);
-          playAlert();
-          showBrowserNotif(data.latest);
-          const banner = document.getElementById('newOrderAlert');
-          if (banner) { banner.style.display = 'block'; }
-        }
-      })
-      .catch(() => {});
-  }
-
-  // Request notification permission on first admin visit
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-
-  // Poll every 30s, first check after 3s
-  setTimeout(checkOrders, 3000);
-  setInterval(checkOrders, 30000);
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+  setTimeout(check, 1500);
+  setInterval(check, 30000);
 })();
-

@@ -1,81 +1,72 @@
-<%- include('../partials/admin-header', { title: 'Order ' + order.order_number }) %>
-
-<div class="admin-page">
-  <a href="/admin/orders" class="back-link">← Back to Orders</a>
-  <div class="order-detail-layout">
-
-    <!-- Left: order info -->
-    <div class="order-info-panel">
-      <h2 class="panel-title">Order #<%= order.order_number %></h2>
-      <p class="order-date muted"><%= new Date(order.created_at).toLocaleString() %></p>
-
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Customer</span><strong><%= order.customer_name %></strong></div>
-        <div class="info-item"><span class="info-label">Phone</span>
-          <a href="tel:<%= order.customer_phone %>"><%= order.customer_phone %></a>
-          &nbsp;
-          <a href="https://wa.me/<%= order.customer_phone.replace(/[^0-9]/g,'') %>?text=<%= encodeURIComponent('Hi, regarding order ' + order.order_number) %>"
-             target="_blank" class="whatsapp-link">💬 WhatsApp</a>
-        </div>
-        <div class="info-item"><span class="info-label">Address</span><%= order.customer_address %></div>
-        <div class="info-item"><span class="info-label">City</span><%= order.customer_city %></div>
-        <div class="info-item"><span class="info-label">Payment</span>
-          <span class="badge-pay badge-pay--<%= order.payment_method %>">
-            <%= order.payment_method === 'cod' ? '💵 Cash on Delivery' : '📱 ByWhish Money' %>
-          </span>
-        </div>
-        <% if (order.notes) { %>
-        <div class="info-item"><span class="info-label">Notes</span><%= order.notes %></div>
-        <% } %>
-      </div>
-
-      <!-- Totals -->
-      <div class="order-totals">
-        <div class="order-total-row"><span>Subtotal</span><span><%= order.subtotal.toLocaleString() %> LBP</span></div>
-        <div class="order-total-row"><span>Delivery</span><span><%= order.delivery_fee > 0 ? order.delivery_fee.toLocaleString() + ' LBP' : 'Free' %></span></div>
-        <div class="order-total-row order-total-row--total"><span>Total</span><strong><%= order.total.toLocaleString() %> LBP</strong></div>
-      </div>
-    </div>
-
-    <!-- Right: status & items -->
-    <div class="order-right-panel">
-
-      <!-- Status update -->
-      <div class="status-panel">
-        <h3 class="panel-title">Order Status</h3>
-        <span class="badge-status badge-status--<%= order.status %> badge-status--lg"><%= order.status %></span>
-        <form action="/admin/orders/<%= order.id %>/status" method="POST" class="status-form">
-          <select name="status" class="form-input">
-            <% ['pending','confirmed','shipped','delivered','cancelled'].forEach(s => { %>
-            <option value="<%= s %>" <%= order.status === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase() + s.slice(1) %></option>
-            <% }) %>
-          </select>
-          <button type="submit" class="btn btn--primary">Update Status</button>
-        </form>
-      </div>
-
-      <!-- Items -->
-      <div class="order-items-panel">
-        <h3 class="panel-title">Items Ordered</h3>
-        <table class="admin-table">
-          <thead>
-            <tr><th>Product</th><th>Qty</th><th>Price</th><th>Line Total</th></tr>
-          </thead>
-          <tbody>
-            <% items.forEach(item => { %>
-            <tr>
-              <td><strong><%= item.product_name %><% if (item.size_ml) { %> · <%= item.size_ml %>ml<% } %></strong></td>
-              <td><%= item.quantity %></td>
-              <td><%= item.price.toLocaleString() %> LBP</td>
-              <td><%= (item.price * item.quantity).toLocaleString() %> LBP</td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-
-    </div>
+<%- include('../partials/admin-header', { title: a('order') + ' ' + order.order_number }) %>
+<%
+  const cur = order.currency || 'LBP';
+  const wa = String(order.customer_phone || '').replace(/[^\d]/g, '').replace(/^0/, '961');
+  const fmtDate = d => d ? new Date(String(d).replace(' ', 'T') + (String(d).includes('Z') ? '' : 'Z')).toLocaleString(a.lang === 'ar' ? 'ar-LB' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+%>
+<a class="bo-back" href="/admin/orders"><%- icon('back') %><%= a('back_to_orders') %></a>
+<div class="bo-head">
+  <div>
+    <p class="bo-kicker"><%= fmtDate(order.created_at) %></p>
+    <h1 dir="ltr" style="text-align:start"><%= order.order_number %></h1>
+    <p><span class="pill st-<%= order.status %>"><%= a('st_' + order.status) %></span> <span class="pill pill--plain"><%= a(order.payment_method) %></span></p>
+  </div>
+  <div class="bo-head__actions">
+    <a class="btn" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener"><%- icon('whatsapp') %><%= a('whatsapp_customer') %></a>
+    <button class="btn" onclick="window.print()"><%- icon('print') %></button>
   </div>
 </div>
 
+<div class="grid grid--side">
+  <section class="card">
+    <div class="card__head"><h2><%= a('items_ordered') %></h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th><%= a('product') %></th><th><%= a('size') %></th><th><%= a('quantity') %></th><th><%= a('price') %></th><th><%= a('line_total') %></th></tr></thead>
+        <tbody>
+          <% items.forEach(i => { %>
+          <tr>
+            <td><span class="prod-cell"><% if (i.image_path) { %><img class="thumb" src="<%= i.image_path %>" alt=""/><% } else { %><span class="thumb thumb--empty">J</span><% } %><span><strong><%= i.product_name %></strong></span></span></td>
+            <td class="num"><%= i.size_ml ? i.size_ml + ' ml' : '—' %></td>
+            <td class="num">× <%= i.quantity %></td>
+            <td class="num" dir="ltr"><%= money(i.price, cur) %></td>
+            <td class="num" dir="ltr"><strong><%= money(i.price * i.quantity, cur) %></strong></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card__body">
+      <dl class="kv" style="max-width:360px;margin-inline-start:auto">
+        <dt><%= a('subtotal') %></dt><dd class="num" dir="ltr"><%= money(order.subtotal, cur) %></dd>
+        <dt><%= a('delivery') %></dt><dd class="num" dir="ltr"><%= order.delivery_fee ? money(order.delivery_fee, cur) : a('free') %></dd>
+        <dt><strong><%= a('total') %></strong></dt><dd class="num" dir="ltr"><strong style="font-size:1.15rem"><%= money(order.total, cur) %></strong></dd>
+      </dl>
+    </div>
+  </section>
+
+  <div style="display:grid;gap:20px;align-content:start">
+    <form class="card" action="/admin/orders/<%= order.id %>/status" method="POST">
+      <div class="card__head"><h2><%= a('order_status') %></h2></div>
+      <div class="card__body form">
+        <select name="status">
+          <% ['pending','confirmed','shipped','delivered','cancelled'].forEach(s => { %><option value="<%= s %>" <%= order.status === s ? 'selected' : '' %>><%= a('st_' + s) %></option><% }) %>
+        </select>
+        <button class="btn btn--dark btn--block" type="submit"><%- icon('check') %><%= a('update_status') %></button>
+      </div>
+    </form>
+    <section class="card">
+      <div class="card__head"><h2><%= a('customer') %></h2></div>
+      <div class="card__body">
+        <dl class="kv" style="grid-template-columns:90px 1fr">
+          <dt><%= a('name') %></dt><dd><strong><%= order.customer_name %></strong></dd>
+          <dt><%= a('phone') %></dt><dd dir="ltr" style="text-align:start"><a href="tel:<%= order.customer_phone %>"><%= order.customer_phone %></a></dd>
+          <dt><%= a('city') %></dt><dd><%= order.customer_city %></dd>
+          <dt><%= a('address') %></dt><dd><%= order.customer_address %></dd>
+          <% if (order.notes) { %><dt><%= a('notes') %></dt><dd><%= order.notes %></dd><% } %>
+        </dl>
+      </div>
+    </section>
+  </div>
+</div>
 <%- include('../partials/admin-footer') %>

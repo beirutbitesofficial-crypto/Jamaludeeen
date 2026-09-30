@@ -1,171 +1,82 @@
-<%- include('../partials/admin-header', { title: 'Bulk Prices' }) %>
-
-<div class="admin-page">
-  <div class="admin-page__header">
-    <div>
-      <h1 class="admin-page__title">💰 Bulk Price Editor</h1>
-      <p class="admin-page__sub">Set one standard price for Men/Women/Unisex local sections, and per-product prices for brand perfumes.</p>
-    </div>
+<%- include('../partials/admin-header', { title: a('prices') }) %>
+<% const qs = new URLSearchParams(Object.fromEntries(Object.entries(filters).filter(([, v]) => v))).toString(); %>
+<div class="bo-head">
+  <div>
+    <p class="bo-kicker"><%= a('catalog') %></p>
+    <h1><%= a('prices') %></h1>
+    <p><%= a('prices_intro') %></p>
   </div>
-
-  <section class="local-prices-panel">
-    <h3 class="panel-title">Standard Local Section Prices</h3>
-    <form method="POST" action="/admin/prices/local" class="local-prices-form">
-      <label class="local-price-item">
-        <span>Men (Local)</span>
-        <input type="number" name="men" min="0" step="1000" placeholder="e.g. 50000"
-               value="<%= localPrices.men %>" class="filter-input"/>
-      </label>
-      <label class="local-price-item">
-        <span>Women (Local)</span>
-        <input type="number" name="women" min="0" step="1000" placeholder="e.g. 50000"
-               value="<%= localPrices.women %>" class="filter-input"/>
-      </label>
-      <label class="local-price-item">
-        <span>Unisex (Local)</span>
-        <input type="number" name="unisex" min="0" step="1000" placeholder="e.g. 50000"
-               value="<%= localPrices.unisex %>" class="filter-input"/>
-      </label>
-      <div class="local-price-actions">
-        <button type="submit" class="btn btn--primary">💾 Save Standard Prices</button>
-        <p class="price-tip">These values update all local products in each section.</p>
-      </div>
-    </form>
-  </section>
-
-  <!-- Filters -->
-  <form method="GET" action="/admin/prices" class="price-filter-bar" id="filterForm">
-    <select name="category" class="filter-select" onchange="this.form.submit()">
-      <option value="" <%=!filters.category?'selected':''%>>All Categories</option>
-      <option value="men"    <%=filters.category==='men'   ?'selected':''%>>Men</option>
-      <option value="women"  <%=filters.category==='women' ?'selected':''%>>Women</option>
-      <option value="unisex" <%=filters.category==='unisex'?'selected':''%>>Unisex</option>
-    </select>
-    <select name="brand" class="filter-select" onchange="this.form.submit()">
-      <option value="">All Brands</option>
-      <% brandsList.forEach(b => { %>
-        <option value="<%= b %>" <%=filters.brand===b?'selected':''%>><%= b %></option>
-      <% }) %>
-    </select>
-    <input type="text" name="q" class="filter-input" placeholder="Search name..." value="<%= filters.q %>"
-           style="max-width:200px" onchange="this.form.submit()"/>
-    <% if (filters.category||filters.brand||filters.q) { %>
-      <a href="/admin/prices" class="btn btn--ghost btn--sm">✕ Clear</a>
-    <% } %>
-  </form>
-
-  <!-- Bulk form -->
-  <% if (products.length) { %>
-  <form method="POST" action="/admin/prices/bulk" id="priceForm">
-    <input type="hidden" name="_qs" value="<%= new URLSearchParams(filters).toString() %>"/>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button type="submit" class="btn btn--primary">💾 Save All Prices</button>
-        <button type="button" class="btn btn--ghost btn--sm" onclick="setAll()">Set all to one price</button>
-      </div>
-      <p style="font-size:.76rem;color:#a8a49c">Tip: leave blank = "Price coming soon" on store</p>
-    </div>
-
-    <!-- "Set all" helper -->
-    <div id="setAllBox" style="display:none;background:#f4f2ef;padding:14px 18px;border-radius:4px;margin-bottom:16px;display:none;gap:12px;align-items:center;flex-wrap:wrap">
-      <input type="number" id="bulkPrice" placeholder="e.g. 50000" min="0" step="1000"
-             class="filter-input" style="max-width:160px"/>
-      <button type="button" class="btn btn--primary btn--sm" onclick="applyAll()">Apply to all visible</button>
-      <button type="button" class="btn btn--ghost btn--sm" onclick="document.getElementById('setAllBox').style.display='none'">Cancel</button>
-    </div>
-
-    <div class="table-wrap">
-      <table class="admin-table price-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Brand</th>
-            <th>Category</th>
-            <th style="width:160px">Price (LBP)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% products.forEach((p, i) => { %>
-          <tr class="<%= !p.price ? 'row-no-price' : '' %>">
-            <td style="color:#a8a49c;font-size:.76rem"><%= i+1 %></td>
-            <td><strong><%= p.name_en %></strong></td>
-            <td><span style="color:#c9a96e;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em"><%= p.brand %></span></td>
-            <td><span class="badge badge--<%= p.category %>"><%= p.category %></span></td>
-            <td>
-              <input type="number"
-                     name="prices[<%= p.id %>]"
-                     class="price-input"
-                     value="<%= p.price !== null ? p.price : '' %>"
-                     placeholder="—"
-                     min="0" step="1000"/>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <div style="margin-top:20px">
-      <button type="submit" class="btn btn--primary btn--lg">💾 Save All Prices</button>
-    </div>
-  </form>
-  <% } else { %>
-    <div class="empty-state"><div class="empty-state__icon">💰</div><h3>No products match</h3></div>
-  <% } %>
 </div>
 
-<style>
-.price-filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; align-items:center; }
-.price-filter-bar .filter-select,
-.price-filter-bar .filter-input { max-width:180px; }
+<div class="grid grid--2" style="align-items:start">
+  <form class="card" action="/admin/prices/refill" method="POST">
+    <div class="card__head"><h2><%- icon('bottle') %> <%= a('refill_prices') %></h2><span class="pill pill--gold pill--plain"><%= a('men') %> · <%= a('women') %> · <%= a('unisex') %></span></div>
+    <div class="card__body form">
+      <div class="field--row">
+        <label class="field"><span><%= a('price_50') %></span><span class="input-affix"><input type="number" name="price_50" min="0.5" step="0.5" value="<%= refill[50] %>" required dir="ltr"/><span>USD</span></span>
+          <small><%= a('pos_equivalent') %>: <span dir="ltr" class="num"><%= money(refill[50] * rate, 'LBP') %></span></small></label>
+        <label class="field"><span><%= a('price_100') %></span><span class="input-affix"><input type="number" name="price_100" min="0.5" step="0.5" value="<%= refill[100] %>" required dir="ltr"/><span>USD</span></span>
+          <small><%= a('pos_equivalent') %>: <span dir="ltr" class="num"><%= money(refill[100] * rate, 'LBP') %></span></small></label>
+      </div>
+      <div class="form__actions"><button class="btn btn--dark" type="submit"><%- icon('check') %><%= a('save') %></button></div>
+    </div>
+  </form>
 
-.local-prices-panel {
-  border: 1px solid #e5e2dc;
-  background: #f9f8f6;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 18px;
-}
-.local-prices-form { display:grid; grid-template-columns:repeat(3, minmax(180px, 1fr)); gap:12px; }
-.local-price-item { display:flex; flex-direction:column; gap:6px; font-size:.78rem; color:#5c5852; }
-.local-price-actions {
-  grid-column: 1 / -1;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
-}
-.price-tip { font-size:.74rem; color:#8f8a82; }
+  <section class="card">
+    <div class="card__head"><h2><%- icon('coin') %> <%= a('exchange_rate') %></h2><a class="btn btn--sm" href="/admin/settings"><%= a('edit') %></a></div>
+    <div class="card__body">
+      <p class="stat__value num" dir="ltr" style="margin:0">1 USD = <%= Number(rate).toLocaleString('en-US') %> LBP</p>
+      <p class="hint"><%= a('exchange_hint') %></p>
+    </div>
+  </section>
+</div>
 
-.price-table .price-input {
-  width:140px; padding:8px 10px; border:1px solid #e5e2dc; border-radius:3px;
-  font-size:.88rem; text-align:right; transition:border-color .2s;
-}
-.price-table .price-input:focus { outline:none; border-color:#c9a96e; }
-.row-no-price td:first-child { border-left:3px solid #f0c050; }
-.price-table tr:hover .price-input { border-color:#c9a96e; }
-@media (max-width:768px) {
-  .local-prices-form { grid-template-columns:1fr; }
-  .price-filter-bar .filter-select,
-  .price-filter-bar .filter-input { max-width:100%; flex:1 1 140px; }
-  .price-table thead tr th:nth-child(3),
-  .price-table tbody tr td:nth-child(3) { display:none; }
-}
-</style>
+<div class="bo-head" style="margin-top:28px">
+  <div><h2 style="margin:0"><%= a('brand_prices') %></h2><p><%= a('brand_note') %></p></div>
+</div>
 
+<div class="chips chips--scroll">
+  <a class="chip <%= !filters.brand ? 'is-active' : '' %>" href="/admin/prices<%= filters.q ? '?q=' + encodeURIComponent(filters.q) : '' %>"><%= a('all_brands') %></a>
+  <% brands.forEach(b => { %><a class="chip <%= filters.brand === b.name ? 'is-active' : '' %>" href="?brand=<%= encodeURIComponent(b.name) %>"><%= b.name %> <small class="num"><%= b.count %></small></a><% }) %>
+</div>
+
+<form class="toolbar" method="GET" action="/admin/prices">
+  <% if (filters.brand) { %><input type="hidden" name="brand" value="<%= filters.brand %>"/><% } %>
+  <label class="search toolbar__grow"><%- icon('search') %><input type="search" name="q" value="<%= filters.q %>" placeholder="<%= a('search_products') %>"/></label>
+  <button class="btn" type="submit"><%= a('search') %></button>
+</form>
+
+<form class="card" action="/admin/prices/bulk" method="POST" id="bulkPrices">
+  <input type="hidden" name="_qs" value="<%= qs %>"/>
+  <div class="card__head">
+    <div class="toolbar" style="margin:0;padding:0;border:0;background:none">
+      <span class="muted"><%= a('set_all') %></span>
+      <span class="input-affix" style="max-width:190px"><input type="number" id="setAllValue" min="0" step="1000" dir="ltr"/><span>LBP</span></span>
+      <button type="button" class="btn btn--sm" id="setAllBtn"><%= a('apply') %></button>
+    </div>
+    <button class="btn btn--dark" type="submit"><%- icon('check') %><%= a('save_all_prices') %></button>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th><%= a('product') %></th><th><%= a('brand') %></th><th style="width:220px"><%= a('price_lbp') %></th></tr></thead>
+      <tbody>
+        <% if (!products.length) { %><tr><td colspan="3" class="empty"><%= a('no_results') %></td></tr><% } %>
+        <% products.forEach(p => { %>
+        <tr>
+          <td><a class="prod-cell" href="/admin/products/<%= p.id %>/edit"><% if (p.image_path) { %><img class="thumb" src="<%= p.image_path %>" alt="" loading="lazy"/><% } else { %><span class="thumb thumb--empty">J</span><% } %><span><strong><%= p.name_en %></strong></span></a></td>
+          <td class="muted"><%= p.brand %></td>
+          <td><span class="input-affix"><input type="number" name="prices[<%= p.id %>]" value="<%= p.price != null ? p.price : '' %>" min="0" step="1000" placeholder="<%= a('not_set') %>" dir="ltr" data-price/><span>LBP</span></span></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</form>
 <script>
-function setAll() {
-  const box = document.getElementById('setAllBox');
-  box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-}
-function applyAll() {
-  const val = document.getElementById('bulkPrice').value;
-  document.querySelectorAll('.price-input').forEach(inp => inp.value = val);
-  document.getElementById('setAllBox').style.display = 'none';
-}
+  document.getElementById('setAllBtn').addEventListener('click', function () {
+    var v = document.getElementById('setAllValue').value;
+    if (v === '') return;
+    document.querySelectorAll('[data-price]').forEach(function (i) { i.value = v; });
+  });
 </script>
-
 <%- include('../partials/admin-footer') %>

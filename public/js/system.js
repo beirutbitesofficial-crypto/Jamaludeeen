@@ -1,322 +1,574 @@
 (() => {
-  const ctx = window.SYSTEM_CONTEXT || { user:{role:'cashier'}, exchangeRate:89500 };
-  let exchangeRate = Number(ctx.exchangeRate || 89500);
+  const SYS = window.SYS || { user: { role: 'cashier' }, rate: 89500, refill: { 50: 7, 100: 13 }, lang: 'en', T: {} };
+  const t = k => SYS.T[k] || k;
+  const isMgr = ['owner', 'manager'].includes(SYS.user.role);
+  let rate = Number(SYS.rate || 89500);
   let cart = [];
-  let inventoryMap = new Map();
+  let payMethod = 'cash_lbp';
   let purchaseCart = [];
-  let currentProducts = [];
-  let pendingSizeProductId = null;
+  let pendingSize = null;
+  const productCache = new Map();
 
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
-  const fmt = n => Math.round(Number(n || 0)).toLocaleString() + ' LBP';
-  const usd = n => '$' + Number(n || 0).toFixed(2);
-  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const today = () => {
-    const d = new Date();
-    const off = d.getTimezoneOffset();
-    return new Date(d.getTime() - off*60000).toISOString().slice(0,10);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lbp = n => Math.round(Number(n || 0)).toLocaleString('en-US') + ' LBP';
+  const usd = n => '$' + Number(n || 0).toFixed(2).replace(/\.00$/, '');
+  const locale = SYS.lang === 'ar' ? 'ar-LB' : 'en-GB';
+  const when = d => d ? new Date(String(d).replace(' ', 'T') + (/Z|\+/.test(d) ? '' : 'Z')).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const payLabel = m => t(m) || m;
+  const statusPill = s => `<span class="pill ${s === 'completed' ? 'pill--green' : 'pill--red'}">${esc(t('s_' + s))}</span>`;
+  const empty = (msg, cols) => cols ? `<tr><td colspan="${cols}" class="empty">${esc(msg)}</td></tr>` : `<div class="empty-block"><p>${esc(msg)}</p></div>`;
+  const icon = name => {
+    const P = {
+      plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>',
+      edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>', print: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
+      refund: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+    };
+    return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${P[name] || ''}</svg>`;
   };
-  function toast(message, error=false) {
+
+  function toast(message, error = false) {
     const el = $('#toast'); if (!el) return;
-    el.textContent = message; el.className = 'sys-toast show' + (error ? ' error' : '');
-    clearTimeout(el._t); el._t = setTimeout(() => el.className='sys-toast', 2600);
+    el.textContent = message; el.className = 'toast show' + (error ? ' error' : '');
+    clearTimeout(el._t); el._t = setTimeout(() => { el.className = 'toast'; }, 3200);
   }
-  async function api(url, options={}) {
-    const opts = {...options};
-    opts.headers = {...(opts.headers||{})};
-    if (opts.body && typeof opts.body !== 'string') {
-      opts.headers['Content-Type']='application/json';
-      opts.body=JSON.stringify(opts.body);
-    }
+  async function api(url, options = {}) {
+    const opts = { ...options, headers: { accept: 'application/json', ...(options.headers || {}) } };
+    if (opts.body && typeof opts.body !== 'string') { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.body); }
     const res = await fetch(url, opts);
-    let data={};
-    try { data=await res.json(); } catch(_) {}
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (res.status === 401) { location.href = '/system/login'; throw new Error(data.error || 'Login required'); }
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
   }
 
-  function setTab(name) {
-    $$('.sys-tab').forEach(x=>x.classList.remove('active'));
-    $$('#nav [data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
-    const tab=$('#tab-'+name); if(tab) tab.classList.add('active');
-    $('#sidebar')?.classList.remove('open'); $('#overlay')?.classList.remove('open');
-    if(name==='dashboard') loadDashboard();
-    if(name==='pos') { searchPos(); loadShift(); }
-    if(name==='inventory') loadInventory();
-    if(name==='sales') loadSales();
-    if(name==='customers') loadCustomers();
-    if(name==='purchases') loadPurchases();
-    if(name==='expenses') loadExpenses();
-    if(name==='reports') loadReports();
-    if(name==='team') loadUsers();
-  }
-  $$('#nav [data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
-  $$('[data-go]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
-  $('#menuBtn')?.addEventListener('click',()=>{ $('#sidebar').classList.add('open'); $('#overlay').classList.add('open'); });
-  $('#overlay')?.addEventListener('click',()=>{ $('#sidebar').classList.remove('open'); $('#overlay').classList.remove('open'); });
-  $$('.sys-modal-close').forEach(b=>b.addEventListener('click',()=>$('#'+b.dataset.close)?.classList.remove('open')));
+  // ── Shell: sidebar, modals, tabs ─────────────────────────────
+  const side = $('#boSide'), scrim = $('#boScrim');
+  const setMenu = open => { side?.classList.toggle('open', open); scrim?.classList.toggle('open', open && true); };
+  $('#boBurger')?.addEventListener('click', () => setMenu(!side.classList.contains('open')));
+  scrim?.addEventListener('click', () => { setMenu(false); setCart(false); });
+  const openModal = id => $('#' + id)?.classList.add('open');
+  const closeModal = id => $('#' + id)?.classList.remove('open');
+  $$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('open'); }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { $$('.modal.open').forEach(m => m.classList.remove('open')); setMenu(false); setCart(false); } });
 
+  const TAB_KEY = 'jm_sys_tab';
+  const tabTitle = { dashboard: 'dashboard', pos: 'pos', inventory: 'inventory', sales: 'sales', customers: 'customers', purchases: 'purchases', expenses: 'expenses', reports: 'reports', team: 'team' };
+  function setTab(name) {
+    if (!$('#tab-' + name)) name = 'dashboard';
+    $$('.sys-tab').forEach(x => x.classList.toggle('active', x.id === 'tab-' + name));
+    $$('#nav [data-tab]').forEach(x => x.classList.toggle('is-active', x.dataset.tab === name));
+    $('#topTitle').textContent = t(tabTitle[name]);
+    setMenu(false);
+    try { localStorage.setItem(TAB_KEY, name); } catch (_) {}
+    ({ dashboard: loadDashboard, pos: () => { loadPos(); loadShift(); }, inventory: loadInventory, sales: loadSales, customers: loadCustomers,
+       purchases: loadPurchases, expenses: loadExpenses, reports: loadReports, team: loadUsers })[name]?.();
+    window.scrollTo(0, 0);
+  }
+  $$('#nav [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.go)));
+
+  // ── Section tabs + brand chips (same structure as the website) ──
+  const filters = { pos: { section: 'men', brand: '' }, inv: { section: 'men', brand: '' } };
+  function bindSections(id, onChange) {
+    const tabs = $(`[data-sections="${id}"]`), chips = $(`[data-brands="${id}"]`);
+    if (!tabs) return;
+    const paint = () => {
+      const f = filters[id];
+      $$(`[data-sections="${id}"] [data-section]`).forEach(b => b.classList.toggle('is-active', b.dataset.section === f.section));
+      chips.hidden = f.section !== 'brands';
+      $$(`[data-brands="${id}"] [data-brand]`).forEach(b => b.classList.toggle('is-active', b.dataset.brand === f.brand));
+    };
+    tabs.addEventListener('click', e => {
+      const b = e.target.closest('[data-section]'); if (!b) return;
+      filters[id] = { section: b.dataset.section, brand: '' }; paint(); onChange();
+    });
+    chips.addEventListener('click', e => {
+      const b = e.target.closest('[data-brand]'); if (!b) return;
+      filters[id].brand = b.dataset.brand; paint(); onChange();
+    });
+    paint();
+  }
+
+  // ── Dashboard ────────────────────────────────────────────────
+  const stat = (label, value, cls = '') => `<div class="card stat ${cls}"><span class="stat__label">${esc(label)}</span><span class="stat__value num" dir="ltr">${esc(value)}</span></div>`;
   async function loadDashboard() {
     try {
-      const d=await api('/system/api/dashboard');
-      const t=d.today;
-      const metrics = ctx.user.role === 'cashier'
-        ? [
-            ['Sales Today',fmt(t.sales_total),''],
-            ['Transactions',Number(t.sales_count).toLocaleString(),''],
-            ['Low Stock',Number(d.lowStock).toLocaleString(),d.lowStock>0?'bad':'good'],
-            ['Catalog Items',Number(d.products).toLocaleString(),'']
-          ]
-        : [
-            ['Sales Today',fmt(t.sales_total),''],
-            ['Transactions',Number(t.sales_count).toLocaleString(),''],
-            ['Gross Profit',fmt(t.gross_profit),t.gross_profit>=0?'good':'bad'],
-            ['Expenses',fmt(t.expenses),t.expenses>0?'bad':''],
-            ['Net Profit',fmt(t.net_profit),t.net_profit>=0?'good':'bad']
-          ];
-      $('#dashboardMetrics').innerHTML = metrics.map(x=>`<div class="sys-metric ${x[2]}"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
-      $('#recentSales').innerHTML = d.recent.length ? `<div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Sale</th><th>Customer</th><th>Cashier</th><th>Payment</th><th>Total</th></tr></thead><tbody>${d.recent.map(s=>`<tr><td>${esc(s.sale_number)}</td><td>${esc(s.customer_name||'Walk-in')}</td><td>${esc(s.cashier_name)}</td><td>${esc(s.payment_method)}</td><td><b>${fmt(s.total)}</b></td></tr>`).join('')}</tbody></table></div>` : '<div class="sys-empty">No sales yet.</div>';
+      const d = await api('/system/api/dashboard');
+      const s = d.today;
+      $('#dashboardMetrics').innerHTML = isMgr
+        ? stat(t('today_sales'), lbp(s.sales_total)) + stat(t('transactions'), s.sales_count) +
+          stat(t('net_profit'), lbp(s.net_profit), s.net_profit >= 0 ? 'stat--good' : 'stat--bad') +
+          stat(t('low_stock'), d.lowStock, d.lowStock > 0 ? 'stat--alert' : '')
+        : stat(t('today_sales'), lbp(s.sales_total)) + stat(t('transactions'), s.sales_count) +
+          stat(t('low_stock'), d.lowStock, d.lowStock > 0 ? 'stat--alert' : '') + stat(t('catalog_items'), d.products);
+      $('#recentSales').innerHTML = d.recent.length
+        ? `<div class="table-wrap"><table class="table"><thead><tr><th>${t('sale')}</th><th>${t('customer')}</th><th>${t('cashier')}</th><th>${t('payment')}</th><th>${t('total')}</th></tr></thead><tbody>${
+          d.recent.map(s => `<tr data-sale="${s.id}" style="cursor:pointer"><td class="num" dir="ltr"><b>${esc(s.sale_number)}</b></td><td>${esc(s.customer_name || t('walk_in'))}</td><td>${esc(s.cashier_name)}</td><td>${esc(payLabel(s.payment_method))}</td><td class="num" dir="ltr"><b>${lbp(s.total)}</b></td></tr>`).join('')}</tbody></table></div>`
+        : empty(t('no_sales'));
+      $$('#recentSales [data-sale]').forEach(r => r.onclick = () => showSale(Number(r.dataset.sale)));
       renderShift(d.shift);
-      $('#posShiftBadge').innerHTML = d.shift ? '<span class="sys-pill green">Shift open</span>' : '<span class="sys-pill red">No open shift</span>';
-    } catch(e){ toast(e.message,true); }
+    } catch (e) { toast(e.message, true); }
   }
-  $('#refreshDashboard')?.addEventListener('click',loadDashboard);
+  $('#refreshDashboard')?.addEventListener('click', loadDashboard);
 
+  // ── Shift ────────────────────────────────────────────────────
   function renderShift(shift) {
-    const box=$('#shiftBox'), btn=$('#shiftActionBtn'); if(!box||!btn) return;
-    if(!shift) {
-      box.innerHTML='<p class="muted">No open shift. Open one before starting the register.</p>';
-      btn.textContent='Open Shift'; btn.onclick=()=>openShiftModal(false);
+    $('#shiftBadge').innerHTML = shift ? `<span class="pill pill--green">${t('shift_open')}</span>` : `<button type="button" class="pill pill--red" id="shiftBadgeBtn" style="border:0">${t('no_shift')}</button>`;
+    $('#shiftBadgeBtn')?.addEventListener('click', () => openShiftModal(false));
+    const box = $('#shiftBox'), btn = $('#shiftActionBtn');
+    if (!box || !btn) return;
+    if (!shift) {
+      box.innerHTML = `<p class="muted">${t('no_shift_hint')}</p>`;
+      btn.textContent = t('open_shift'); btn.onclick = () => openShiftModal(false);
     } else {
-      box.innerHTML=`<div class="sys-kv"><b>Opened</b><span>${new Date(shift.opened_at+'Z').toLocaleString()}</span><b>Opening LBP</b><span>${fmt(shift.opening_lbp)}</span><b>Opening USD</b><span>${usd(shift.opening_usd)}</span></div>`;
-      btn.textContent='Close Shift'; btn.onclick=()=>openShiftModal(true);
+      box.innerHTML = `<dl class="kv"><dt>${t('opened_at')}</dt><dd>${when(shift.opened_at)}</dd><dt>${t('opening_lbp')}</dt><dd class="num" dir="ltr">${lbp(shift.opening_lbp)}</dd><dt>${t('opening_usd')}</dt><dd class="num" dir="ltr">${usd(shift.opening_usd)}</dd></dl>`;
+      btn.textContent = t('close_shift'); btn.onclick = () => openShiftModal(true);
     }
   }
-  async function loadShift(){ try{const d=await api('/system/api/shift');renderShift(d.shift);$('#posShiftBadge').innerHTML=d.shift?'<span class="sys-pill green">Shift open</span>':'<span class="sys-pill red">No open shift</span>';}catch(_){} }
+  async function loadShift() { try { renderShift((await api('/system/api/shift')).shift); } catch (_) {} }
   function openShiftModal(closing) {
-    const m=$('#shiftModal'), c=$('#shiftModalContent'); if(!m||!c)return;
-    c.innerHTML = closing ? `<h2>Close Shift</h2><form id="shiftForm" class="sys-form"><label>Counted cash LBP<input name="closing_lbp" type="number" min="0" required></label><label>Counted cash USD<input name="closing_usd" type="number" min="0" step="0.01" required></label><label>Notes<textarea name="notes"></textarea></label><button class="sys-btn sys-btn--primary">Close & Reconcile</button></form>` : `<h2>Open Shift</h2><form id="shiftForm" class="sys-form"><label>Opening cash LBP<input name="opening_lbp" type="number" min="0" value="0"></label><label>Opening cash USD<input name="opening_usd" type="number" min="0" step="0.01" value="0"></label><button class="sys-btn sys-btn--primary">Open Register</button></form>`;
-    m.classList.add('open');
-    $('#shiftForm').onsubmit=async ev=>{
-      ev.preventDefault(); const fd=Object.fromEntries(new FormData(ev.target));
+    $('#shiftTitle').textContent = closing ? t('close_shift') : t('open_shift');
+    $('#shiftModalContent').innerHTML = closing
+      ? `<form id="shiftForm" class="form"><label class="field"><span>${t('counted_lbp')}</span><input name="closing_lbp" type="number" min="0" step="1000" required dir="ltr"></label><label class="field"><span>${t('counted_usd')}</span><input name="closing_usd" type="number" min="0" step="0.01" required dir="ltr"></label><label class="field"><span>${t('notes')}</span><textarea name="notes" rows="2"></textarea></label><button class="btn btn--dark btn--block">${t('close_reconcile')}</button></form>`
+      : `<form id="shiftForm" class="form"><label class="field"><span>${t('opening_lbp')}</span><input name="opening_lbp" type="number" min="0" step="1000" value="0" dir="ltr"></label><label class="field"><span>${t('opening_usd')}</span><input name="opening_usd" type="number" min="0" step="0.01" value="0" dir="ltr"></label><button class="btn btn--dark btn--block">${t('open_register')}</button></form>`;
+    openModal('shiftModal');
+    $('#shiftForm').onsubmit = async ev => {
+      ev.preventDefault();
       try {
-        const r=await api('/system/api/shift/'+(closing?'close':'open'),{method:'POST',body:fd});
-        if(closing) toast('Shift closed. Difference: '+fmt(r.difference_lbp)+' / '+usd(r.difference_usd));
-        else toast('Shift opened.');
-        m.classList.remove('open'); loadDashboard();
-      }catch(e){toast(e.message,true)}
+        const r = await api('/system/api/shift/' + (closing ? 'close' : 'open'), { method: 'POST', body: Object.fromEntries(new FormData(ev.target)) });
+        toast(closing ? `${t('shift_closed')} ${lbp(r.difference_lbp)} / ${usd(r.difference_usd)}` : t('shift_opened'));
+        closeModal('shiftModal'); loadShift(); if ($('#tab-dashboard').classList.contains('active')) loadDashboard();
+      } catch (e) { toast(e.message, true); }
     };
   }
 
-  $('#exchangeForm')?.addEventListener('submit',async e=>{
-    e.preventDefault(); const rate=Number(new FormData(e.target).get('exchange_rate'));
-    try { await api('/system/api/settings/exchange-rate',{method:'POST',body:{exchange_rate:rate}}); exchangeRate=rate; toast('Exchange rate saved.'); renderCart(); } catch(err){toast(err.message,true)}
-  });
-
-  async function searchPos() {
-    const q=$('#posSearch')?.value||'';
+  $('#exchangeForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const value = Number(new FormData(e.target).get('exchange_rate'));
     try {
-      const d=await api('/system/api/products?q='+encodeURIComponent(q)+'&limit=120');
-      currentProducts=d.products;
-      $('#posProducts').innerHTML=d.products.length?d.products.map(p=>{
-        const stock=p.track_stock?`<div class="sys-product-stock">${p.stock_qty} in stock</div>`:'';
-        const img=p.image_path?`<img src="${esc(p.image_path)}" alt="">`:'';
-        const unavailable=!p.in_stock || (p.track_stock && Number(p.stock_qty)<=0);
-        const priceLabel=p.type==='local'
-          ? `<div class="sys-product-price">50ml ${fmt(p.price_50ml ?? p.price)}</div><div class="sys-product-price">100ml ${fmt(p.price_100ml ?? p.price)}</div>`
-          : `<div class="sys-product-price">${fmt(p.price)}</div>`;
-        return `<button class="sys-product" data-add="${p.id}" ${unavailable?'disabled':''}>${img}<strong>${esc(p.name_en)}</strong><small>${esc(p.brand||'')}</small>${priceLabel}${stock}${unavailable?'<div class="sys-product-stock">Unavailable</div>':''}</button>`;
-      }).join(''):'<div class="sys-empty">No products found.</div>';
-      $$('[data-add]').forEach(b=>b.onclick=()=>addToCart(Number(b.dataset.add)));
-    } catch(e){toast(e.message,true)}
-  }
-  $('#posSearchBtn')?.addEventListener('click',searchPos);
-  $('#posSearch')?.addEventListener('keydown',async e=>{
-    if(e.key==='Enter'){e.preventDefault();await searchPos();const q=e.target.value.trim();const exact=currentProducts.find(p=>p.barcode===q||p.sku===q);if(exact)addToCart(exact.id);}
+      const r = await api('/system/api/settings/exchange-rate', { method: 'POST', body: { exchange_rate: value } });
+      rate = r.exchange_rate; $('#rateLabel').textContent = Number(rate).toLocaleString('en-US');
+      productCache.clear(); cart = []; renderCart();
+      toast(t('exchange_saved'));
+    } catch (err) { toast(err.message, true); }
   });
-  let posTimer;
-  $('#posSearch')?.addEventListener('input',()=>{clearTimeout(posTimer);posTimer=setTimeout(searchPos,250)});
 
-  function addToCart(id, sizeMl=null) {
-    const p=currentProducts.find(x=>x.id===id); if(!p)return;
-    if(!p.in_stock){toast('This item is marked unavailable.',true);return;}
-    if(p.track_stock && Number(p.stock_qty)<=0){toast('This item is out of stock.',true);return;}
-    if(p.type==='local' && ![50,100].includes(Number(sizeMl))){
-      pendingSizeProductId=id;
-      $('#sizeProductName').textContent=p.name_en;
-      $('#size50Price').textContent=fmt(p.price_50ml ?? p.price);
-      $('#size100Price').textContent=fmt(p.price_100ml ?? p.price);
-      $('#sizeModal').classList.add('open');
-      return;
-    }
-    const normalizedSize=p.type==='local'?Number(sizeMl):null;
-    const neededPerUnit=p.type==='local'?normalizedSize:1;
-    if(p.track_stock && neededPerUnit>Number(p.stock_qty||0)){toast('Not enough stock for this size.',true);return;}
-    const price=p.type==='local'
-      ? Number(normalizedSize===100 ? (p.price_100ml ?? p.price) : (p.price_50ml ?? p.price))
-      : Number(p.price||0);
-    const row=cart.find(x=>x.product_id===id && x.size_ml===normalizedSize);
-    if(row){
-      const nextNeeded=(row.quantity+1)*neededPerUnit;
-      if(p.track_stock && nextNeeded>Number(p.stock_qty)){toast('Not enough stock.',true);return;}
-      row.quantity+=1;
-    }
-    else cart.push({product_id:p.id,name:p.name_en,size_ml:normalizedSize,price,quantity:1,stock:Number(p.stock_qty||0),tracked:!!p.track_stock,stock_per_unit:neededPerUnit});
-    $('#sizeModal')?.classList.remove('open');
-    pendingSizeProductId=null;
-    renderCart();
+  // ── POS catalog ──────────────────────────────────────────────
+  let posPage = 1, posQuery = '', posTimer;
+  function productQuery(f, q, page, limit) {
+    const p = new URLSearchParams({ limit: String(limit), page: String(page) });
+    if (q) p.set('q', q); else { p.set('section', f.section); if (f.brand) p.set('brand', f.brand); }
+    return p.toString();
   }
-  $('[data-size]').forEach(b=>b.addEventListener('click',()=>{ if(pendingSizeProductId) addToCart(pendingSizeProductId,Number(b.dataset.size)); }));
+  function priceLine(p) {
+    return p.type === 'local'
+      ? `<span class="pos-item__price num" dir="ltr">50 ml ${usd(p.usd_50ml)} <em>·</em> 100 ml ${usd(p.usd_100ml)}</span>`
+      : `<span class="pos-item__price num" dir="ltr">${p.price ? lbp(p.price) : '—'}</span>`;
+  }
+  function inCart(id) { return cart.filter(x => x.product_id === id).reduce((s, x) => s + x.quantity, 0); }
+  function productCard(p) {
+    const out = !p.in_stock || (p.track_stock && Number(p.stock_qty) <= 0) || (p.type !== 'local' && !p.price);
+    const n = inCart(p.id);
+    return `<button type="button" class="pos-item" data-add="${p.id}" ${out ? 'disabled' : ''}>
+      <span class="pos-item__img">${p.image_path ? `<img src="${esc(p.image_path)}" alt="" loading="lazy">` : '<span>J</span>'}</span>
+      ${n ? `<span class="pos-item__qty num">${n}</span>` : ''}
+      ${out ? `<span class="pos-item__badge pill pill--red">${t('unavailable')}</span>` : (p.track_stock && Number(p.stock_qty) <= Number(p.low_stock_threshold) ? `<span class="pos-item__badge pill pill--amber">${t('low_stock')}</span>` : '')}
+      <span class="pos-item__body"><small>${esc(p.brand || '')}</small><strong>${esc(p.name_en)}</strong>${priceLine(p)}</span>
+    </button>`;
+  }
+  async function loadPos(append = false) {
+    const host = $('#posProducts'); if (!host) return;
+    if (!append) posPage = 1;
+    try {
+      const d = await api('/system/api/products?' + productQuery(filters.pos, posQuery, posPage, 60));
+      d.products.forEach(p => productCache.set(p.id, p));
+      const html = d.products.map(productCard).join('');
+      host.innerHTML = append ? host.innerHTML + html : (html || empty(t('no_results')));
+      $('#posMore').hidden = posPage >= d.pages;
+      return d.products;
+    } catch (e) { toast(e.message, true); return []; }
+  }
+  $('#posProducts')?.addEventListener('click', e => { const b = e.target.closest('[data-add]'); if (b) addToCart(Number(b.dataset.add)); });
+  $('#posMore button')?.addEventListener('click', () => { posPage += 1; loadPos(true); });
+  $('#posSearch')?.addEventListener('input', e => { clearTimeout(posTimer); posTimer = setTimeout(() => { posQuery = e.target.value.trim(); loadPos(); }, 250); });
+  $('#posSearch')?.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault(); clearTimeout(posTimer);
+    posQuery = e.target.value.trim();
+    const list = await loadPos();
+    const exact = list.find(p => p.barcode === posQuery || p.sku === posQuery);
+    if (exact) { addToCart(exact.id); e.target.value = ''; posQuery = ''; }
+  });
+  bindSections('pos', () => { $('#posSearch').value = ''; posQuery = ''; loadPos(); });
+
+  // ── Cart ─────────────────────────────────────────────────────
+  function addToCart(id, size = null) {
+    const p = productCache.get(id); if (!p) return;
+    if (!p.in_stock || (p.track_stock && Number(p.stock_qty) <= 0)) return toast(t('unavailable'), true);
+    if (p.type === 'local' && ![50, 100].includes(size)) {
+      pendingSize = id;
+      $('#sizeProductName').textContent = p.name_en;
+      $('#size50Price').textContent = `${usd(p.usd_50ml)} · ${lbp(p.price_50ml)}`;
+      $('#size100Price').textContent = `${usd(p.usd_100ml)} · ${lbp(p.price_100ml)}`;
+      return openModal('sizeModal');
+    }
+    const sizeMl = p.type === 'local' ? size : null;
+    const per = p.type === 'local' ? sizeMl : 1;
+    const used = cart.filter(x => x.product_id === id).reduce((s, x) => s + x.quantity * x.per, 0);
+    if (p.track_stock && used + per > Number(p.stock_qty || 0)) return toast(t('not_enough_stock'), true);
+    const price = p.type === 'local' ? (sizeMl === 100 ? p.price_100ml : p.price_50ml) : Number(p.price || 0);
+    const row = cart.find(x => x.product_id === id && x.size_ml === sizeMl);
+    if (row) row.quantity += 1;
+    else cart.push({ product_id: id, name: p.name_en, brand: p.brand, image: p.image_path, size_ml: sizeMl, price, quantity: 1, per, stock: Number(p.stock_qty || 0), tracked: !!p.track_stock });
+    closeModal('sizeModal'); pendingSize = null;
+    renderCart(); refreshBadges();
+  }
+  $$('[data-size]').forEach(b => b.addEventListener('click', () => { if (pendingSize) addToCart(pendingSize, Number(b.dataset.size)); }));
+  function refreshBadges() {
+    $$('#posProducts [data-add]').forEach(b => {
+      const p = productCache.get(Number(b.dataset.add)); if (p) b.outerHTML = productCard(p);
+    });
+  }
+  function totals() {
+    const subtotal = cart.reduce((s, x) => s + x.price * x.quantity, 0);
+    const discount = Math.min(Math.max(0, Number($('#saleDiscount')?.value || 0)), subtotal);
+    return { subtotal, discount, total: subtotal - discount };
+  }
   function renderCart() {
-    const host=$('#cartItems'), totals=$('#cartTotals'); if(!host||!totals)return;
-    host.innerHTML=cart.length?cart.map((x,i)=>`<div class="sys-cart-row"><div><strong>${esc(x.name)}${x.size_ml?' · '+x.size_ml+'ml':''}</strong><small>${fmt(x.price)} × ${x.quantity}</small></div><div class="sys-cart-controls"><button data-dec="${i}">−</button><b>${x.quantity}</b><button data-inc="${i}">+</button><button data-remove="${i}">×</button></div></div>`).join(''):'<div class="sys-empty">Cart is empty.</div>';
-    const subtotal=cart.reduce((s,x)=>s+x.price*x.quantity,0);
-    const discount=Math.min(Number($('#saleDiscount')?.value||0),subtotal);
-    const total=subtotal-discount;
-    totals.innerHTML=`<div class="sys-total-line"><span>Subtotal</span><b>${fmt(subtotal)}</b></div><div class="sys-total-line"><span>Discount</span><b>− ${fmt(discount)}</b></div><div class="sys-total-line total"><span>Total</span><span>${fmt(total)}</span></div><div class="sys-total-line"><span>USD approx.</span><span>${usd(total/exchangeRate)}</span></div>`;
-    $$('[data-dec]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dec;cart[i].quantity-=1;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()});
-    $('[data-inc]').forEach(b=>b.onclick=()=>{const i=+b.dataset.inc;const needed=(cart[i].quantity+1)*(cart[i].stock_per_unit||1);if(cart[i].tracked&&needed>cart[i].stock)return toast('Not enough stock.',true);cart[i].quantity+=1;renderCart()});
-    $$('[data-remove]').forEach(b=>b.onclick=()=>{cart.splice(+b.dataset.remove,1);renderCart()});
+    const host = $('#cartItems'); if (!host) return;
+    host.innerHTML = cart.length ? cart.map((x, i) => `
+      <div class="cart-line">
+        ${x.image ? `<img class="thumb" src="${esc(x.image)}" alt="">` : '<span class="thumb thumb--empty">J</span>'}
+        <div><strong>${esc(x.name)}</strong><small>${x.size_ml ? x.size_ml + ' ml · ' : ''}<span dir="ltr">${lbp(x.price)}</span></small></div>
+        <div class="cart-line__end">
+          <span class="num" dir="ltr">${lbp(x.price * x.quantity)}</span>
+          <span class="qty"><button type="button" data-dec="${i}">${x.quantity > 1 ? icon('minus') : icon('x')}</button><b class="num">${x.quantity}</b><button type="button" data-inc="${i}">${icon('plus')}</button></span>
+        </div>
+      </div>`).join('') : `<div class="empty-block"><p>${t('cart_empty')}</p></div>`;
+    const { subtotal, discount, total } = totals();
+    let changeRow = '';
+    if (payMethod === 'cash_lbp' && Number($('#tenderedLbp')?.value) > total && total > 0) changeRow = `<div class="change"><span>${t('change_due')}</span><span class="num" dir="ltr">${lbp(Number($('#tenderedLbp').value) - total)}</span></div>`;
+    if (payMethod === 'cash_usd' && Number($('#tenderedUsd')?.value) > total / rate && total > 0) changeRow = `<div class="change"><span>${t('change_due')}</span><span class="num" dir="ltr">${usd(Number($('#tenderedUsd').value) - total / rate)} ≈ ${lbp(Number($('#tenderedUsd').value) * rate - total)}</span></div>`;
+    $('#cartTotals').innerHTML = `<div><span>${t('subtotal')}</span><span class="num" dir="ltr">${lbp(subtotal)}</span></div>
+      ${discount ? `<div><span>${t('discount')}</span><span class="num" dir="ltr">− ${lbp(discount)}</span></div>` : ''}
+      <div class="grand"><span>${t('total')}</span><span class="num" dir="ltr">${lbp(total)}</span></div>
+      <div><span>${t('usd_approx')}</span><span class="num" dir="ltr">${usd(total / rate)}</span></div>${changeRow}`;
+    const count = cart.reduce((s, x) => s + x.quantity, 0);
+    $('#cartCount').textContent = count;
+    $('#cartBarCount').textContent = count;
+    $('#cartBarTotal').textContent = lbp(total);
+    $('#completeSale').disabled = !cart.length;
   }
-  $('#saleDiscount')?.addEventListener('input',renderCart);
-  function syncTenderFields(){
-    const method=$('#paymentMethod')?.value;
-    const lbp=$('#tenderedLbp'), usdInput=$('#tenderedUsd');
-    const lbpWrap=$('#tenderedLbpWrap'), usdWrap=$('#tenderedUsdWrap');
-    if(!lbp||!usdInput)return;
-    if(method==='cash_lbp'){
-      usdInput.value='0'; usdInput.disabled=true; lbp.disabled=false;
-      if(lbpWrap)lbpWrap.style.display=''; if(usdWrap)usdWrap.style.display='none';
-    }else if(method==='cash_usd'){
-      lbp.value='0'; lbp.disabled=true; usdInput.disabled=false;
-      if(lbpWrap)lbpWrap.style.display='none'; if(usdWrap)usdWrap.style.display='';
-    }else{
-      lbp.value='0';usdInput.value='0';lbp.disabled=true;usdInput.disabled=true;
-      if(lbpWrap)lbpWrap.style.display='none'; if(usdWrap)usdWrap.style.display='none';
+  $('#cartItems')?.addEventListener('click', e => {
+    const dec = e.target.closest('[data-dec]'), inc = e.target.closest('[data-inc]');
+    if (dec) { const i = +dec.dataset.dec; cart[i].quantity -= 1; if (cart[i].quantity <= 0) cart.splice(i, 1); }
+    if (inc) {
+      const i = +inc.dataset.inc, x = cart[i];
+      const used = cart.filter(y => y.product_id === x.product_id).reduce((s, y) => s + y.quantity * y.per, 0);
+      if (x.tracked && used + x.per > x.stock) return toast(t('not_enough_stock'), true);
+      x.quantity += 1;
     }
-  }
-  $('#paymentMethod')?.addEventListener('change',syncTenderFields);
-  syncTenderFields();
-  $('#clearCart')?.addEventListener('click',()=>{cart=[];renderCart()});
-  $('#completeSale')?.addEventListener('click',async()=>{
-    if(!cart.length)return toast('Cart is empty.',true);
-    const subtotal=cart.reduce((s,x)=>s+x.price*x.quantity,0);
-    const discount=Math.min(Number($('#saleDiscount').value||0),subtotal);
-    const total=subtotal-discount;
-    const method=$('#paymentMethod').value;
-    let tl=Number($('#tenderedLbp').value||0), tu=Number($('#tenderedUsd').value||0);
-    if(method==='cash_lbp'&&tl<=0)tl=total;
-    if(method==='cash_usd'&&tu<=0)tu=total/exchangeRate;
-    try{
-      const r=await api('/system/api/sales',{method:'POST',body:{
-        items:cart.map(x=>({product_id:x.product_id,quantity:x.quantity,size_ml:x.size_ml,unit_price:x.price})),
-        customer_name:$('#customerName').value,customer_phone:$('#customerPhone').value,
-        discount,payment_method:method,exchange_rate:exchangeRate,tendered_lbp:tl,tendered_usd:tu,notes:$('#saleNotes').value
-      }});
-      toast('Sale '+r.number+' completed.');
-      cart=[]; $('#customerName').value='';$('#customerPhone').value='';$('#saleDiscount').value='0';$('#tenderedLbp').value='0';$('#tenderedUsd').value='0';$('#saleNotes').value='';renderCart();searchPos();loadDashboard();
-      showSale(r.saleId,true);
-    }catch(e){toast(e.message,true)}
+    if (dec || inc) { renderCart(); refreshBadges(); }
+  });
+  ['#saleDiscount', '#tenderedLbp', '#tenderedUsd'].forEach(s => $(s)?.addEventListener('input', renderCart));
+  $('#paymentMethod')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-pay]'); if (!b) return;
+    payMethod = b.dataset.pay;
+    $$('#paymentMethod [data-pay]').forEach(x => x.classList.toggle('is-active', x === b));
+    $('#tenderedLbpWrap').hidden = payMethod !== 'cash_lbp';
+    $('#tenderedUsdWrap').hidden = payMethod !== 'cash_usd';
+    renderCart();
+  });
+  $('#clearCart')?.addEventListener('click', () => { cart = []; renderCart(); refreshBadges(); });
+  function setCart(open) { $('#cartPanel')?.classList.toggle('open', open); if (window.innerWidth <= 980) scrim?.classList.toggle('open', open); }
+  $('#cartBar')?.addEventListener('click', () => setCart(true));
+  $('#cartClose')?.addEventListener('click', () => setCart(false));
+
+  $('#completeSale')?.addEventListener('click', async () => {
+    if (!cart.length) return toast(t('cart_empty'), true);
+    const { discount, total } = totals();
+    let tl = Number($('#tenderedLbp').value || 0), tu = Number($('#tenderedUsd').value || 0);
+    if (payMethod === 'cash_lbp' && tl <= 0) tl = total;
+    if (payMethod === 'cash_usd' && tu <= 0) tu = total / rate;
+    const btn = $('#completeSale'); btn.disabled = true;
+    try {
+      const r = await api('/system/api/sales', { method: 'POST', body: {
+        items: cart.map(x => ({ product_id: x.product_id, quantity: x.quantity, size_ml: x.size_ml })),
+        customer_name: $('#customerName').value, customer_phone: $('#customerPhone').value,
+        discount, payment_method: payMethod,
+        tendered_lbp: payMethod === 'cash_lbp' ? tl : 0, tendered_usd: payMethod === 'cash_usd' ? tu : 0,
+        notes: $('#saleNotes').value,
+      } });
+      toast(`${t('sale_completed')} · ${r.number}`);
+      cart = [];
+      ['#customerName', '#customerPhone', '#tenderedLbp', '#tenderedUsd', '#saleNotes'].forEach(s => { $(s).value = ''; });
+      if ($('#saleDiscount').type !== 'hidden') $('#saleDiscount').value = '0';
+      renderCart(); setCart(false); loadPos();
+      showSale(r.saleId);
+    } catch (e) {
+      toast(e.message, true);
+      if (/shift|وردية/i.test(e.message)) openShiftModal(false);
+    } finally { btn.disabled = !cart.length; }
   });
 
-  async function loadInventory(){
-    const q=$('#inventorySearch')?.value||''; const low=$('#lowStockOnly')?.checked?'&low=1':'';
-    try{
-      const d=await api('/system/api/products?q='+encodeURIComponent(q)+'&limit=200'+low);
-      inventoryMap=new Map(d.products.map(p=>[p.id,p]));
-      $('#inventoryRows').innerHTML=d.products.length?d.products.map(p=>`<tr><td><b>${esc(p.name_en)}</b><br><small>${esc(p.category)} · ${esc(p.type)}</small></td><td>${esc(p.brand)}</td><td>${p.type==='local'?`50ml ${fmt(p.price_50ml ?? p.price)}<br><small>100ml ${fmt(p.price_100ml ?? p.price)}</small>`:fmt(p.price)}</td><td>${p.type==='local'?`50ml ${fmt(p.cost_50ml ?? (Number(p.cost_price||0)*50))}<br><small>100ml ${fmt(p.cost_100ml ?? (Number(p.cost_price||0)*100))}</small>`:fmt(p.cost_price)}</td><td class="${p.track_stock&&p.stock_qty<=p.low_stock_threshold?'danger':''}">${p.track_stock?esc(p.stock_qty)+' '+(p.type==='local'?'ml':'units'):'<span class="muted">Not tracked</span>'}</td><td>${esc(p.sku||'—')}<br><small>${esc(p.barcode||'')}</small></td><td><button class="sys-btn sys-btn--small" data-edit-inv="${p.id}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7" class="sys-empty">No products found.</td></tr>';
-      $$('[data-edit-inv]').forEach(b=>b.onclick=()=>openInventory(Number(b.dataset.editInv)));
-    }catch(e){toast(e.message,true)}
+  // ── Sale receipt ─────────────────────────────────────────────
+  async function showSale(id) {
+    try {
+      const { sale: s, items } = await api('/system/api/sales/' + id);
+      const canRefund = isMgr && s.status === 'completed' && s.source !== 'online';
+      $('#saleTitle').textContent = s.sale_number;
+      $('#saleDetail').innerHTML = `<div class="receipt">
+        <div class="receipt__head"><b>JAMALUDEEN</b><div class="muted">${when(s.created_at)}</div></div>
+        <dl class="kv"><dt>${t('customer')}</dt><dd>${esc(s.customer_name || t('walk_in'))} <span dir="ltr">${esc(s.customer_phone || '')}</span></dd>
+          <dt>${t('cashier')}</dt><dd>${esc(s.cashier_name)}</dd><dt>${t('payment')}</dt><dd>${esc(payLabel(s.payment_method))}</dd><dt>${t('status')}</dt><dd>${statusPill(s.status)}</dd></dl>
+        <div class="table-wrap" style="margin:14px 0"><table class="table"><thead><tr><th>${t('product')}</th><th>${t('quantity')}</th><th>${t('price')}</th><th>${t('total')}</th></tr></thead><tbody>${
+          items.map(i => `<tr><td>${esc(i.product_name)}${i.size_ml ? ' · ' + i.size_ml + ' ml' : ''}</td><td class="num">${i.quantity}</td><td class="num" dir="ltr">${lbp(i.unit_price)}</td><td class="num" dir="ltr">${lbp(i.line_total)}</td></tr>`).join('')}</tbody></table></div>
+        <dl class="kv" style="max-width:340px;margin-inline-start:auto"><dt>${t('subtotal')}</dt><dd class="num" dir="ltr">${lbp(s.subtotal)}</dd>
+          ${s.discount ? `<dt>${t('discount')}</dt><dd class="num" dir="ltr">− ${lbp(s.discount)}</dd>` : ''}
+          <dt><b>${t('total')}</b></dt><dd class="num" dir="ltr"><b>${lbp(s.total)}</b> <span class="muted">(${usd(s.total / (s.exchange_rate || rate))})</span></dd>
+          ${s.change_lbp ? `<dt>${t('change_due')}</dt><dd class="num" dir="ltr">${lbp(s.change_lbp)}</dd>` : ''}
+          ${s.change_usd ? `<dt>${t('change_due')}</dt><dd class="num" dir="ltr">${usd(s.change_usd)}</dd>` : ''}</dl>
+        <p class="muted" style="text-align:center;margin-top:16px">${t('receipt_thanks')}</p>
+        <div class="receipt__actions"><button class="btn btn--dark" onclick="window.print()">${icon('print')}${t('print_receipt')}</button>${canRefund ? `<button class="btn btn--ghost btn--danger" id="refundSale">${icon('refund')}${t('refund_sale')}</button>` : ''}</div></div>`;
+      openModal('saleModal');
+      $('#refundSale')?.addEventListener('click', async () => {
+        if (!confirm(t('refund_confirm'))) return;
+        try { await api('/system/api/sales/' + id + '/refund', { method: 'POST', body: {} }); toast(t('sale_refunded')); closeModal('saleModal'); loadSales(); }
+        catch (e) { toast(e.message, true); }
+      });
+    } catch (e) { toast(e.message, true); }
   }
-  $('#inventorySearchBtn')?.addEventListener('click',loadInventory);
-  $('#lowStockOnly')?.addEventListener('change',loadInventory);
-  $('#inventorySearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();loadInventory()}});
-  function openInventory(id){
-    const p=inventoryMap.get(id);if(!p)return;
-    const f=$('#inventoryForm'); f.id.value=p.id; $('#inventoryProductName').textContent=p.name_en;
-    f.price.value=p.price??0;f.price_50ml.value=p.price_50ml??'';f.price_100ml.value=p.price_100ml??'';f.cost_price.value=p.cost_price??0;f.cost_50ml.value=p.cost_50ml??'';f.cost_100ml.value=p.cost_100ml??'';f.stock_qty.value=p.stock_qty??0;f.low_stock_threshold.value=p.low_stock_threshold??5;f.sku.value=p.sku||'';f.barcode.value=p.barcode||'';f.track_stock.checked=!!p.track_stock;f.in_stock.checked=!!p.in_stock;
-    $('#inventoryUnitHint').textContent=p.type==='local'?'Local perfume: stock and adjustments are measured in ml. Cost price is cost per ml; 50/100ml costs can override it.':'Brand product: stock is measured in units.';
-    $('#adjustForm').id.value=p.id; $('#adjustForm').quantity.value=''; $('#adjustForm').note.value='';
-    $('#inventoryModal').classList.add('open');
+
+  // ── Inventory ────────────────────────────────────────────────
+  let invPage = 1, invTimer;
+  async function loadInventory() {
+    const host = $('#inventoryRows'); if (!host) return;
+    const q = $('#inventorySearch').value.trim();
+    const qs = productQuery(filters.inv, q, invPage, 60) + ($('#lowStockOnly').checked ? '&low=1' : '');
+    try {
+      const d = await api('/system/api/products?' + qs);
+      d.products.forEach(p => productCache.set(p.id, p));
+      host.innerHTML = d.products.length ? d.products.map(p => {
+        const low = p.track_stock && Number(p.stock_qty) <= Number(p.low_stock_threshold);
+        const unit = p.type === 'local' ? 'ml' : '';
+        return `<tr>
+          <td><span class="prod-cell">${p.image_path ? `<img class="thumb" src="${esc(p.image_path)}" alt="" loading="lazy">` : '<span class="thumb thumb--empty">J</span>'}<span><strong>${esc(p.name_en)}</strong><small>${esc(p.brand || '')}</small></span></span></td>
+          <td class="num" dir="ltr">${p.type === 'local' ? `${usd(p.usd_50ml)} / ${usd(p.usd_100ml)}` : (p.price ? lbp(p.price) : '—')}</td>
+          <td class="num" dir="ltr">${p.type === 'local' ? `${lbp(p.cost_50ml ?? Number(p.cost_price || 0) * 50)}<br><small class="muted">${lbp(p.cost_100ml ?? Number(p.cost_price || 0) * 100)}</small>` : lbp(p.cost_price)}</td>
+          <td>${p.track_stock ? `<span class="pill ${low ? 'pill--red' : 'pill--green'} num" dir="ltr">${esc(p.stock_qty)} ${unit}</span>` : `<span class="muted">${t('not_tracked')}</span>`}</td>
+          <td class="num" dir="ltr">${esc(p.sku || '—')}<br><small class="muted">${esc(p.barcode || '')}</small></td>
+          <td class="actions"><button class="btn btn--sm" data-edit-inv="${p.id}">${icon('edit')}${t('edit')}</button></td></tr>`;
+      }).join('') : empty(t('no_results'), 6);
+      const pager = $('#invPager');
+      pager.hidden = d.pages <= 1;
+      pager.innerHTML = `<span class="num">${t('page')} ${d.page} ${t('of')} ${d.pages} · ${d.total}</span><span class="pager__links">${d.page > 1 ? `<button class="btn btn--sm" data-inv-page="${d.page - 1}">${t('prev')}</button>` : ''}${d.page < d.pages ? `<button class="btn btn--sm" data-inv-page="${d.page + 1}">${t('next')}</button>` : ''}</span>`;
+    } catch (e) { toast(e.message, true); }
   }
-  $('#inventoryForm')?.addEventListener('submit',async e=>{
-    e.preventDefault();const f=e.target;
-    try{await api('/system/api/products/'+f.id.value+'/inventory',{method:'POST',body:{price:f.price.value,price_50ml:f.price_50ml.value,price_100ml:f.price_100ml.value,cost_price:f.cost_price.value,cost_50ml:f.cost_50ml.value,cost_100ml:f.cost_100ml.value,stock_qty:f.stock_qty.value,low_stock_threshold:f.low_stock_threshold.value,sku:f.sku.value,barcode:f.barcode.value,track_stock:f.track_stock.checked,in_stock:f.in_stock.checked}});toast('Inventory saved.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
+  if ($('#inventoryRows')) {
+    bindSections('inv', () => { invPage = 1; $('#inventorySearch').value = ''; loadInventory(); });
+    $('#inventorySearch').addEventListener('input', () => { clearTimeout(invTimer); invTimer = setTimeout(() => { invPage = 1; loadInventory(); }, 250); });
+    $('#lowStockOnly').addEventListener('change', () => { invPage = 1; loadInventory(); });
+    $('#invPager').addEventListener('click', e => { const b = e.target.closest('[data-inv-page]'); if (b) { invPage = +b.dataset.invPage; loadInventory(); } });
+    $('#inventoryRows').addEventListener('click', e => { const b = e.target.closest('[data-edit-inv]'); if (b) openInventory(+b.dataset.editInv); });
+  }
+  function openInventory(id) {
+    const p = productCache.get(id); if (!p) return;
+    const f = $('#inventoryForm');
+    f.id.value = p.id; $('#inventoryProductName').textContent = p.name_en;
+    f.price.value = p.price ?? ''; f.cost_price.value = p.cost_price ?? 0;
+    f.cost_50ml.value = p.cost_50ml ?? ''; f.cost_100ml.value = p.cost_100ml ?? '';
+    f.stock_qty.value = p.stock_qty ?? 0; f.low_stock_threshold.value = p.low_stock_threshold ?? 5;
+    f.sku.value = p.sku || ''; f.barcode.value = p.barcode || '';
+    f.track_stock.checked = !!p.track_stock; f.in_stock.checked = !!p.in_stock;
+    const local = p.type === 'local';
+    $$('#inventoryForm [data-brand-only]').forEach(el => { el.hidden = local; });
+    $$('#inventoryForm [data-local-only]').forEach(el => { el.hidden = !local; });
+    $('#inventoryUnitHint').textContent = local ? t('local_unit_hint') : t('brand_unit_hint');
+    const note = $('#invRefillNote'); note.hidden = !local;
+    if (local) note.querySelector('span').textContent = `${t('refill_price_pos')} 50 ml ${usd(p.usd_50ml)} · 100 ml ${usd(p.usd_100ml)}`;
+    const a = $('#adjustForm'); a.id.value = p.id; a.quantity.value = ''; a.note.value = '';
+    openModal('inventoryModal');
+  }
+  $('#inventoryForm')?.addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target;
+    try {
+      await api('/system/api/products/' + f.id.value + '/inventory', { method: 'POST', body: {
+        price: f.price.value, cost_price: f.cost_price.value, cost_50ml: f.cost_50ml.value, cost_100ml: f.cost_100ml.value,
+        stock_qty: f.stock_qty.value, low_stock_threshold: f.low_stock_threshold.value, sku: f.sku.value, barcode: f.barcode.value,
+        track_stock: f.track_stock.checked, in_stock: f.in_stock.checked,
+      } });
+      toast(t('inventory_saved')); closeModal('inventoryModal'); loadInventory();
+    } catch (err) { toast(err.message, true); }
   });
-  $('#adjustForm')?.addEventListener('submit',async e=>{
-    e.preventDefault();const f=e.target;
-    try{await api('/system/api/products/'+f.id.value+'/adjust',{method:'POST',body:{quantity:f.quantity.value,note:f.note.value}});toast('Stock adjusted.');$('#inventoryModal').classList.remove('open');loadInventory();}catch(err){toast(err.message,true)}
+  $('#adjustForm')?.addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target;
+    try { await api('/system/api/products/' + f.id.value + '/adjust', { method: 'POST', body: { quantity: f.quantity.value, note: f.note.value } }); toast(t('stock_adjusted')); closeModal('inventoryModal'); loadInventory(); }
+    catch (err) { toast(err.message, true); }
   });
 
-  function initDates(){
-    ['salesFrom','salesTo','reportFrom','reportTo'].forEach(id=>{const el=$('#'+id);if(el&&!el.value)el.value=today()});
+  // ── Sales ────────────────────────────────────────────────────
+  function initDates() { ['salesFrom', 'salesTo', 'reportFrom', 'reportTo'].forEach(id => { const el = $('#' + id); if (el && !el.value) el.value = today(); }); }
+  async function loadSales() {
+    initDates(); const host = $('#salesRows'); if (!host) return;
+    try {
+      const d = await api(`/system/api/sales?from=${$('#salesFrom').value}&to=${$('#salesTo').value}`);
+      host.innerHTML = d.sales.length ? d.sales.map(s => `<tr>
+        <td class="num" dir="ltr"><b>${esc(s.sale_number)}</b></td><td class="muted">${when(s.created_at)}</td><td>${esc(s.customer_name || t('walk_in'))}</td>
+        <td>${esc(s.cashier_name)}</td><td>${esc(payLabel(s.payment_method))}</td><td class="num" dir="ltr"><b>${lbp(s.total)}</b></td><td>${statusPill(s.status)}</td>
+        <td class="actions"><button class="btn btn--sm" data-sale="${s.id}">${t('view')}</button></td></tr>`).join('') : empty(t('no_sales'), 8);
+    } catch (e) { toast(e.message, true); }
   }
-  async function loadSales(){
-    initDates(); if(!$('#salesRows'))return;
-    const from=$('#salesFrom').value,to=$('#salesTo').value;
-    try{const d=await api('/system/api/sales?from='+from+'&to='+to);$('#salesRows').innerHTML=d.sales.length?d.sales.map(s=>`<tr><td><b>${esc(s.sale_number)}</b></td><td>${new Date(s.created_at+'Z').toLocaleString()}</td><td>${esc(s.customer_name||'Walk-in')}</td><td>${esc(s.cashier_name)}</td><td>${esc(s.payment_method)}</td><td><b>${fmt(s.total)}</b></td><td><span class="sys-pill ${s.status==='completed'?'green':'red'}">${esc(s.status)}</span></td><td><button class="sys-btn sys-btn--small" data-sale="${s.id}">View</button></td></tr>`).join(''):'<tr><td colspan="8" class="sys-empty">No sales in this period.</td></tr>';$$('[data-sale]').forEach(b=>b.onclick=()=>showSale(Number(b.dataset.sale),false));}catch(e){toast(e.message,true)}
-  }
-  $('#salesFilterBtn')?.addEventListener('click',loadSales);
-  async function showSale(id,printAfter){
-    try{
-      const d=await api('/system/api/sales/'+id),s=d.sale;
-      const canRefund=['owner','manager'].includes(ctx.user.role)&&s.status==='completed';
-      $('#saleDetail').innerHTML=`<h2>${esc(s.sale_number)}</h2><div class="sys-kv"><b>Date</b><span>${new Date(s.created_at+'Z').toLocaleString()}</span><b>Customer</b><span>${esc(s.customer_name||'Walk-in')} ${esc(s.customer_phone||'')}</span><b>Cashier</b><span>${esc(s.cashier_name)}</span><b>Payment</b><span>${esc(s.payment_method)}</span><b>Status</b><span>${esc(s.status)}</span></div><h3 class="sys-section-title">Items</h3><table class="sys-sale-items"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${d.items.map(i=>`<tr><td>${esc(i.product_name)}${i.size_ml?' · '+i.size_ml+'ml':''}</td><td>${i.quantity}</td><td>${fmt(i.unit_price)}</td><td>${fmt(i.line_total)}</td></tr>`).join('')}</tbody></table><div class="sys-kv"><b>Subtotal</b><span>${fmt(s.subtotal)}</span><b>Discount</b><span>${fmt(s.discount)}</span><b>Total</b><strong>${fmt(s.total)}</strong></div><div style="display:flex;gap:8px;margin-top:18px"><button class="sys-btn" onclick="window.print()">Print Receipt</button>${canRefund?`<button class="sys-btn" id="refundSale">Refund Sale</button>`:''}</div>`;
-      $('#saleModal').classList.add('open');
-      if(canRefund)$('#refundSale').onclick=async()=>{if(!confirm('Refund this full sale and return tracked stock?'))return;try{await api('/system/api/sales/'+id+'/refund',{method:'POST',body:{}});toast('Sale refunded.');$('#saleModal').classList.remove('open');loadSales();loadDashboard()}catch(e){toast(e.message,true)}};
-      if(printAfter) setTimeout(()=>window.print(),180);
-    }catch(e){toast(e.message,true)}
-  }
+  $('#salesFilterBtn')?.addEventListener('click', loadSales);
+  $('#salesRows')?.addEventListener('click', e => { const b = e.target.closest('[data-sale]'); if (b) showSale(+b.dataset.sale); });
 
-  async function loadCustomers(){
-    if(!$('#customerRows'))return;const q=$('#customerSearch')?.value||'';
-    try{const d=await api('/system/api/customers?q='+encodeURIComponent(q));$('#customerRows').innerHTML=d.customers.length?d.customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.phone||'—')}</td><td>${c.visits}</td><td>${fmt(c.total_spent)}</td></tr>`).join(''):'<tr><td colspan="4" class="sys-empty">No customers.</td></tr>';}catch(e){toast(e.message,true)}
+  // ── Customers ────────────────────────────────────────────────
+  let custTimer;
+  async function loadCustomers() {
+    const host = $('#customerRows'); if (!host) return;
+    try {
+      const d = await api('/system/api/customers?q=' + encodeURIComponent($('#customerSearch').value));
+      host.innerHTML = d.customers.length ? d.customers.map(c => `<tr><td><b>${esc(c.name)}</b></td><td class="num" dir="ltr">${esc(c.phone || '—')}</td><td class="num">${c.visits}</td><td class="num" dir="ltr">${lbp(c.total_spent)}</td></tr>`).join('') : empty(t('no_customers'), 4);
+    } catch (e) { toast(e.message, true); }
   }
-  $('#customerSearchBtn')?.addEventListener('click',loadCustomers);
-  $('#customerForm')?.addEventListener('submit',async e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.target));try{await api('/system/api/customers',{method:'POST',body});e.target.reset();toast('Customer added.');loadCustomers()}catch(err){toast(err.message,true)}});
+  $('#customerSearch')?.addEventListener('input', () => { clearTimeout(custTimer); custTimer = setTimeout(loadCustomers, 250); });
+  $('#customerForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await api('/system/api/customers', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast(t('customer_added')); loadCustomers(); }
+    catch (err) { toast(err.message, true); }
+  });
 
-  async function loadSuppliers(){
-    if(!$('#purchaseSupplier'))return [];
-    const d=await api('/system/api/suppliers');
-    $('#purchaseSupplier').innerHTML='<option value="">No supplier</option>'+d.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
-    $('#supplierList').innerHTML=d.suppliers.map(s=>`<div class="sys-list-row"><b>${esc(s.name)}</b><span>${esc(s.phone||'')}</span></div>`).join('')||'<div class="sys-empty">No suppliers yet.</div>';
-    return d.suppliers;
+  // ── Purchases ────────────────────────────────────────────────
+  async function loadSuppliers() {
+    const d = await api('/system/api/suppliers');
+    $('#purchaseSupplier').innerHTML = `<option value="">${t('no_supplier')}</option>` + d.suppliers.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    $('#supplierList').innerHTML = d.suppliers.length ? d.suppliers.map(s => `<div class="list-row"><b>${esc(s.name)}</b><span class="muted num" dir="ltr">${esc(s.phone || '')}</span></div>`).join('') : empty(t('no_suppliers'));
   }
-  async function loadPurchases(){
-    if(!$('#purchaseHistory'))return;
-    try{await loadSuppliers();const d=await api('/system/api/purchases');$('#purchaseHistory').innerHTML=d.purchases.length?`<div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Date</th><th>Supplier</th><th>Invoice</th><th>Total Cost</th><th>By</th></tr></thead><tbody>${d.purchases.map(p=>`<tr><td>${new Date(p.created_at+'Z').toLocaleString()}</td><td>${esc(p.supplier_name||'—')}</td><td>${esc(p.invoice_number||'—')}</td><td>${fmt(p.total_cost_lbp)}</td><td>${esc(p.staff_name||'')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="sys-empty">No purchases yet.</div>';renderPurchaseCart();}catch(e){toast(e.message,true)}
+  async function loadPurchases() {
+    if (!$('#purchaseHistory')) return;
+    try {
+      await loadSuppliers();
+      const d = await api('/system/api/purchases');
+      $('#purchaseHistory').innerHTML = d.purchases.length
+        ? `<div class="table-wrap"><table class="table"><thead><tr><th>${t('date')}</th><th>${t('supplier')}</th><th>${t('invoice_no')}</th><th>${t('total_cost')}</th><th>${t('by')}</th></tr></thead><tbody>${
+          d.purchases.map(p => `<tr><td class="muted">${when(p.created_at)}</td><td>${esc(p.supplier_name || '—')}</td><td class="num" dir="ltr">${esc(p.invoice_number || '—')}</td><td class="num" dir="ltr">${lbp(p.total_cost_lbp)}</td><td>${esc(p.staff_name || '')}</td></tr>`).join('')}</tbody></table></div>`
+        : empty(t('no_purchases'));
+      renderPurchaseCart();
+    } catch (e) { toast(e.message, true); }
   }
-  $('#supplierForm')?.addEventListener('submit',async e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.target));try{await api('/system/api/suppliers',{method:'POST',body});e.target.reset();toast('Supplier added.');loadSuppliers()}catch(err){toast(err.message,true)}});
-  async function searchPurchaseProducts(){
-    try{const d=await api('/system/api/products?q='+encodeURIComponent($('#purchaseProductSearch').value)+'&limit=30');$('#purchaseProductResults').innerHTML=d.products.map(p=>`<div class="sys-mini-result" data-purchase-add="${p.id}"><span><b>${esc(p.name_en)}</b><br><small>${esc(p.brand)} · ${p.type==='local'?'stock in ml':'stock in units'}</small></span><span>${p.type==='local'?fmt(p.cost_price)+'/ml':fmt(p.cost_price)+'/unit'}</span></div>`).join('')||'<div class="sys-empty">No products.</div>';currentProducts=d.products;$$('[data-purchase-add]').forEach(b=>b.onclick=()=>addPurchaseItem(Number(b.dataset.purchaseAdd)));}catch(e){toast(e.message,true)}
+  $('#supplierForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await api('/system/api/suppliers', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast(t('supplier_added')); loadSuppliers(); }
+    catch (err) { toast(err.message, true); }
+  });
+  let purTimer;
+  $('#purchaseProductSearch')?.addEventListener('input', e => {
+    clearTimeout(purTimer);
+    purTimer = setTimeout(async () => {
+      const q = e.target.value.trim(), box = $('#purchaseProductResults');
+      if (!q) { box.hidden = true; return; }
+      try {
+        const d = await api('/system/api/products?limit=30&q=' + encodeURIComponent(q));
+        d.products.forEach(p => productCache.set(p.id, p));
+        box.hidden = false;
+        box.innerHTML = d.products.length ? d.products.map(p => `<button type="button" data-purchase-add="${p.id}"><span><b>${esc(p.name_en)}</b><br><small class="muted">${esc(p.brand || '')} · ${p.type === 'local' ? 'ml' : t('items')}</small></span>${icon('plus')}</button>`).join('') : empty(t('no_results'));
+      } catch (err) { toast(err.message, true); }
+    }, 250);
+  });
+  $('#purchaseProductResults')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-purchase-add]'); if (!b) return;
+    const p = productCache.get(+b.dataset.purchaseAdd); if (!p) return;
+    const found = purchaseCart.find(x => x.product_id === p.id);
+    if (found) found.quantity += p.type === 'local' ? 100 : 1;
+    else purchaseCart.push({ product_id: p.id, name: p.name_en, type: p.type, quantity: p.type === 'local' ? 100 : 1, unit_cost: Number(p.cost_price || 0) });
+    $('#purchaseProductResults').hidden = true; $('#purchaseProductSearch').value = '';
+    renderPurchaseCart();
+  });
+  function renderPurchaseCart() {
+    const host = $('#purchaseItems'); if (!host) return;
+    host.innerHTML = purchaseCart.length
+      ? purchaseCart.map((x, i) => `<div class="purchase-line"><div><b>${esc(x.name)}</b><br><small class="muted">${x.type === 'local' ? t('qty_ml') : t('qty_units')}</small></div>
+          <input type="number" min=".01" step=".01" value="${x.quantity}" data-pq="${i}" dir="ltr"><input type="number" min="0" step=".01" value="${x.unit_cost}" data-pc="${i}" dir="ltr">
+          <button type="button" class="btn btn--sm btn--ghost" data-pr="${i}">${icon('x')}</button></div>`).join('') +
+        `<div class="cart-total" style="margin-top:10px;border-radius:10px"><div class="grand"><span>${t('total_cost')}</span><span class="num" dir="ltr">${lbp(purchaseCart.reduce((s, x) => s + x.quantity * x.unit_cost, 0))}</span></div></div>`
+      : empty(t('add_products_hint'));
   }
-  $('#purchaseProductBtn')?.addEventListener('click',searchPurchaseProducts);
-  $('#purchaseProductSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchPurchaseProducts()}});
-  function addPurchaseItem(id){const p=currentProducts.find(x=>x.id===id);if(!p)return;const found=purchaseCart.find(x=>x.product_id===id);if(found)found.quantity+=p.type==='local'?100:1;else purchaseCart.push({product_id:id,name:p.name_en,type:p.type,unit:p.type==='local'?'ml':'units',quantity:p.type==='local'?100:1,unit_cost:Number(p.cost_price||0)});renderPurchaseCart()}
-  function renderPurchaseCart(){const h=$('#purchaseItems');if(!h)return;h.innerHTML=purchaseCart.length?purchaseCart.map((x,i)=>`<div class="sys-purchase-row"><div><b>${esc(x.name)}</b><br><small>Qty in ${esc(x.unit||'units')} · cost per ${x.type==='local'?'ml':'unit'}</small></div><input type="number" min=".01" step=".01" value="${x.quantity}" data-pq="${i}"><input type="number" min="0" step=".01" value="${x.unit_cost}" data-pc="${i}"><button class="sys-link-btn danger" data-pr="${i}">×</button></div>`).join('')+'<div class="sys-total-line total"><span>Total cost</span><span>'+fmt(purchaseCart.reduce((s,x)=>s+x.quantity*x.unit_cost,0))+'</span></div>':'<div class="sys-empty">Add products to receive stock.</div>';$$('[data-pq]').forEach(el=>el.oninput=()=>{purchaseCart[+el.dataset.pq].quantity=Number(el.value||0);renderPurchaseCart()});$$('[data-pc]').forEach(el=>el.onchange=()=>{purchaseCart[+el.dataset.pc].unit_cost=Number(el.value||0);renderPurchaseCart()});$$('[data-pr]').forEach(el=>el.onclick=()=>{purchaseCart.splice(+el.dataset.pr,1);renderPurchaseCart()})}
-  $('#savePurchase')?.addEventListener('click',async()=>{if(!purchaseCart.length)return toast('Add at least one product.',true);try{await api('/system/api/purchases',{method:'POST',body:{supplier_id:$('#purchaseSupplier').value||null,invoice_number:$('#purchaseInvoice').value,items:purchaseCart}});purchaseCart=[];$('#purchaseInvoice').value='';toast('Purchase saved and stock updated.');loadPurchases()}catch(e){toast(e.message,true)}});
+  $('#purchaseItems')?.addEventListener('change', e => {
+    const q = e.target.closest('[data-pq]'), c = e.target.closest('[data-pc]');
+    if (q) purchaseCart[+q.dataset.pq].quantity = Number(q.value || 0);
+    if (c) purchaseCart[+c.dataset.pc].unit_cost = Number(c.value || 0);
+    renderPurchaseCart();
+  });
+  $('#purchaseItems')?.addEventListener('click', e => { const r = e.target.closest('[data-pr]'); if (r) { purchaseCart.splice(+r.dataset.pr, 1); renderPurchaseCart(); } });
+  $('#savePurchase')?.addEventListener('click', async () => {
+    if (!purchaseCart.length) return toast(t('add_one_product'), true);
+    try {
+      await api('/system/api/purchases', { method: 'POST', body: { supplier_id: $('#purchaseSupplier').value || null, invoice_number: $('#purchaseInvoice').value, items: purchaseCart } });
+      purchaseCart = []; $('#purchaseInvoice').value = ''; toast(t('purchase_saved')); loadPurchases();
+    } catch (e) { toast(e.message, true); }
+  });
 
-  async function loadExpenses(){
-    if(!$('#expenseList'))return;
-    try{const d=await api('/system/api/expenses');$('#expenseList').innerHTML=d.expenses.length?`<div class="sys-table-wrap"><table class="sys-table"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>${d.expenses.map(x=>`<tr><td>${new Date(x.created_at+'Z').toLocaleString()}</td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${fmt(Number(x.amount_lbp)+Number(x.amount_usd)*Number(x.exchange_rate))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="sys-empty">No expenses today.</div>';}catch(e){toast(e.message,true)}
+  // ── Expenses ─────────────────────────────────────────────────
+  const expKey = c => ({ Rent: 'exp_rent', Salary: 'exp_salary', Delivery: 'exp_delivery', Marketing: 'exp_marketing', Utilities: 'exp_utilities', Supplies: 'exp_supplies', Other: 'exp_other' }[c]);
+  async function loadExpenses() {
+    const host = $('#expenseList'); if (!host) return;
+    try {
+      const d = await api('/system/api/expenses');
+      host.innerHTML = d.expenses.length
+        ? `<div class="table-wrap"><table class="table"><thead><tr><th>${t('date')}</th><th>${t('category')}</th><th>${t('description')}</th><th>${t('amount')}</th></tr></thead><tbody>${
+          d.expenses.map(x => `<tr><td class="muted">${when(x.created_at)}</td><td><span class="pill pill--plain">${esc(expKey(x.category) ? t(expKey(x.category)) : x.category)}</span></td><td>${esc(x.description)}</td><td class="num" dir="ltr">${lbp(Number(x.amount_lbp) + Number(x.amount_usd) * Number(x.exchange_rate))}</td></tr>`).join('')}</tbody></table></div>`
+        : empty(t('no_expenses'));
+    } catch (e) { toast(e.message, true); }
   }
-  $('#expenseForm')?.addEventListener('submit',async e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.target));body.exchange_rate=exchangeRate;body.from_drawer=!!e.target.from_drawer.checked;try{await api('/system/api/expenses',{method:'POST',body});e.target.reset();toast('Expense saved.');loadExpenses();loadDashboard()}catch(err){toast(err.message,true)}});
+  $('#expenseForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.target));
+    body.from_drawer = !!e.target.from_drawer.checked;
+    try { await api('/system/api/expenses', { method: 'POST', body }); e.target.reset(); toast(t('expense_saved')); loadExpenses(); }
+    catch (err) { toast(err.message, true); }
+  });
 
-  async function loadReports(){
-    initDates();if(!$('#reportMetrics'))return;
-    const from=$('#reportFrom').value,to=$('#reportTo').value;
-    try{const d=await api('/system/api/reports?from='+from+'&to='+to);$('#reportMetrics').innerHTML=[['Revenue',d.sales.revenue,''],['COGS',d.cogs,'bad'],['Gross Profit',d.gross_profit,d.gross_profit>=0?'good':'bad'],['Expenses',d.expenses,'bad'],['Net Profit',d.net_profit,d.net_profit>=0?'good':'bad']].map(x=>`<div class="sys-metric ${x[2]}"><b>${fmt(x[1])}</b><span>${x[0]}</span></div>`).join('');$('#topProducts').innerHTML=d.top.map((x,i)=>`<div class="sys-list-row"><span>${i+1}. <b>${esc(x.product_name)}</b> <small>×${x.qty}</small></span><span>${fmt(x.revenue)}</span></div>`).join('')||'<div class="sys-empty">No sales.</div>';$('#paymentReport').innerHTML=d.payments.map(x=>`<div class="sys-list-row"><span><b>${esc(x.payment_method)}</b> · ${x.count} sales</span><span>${fmt(x.total)}</span></div>`).join('')||'<div class="sys-empty">No payments.</div>';}catch(e){toast(e.message,true)}
+  // ── Reports ──────────────────────────────────────────────────
+  async function loadReports() {
+    initDates(); if (!$('#reportMetrics')) return;
+    try {
+      const d = await api(`/system/api/reports?from=${$('#reportFrom').value}&to=${$('#reportTo').value}`);
+      $('#reportMetrics').innerHTML = stat(t('revenue'), lbp(d.sales.revenue)) + stat(t('cogs'), lbp(d.cogs)) +
+        stat(t('gross_profit'), lbp(d.gross_profit), d.gross_profit >= 0 ? 'stat--good' : 'stat--bad') +
+        stat(t('expenses'), lbp(d.expenses)) + stat(t('net_profit'), lbp(d.net_profit), d.net_profit >= 0 ? 'stat--good' : 'stat--bad');
+      $('#topProducts').innerHTML = d.top.map((x, i) => `<div class="list-row"><span><span class="muted num">${i + 1}.</span> <b>${esc(x.product_name)}</b> <small class="muted">×${x.qty}</small></span><span class="num" dir="ltr">${lbp(x.revenue)}</span></div>`).join('') || empty(t('no_sales'));
+      $('#paymentReport').innerHTML = d.payments.map(x => `<div class="list-row"><span><b>${esc(payLabel(x.payment_method))}</b> <small class="muted">· ${x.count} ${t('sales_word')}</small></span><span class="num" dir="ltr">${lbp(x.total)}</span></div>`).join('') || empty(t('no_sales'));
+    } catch (e) { toast(e.message, true); }
   }
-  $('#reportBtn')?.addEventListener('click',loadReports);
+  $('#reportBtn')?.addEventListener('click', loadReports);
 
-  async function loadUsers(){
-    if(!$('#userList'))return;
-    try{const d=await api('/system/api/users');$('#userList').innerHTML=d.users.map(u=>`<div class="sys-list-row"><span><b>${esc(u.full_name)}</b><br><small>${esc(u.username)} · ${esc(u.role)}</small></span><button class="sys-btn sys-btn--small" data-toggle-user="${u.id}">${u.active?'Disable':'Enable'}</button></div>`).join('')||'<div class="sys-empty">No staff users.</div>';$$('[data-toggle-user]').forEach(b=>b.onclick=async()=>{try{await api('/system/api/users/'+b.dataset.toggleUser+'/toggle',{method:'POST',body:{}});loadUsers()}catch(e){toast(e.message,true)}});}catch(e){toast(e.message,true)}
+  // ── Team ─────────────────────────────────────────────────────
+  async function loadUsers() {
+    const host = $('#userList'); if (!host) return;
+    try {
+      const d = await api('/system/api/users');
+      host.innerHTML = d.users.length ? d.users.map(u => `<div class="list-row"><span><b>${esc(u.full_name)}</b><br><small class="muted"><span dir="ltr">${esc(u.username)}</span> · ${t('role_' + u.role)}</small></span>
+        <span style="display:flex;gap:8px;align-items:center">${u.active ? '' : `<span class="pill pill--red">${t('unavailable')}</span>`}<button class="btn btn--sm" data-toggle-user="${u.id}">${u.active ? t('disable') : t('enable')}</button></span></div>`).join('') : empty(t('no_staff'));
+    } catch (e) { toast(e.message, true); }
   }
-  $('#userForm')?.addEventListener('submit',async e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.target));try{await api('/system/api/users',{method:'POST',body});e.target.reset();toast('User created.');loadUsers()}catch(err){toast(err.message,true)}});
+  $('#userList')?.addEventListener('click', async e => {
+    const b = e.target.closest('[data-toggle-user]'); if (!b) return;
+    try { await api('/system/api/users/' + b.dataset.toggleUser + '/toggle', { method: 'POST', body: {} }); loadUsers(); } catch (err) { toast(err.message, true); }
+  });
+  $('#userForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await api('/system/api/users', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast(t('user_created')); loadUsers(); }
+    catch (err) { toast(err.message, true); }
+  });
 
+  // ── Start ────────────────────────────────────────────────────
   initDates();
   renderCart();
-  loadDashboard();
+  let start = 'pos';
+  try { start = localStorage.getItem(TAB_KEY) || 'pos'; } catch (_) {}
+  setTab(start);
+  loadShift();
 })();

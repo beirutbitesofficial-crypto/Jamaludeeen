@@ -9,91 +9,72 @@ const { saleUnitCost } = require('../helpers/inventory');
 const adminAuth = require('../middleware/adminAuth');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
 const { uploadsDir: persistentUploadsDir } = require('../database/runtime-paths');
+const { translator } = require('../helpers/back-office-i18n');
+const { SECTION_KEYS, refillPricesUsd, sectionWhere, sectionCounts, brandList } = require('../helpers/catalog');
+const { exchangeRate } = require('../helpers/pricing');
 
-// ── Multer setup ─────────────────────────────────────────────────────────────
-const uploadsDir = path.join(persistentUploadsDir, 'products');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const tr = req => translator(req.session.lang);
+const IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
 
-const storage = multer.diskStorage({
-  destination: uploadsDir,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `product-${req.params.id}-${Date.now()}${ext}`);
-  }
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
-    else cb(new Error('Only jpg/png/webp images are allowed.'));
-  }
-});
-
-// Brand logo uploader
-const brandUploadsDir = path.join(persistentUploadsDir, 'brands');
-if (!fs.existsSync(brandUploadsDir)) fs.mkdirSync(brandUploadsDir, { recursive: true });
-
-const brandStorage = multer.diskStorage({
-  destination: brandUploadsDir,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `brand-${req.params.id}-${Date.now()}${ext}`);
-  }
-});
-const uploadBrand = multer({ storage: brandStorage, limits: { fileSize: 2 * 1024 * 1024 } });
-
-// Settings images uploader (banner, category images)
-const settingsUploadsDir = path.join(persistentUploadsDir, 'settings');
-if (!fs.existsSync(settingsUploadsDir)) fs.mkdirSync(settingsUploadsDir, { recursive: true });
-
-const uploadSettings = multer({
-  storage: multer.diskStorage({
-    destination: settingsUploadsDir,
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `${req.params.type}-${Date.now()}${ext}`);
-    }
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const ok = ['.jpg', '.jpeg', '.png', '.webp'];
-    ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Only jpg/png/webp'));
-  }
-});
-
-// Helpers
-function getSettings() {
-  return Object.fromEntries(
-    db.prepare(`SELECT key, value FROM settings`).all().map(r => [r.key, r.value])
-  );
+// ── Uploads (all kept in the persistent uploads directory) ───────────────────
+function imageUploader(subdir, prefix, maxMb) {
+  const dir = path.join(persistentUploadsDir, subdir);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return multer({
+    storage: multer.diskStorage({
+      destination: dir,
+      filename: (req, file, cb) => cb(null, `${prefix(req)}-${Date.now()}${path.extname(file.originalname).toLowerCase()}`),
+    }),
+    limits: { fileSize: maxMb * 1024 * 1024 },
+    fileFilter: (req, file, cb) => (IMAGE_EXT.includes(path.extname(file.originalname).toLowerCase())
+      ? cb(null, true)
+      : cb(new Error('Only JPG, PNG or WebP images are allowed.'))),
+  });
 }
+const upload = imageUploader('products', req => `product-${req.params.id || 'new'}`, 5);
+const uploadBrand = imageUploader('brands', req => `brand-${req.params.id}`, 2);
+const uploadBrandCat = imageUploader('brands', req => `line-${req.params.brandId}`, 5);
+const uploadSettings = imageUploader('settings', req => req.params.type, 10);
 
+// Turn multer errors into a friendly message instead of a crash page.
+const withUpload = (mw, back) => (req, res, next) => mw(req, res, err => {
+  if (!err) return next();
+  req.flash('error', err.message);
+  res.redirect(typeof back === 'function' ? back(req) : back);
+});
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function getSettings() {
+  return Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(r => [r.key, r.value]));
+}
 function managedFilePath(urlPath) {
   if (!urlPath) return null;
-  if (String(urlPath).startsWith('/uploads/')) {
-    return path.join(persistentUploadsDir, String(urlPath).slice('/uploads/'.length));
-  }
-  return path.join(__dirname, '..', 'public', String(urlPath).replace(/^\//, ''));
+  if (String(urlPath).startsWith('/uploads/')) return path.join(persistentUploadsDir, String(urlPath).slice('/uploads/'.length));
+  return null; // bundled images under /images are never deleted from the admin
 }
+function removeManagedFile(urlPath) {
+  const file = managedFilePath(urlPath);
+  if (file && fs.existsSync(file)) fs.unlinkSync(file);
+}
+const back = (req, fallback) => req.get('Referrer') || fallback;
+const pageOf = v => Math.max(1, parseInt(v, 10) || 1);
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+// ── Login ───────────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.session.isAdmin) return res.redirect('/admin/dashboard');
-  res.render('admin/login', { title: 'Admin Login', layout: false });
+  res.render('admin/login', { title: tr(req)('login') });
 });
 
 router.post('/login', loginRateLimit('admin'), (req, res) => {
   const { username, password } = req.body;
-  const admin = db.prepare(`SELECT * FROM admins WHERE username = ?`).get(username);
-  if (admin && bcrypt.compareSync(password, admin.password)) {
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+  if (admin && bcrypt.compareSync(String(password || ''), admin.password)) {
     clearLoginAttempts(req, 'admin');
     req.session.isAdmin = true;
     req.session.adminUsername = admin.username;
     return res.redirect('/admin/dashboard');
   }
-  req.flash('error', 'Invalid username or password.');
+  req.flash('error', tr(req)('invalid_login'));
   res.redirect('/admin/login');
 });
 
@@ -103,246 +84,265 @@ router.post('/logout', (req, res) => {
   res.redirect('/admin/login');
 });
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
+// ── Dashboard ───────────────────────────────────────────────────────────────
 router.get('/', adminAuth, (req, res) => res.redirect('/admin/dashboard'));
 
 router.get('/dashboard', adminAuth, (req, res) => {
+  const rate = exchangeRate(getSettings());
+  const revenue = db.prepare(`
+    SELECT COALESCE(SUM(CASE WHEN currency = 'USD' THEN total * ? ELSE total END), 0) AS s
+    FROM orders WHERE status != 'cancelled'
+  `).get(rate).s;
   const stats = {
-    products: db.prepare(`SELECT COUNT(*) as c FROM products`).get().c,
-    orders:   db.prepare(`SELECT COUNT(*) as c FROM orders`).get().c,
-    pending:  db.prepare(`SELECT COUNT(*) as c FROM orders WHERE status='pending'`).get().c,
-    revenue:  db.prepare(`SELECT COALESCE(SUM(total),0) as s FROM orders WHERE status != 'cancelled'`).get().s,
+    products: db.prepare('SELECT COUNT(*) AS c FROM products').get().c,
+    orders: db.prepare('SELECT COUNT(*) AS c FROM orders').get().c,
+    pending: db.prepare("SELECT COUNT(*) AS c FROM orders WHERE status='pending'").get().c,
+    revenue,
   };
-  const recentOrders = db.prepare(`
-    SELECT * FROM orders ORDER BY created_at DESC LIMIT 10
-  `).all();
-  res.render('admin/dashboard', { title: 'Dashboard', stats, recentOrders });
+  const recentOrders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 8').all();
+  const counts = sectionCounts(db);
+  const missingPhotos = db.prepare("SELECT COUNT(*) AS c FROM products WHERE COALESCE(image_path, '') = ''").get().c;
+  res.render('admin/dashboard', { title: tr(req)('dashboard'), stats, recentOrders, counts, missingPhotos });
 });
 
-// Four-section catalog overview
+// ── Catalog overview (same four sections as the website) ────────────────────
 router.get('/catalog', adminAuth, (req, res) => {
   const settings = getSettings();
-  const categories = ['men', 'women', 'unisex'].map(category => ({
-    key: category,
-    count: db.prepare(`SELECT COUNT(*) AS c FROM products WHERE type='local' AND category=?`).get(category).c,
-    price: settings[`local_price_${category}`] || '',
-    image: settings[`${category}_image`] || null,
-  }));
-  const brandStats = {
-    count: db.prepare(`SELECT COUNT(*) AS c FROM products WHERE type='brand'`).get().c,
-    brands: db.prepare(`SELECT COUNT(*) AS c FROM brands`).get().c,
-  };
-  res.render('admin/catalog', { title: 'Catalog Categories', categories, brandStats });
-});
-
-// ── Products ──────────────────────────────────────────────────────────────────
-router.get('/products', adminAuth, (req, res) => {
-  const { q, category, brand, type, page = 1 } = req.query;
-  const PAGE = 30;
-  const offset = (parseInt(page) - 1) * PAGE;
-
-  let where = ['1=1'];
-  const params = [];
-  if (q) { where.push('(name_en LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
-  if (category) { where.push('category = ?'); params.push(category); }
-  if (brand) { where.push('brand = ?'); params.push(brand); }
-  if (type === 'local' || type === 'brand') { where.push('type = ?'); params.push(type); }
-
-  const ws = where.join(' AND ');
-  const total = db.prepare(`SELECT COUNT(*) as c FROM products WHERE ${ws}`).get(...params).c;
-  const products = db.prepare(`SELECT * FROM products WHERE ${ws} ORDER BY name_en LIMIT ? OFFSET ?`)
-                    .all(...params, PAGE, offset);
-
-  const brandsList = db.prepare(`SELECT DISTINCT brand FROM products ORDER BY brand`).all().map(r => r.brand);
-  const totalPages = Math.ceil(total / PAGE);
-
-  res.render('admin/products', {
-    title: 'Products',
-    products, brandsList,
-    filters: { q, category, brand, type },
-    pagination: { page: parseInt(page), totalPages, total }
+  res.render('admin/catalog', {
+    title: tr(req)('catalog'),
+    counts: sectionCounts(db),
+    brands: brandList(db),
+    covers: { men: settings.men_image, women: settings.women_image, unisex: settings.unisex_image },
+    refill: refillPricesUsd(settings),
   });
 });
 
-// GET edit page
-router.get('/products/:id(\\d+)/edit', adminAuth, (req, res) => {
-  const product = db.prepare(`SELECT * FROM products WHERE id = ?`).get(req.params.id);
-  if (!product) return res.status(404).send('Not found');
-  res.render('admin/product-edit', { title: 'Edit Product', product });
+// ── Products ────────────────────────────────────────────────────────────────
+router.get('/products', adminAuth, (req, res) => {
+  const section = SECTION_KEYS.includes(req.query.section) ? req.query.section : 'men';
+  const brand = section === 'brands' ? String(req.query.brand || '') : '';
+  const q = String(req.query.q || '').trim();
+  const photo = ['with', 'without'].includes(req.query.photo) ? req.query.photo : '';
+  const page = pageOf(req.query.page);
+  const PAGE = 36;
+
+  const { where, params } = sectionWhere(section, brand);
+  if (q) { where.push('(name_en LIKE ? OR name_ar LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (photo === 'with') where.push("COALESCE(image_path, '') <> ''");
+  if (photo === 'without') where.push("COALESCE(image_path, '') = ''");
+  const ws = where.join(' AND ');
+
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM products WHERE ${ws}`).get(...params).c;
+  const products = db.prepare(`SELECT * FROM products WHERE ${ws} ORDER BY brand = '' , name_en LIMIT ? OFFSET ?`)
+    .all(...params, PAGE, (page - 1) * PAGE);
+
+  res.render('admin/products', {
+    title: tr(req)('products'),
+    products,
+    counts: sectionCounts(db),
+    brands: brandList(db),
+    refill: refillPricesUsd(getSettings()),
+    filters: { section, brand, q, photo },
+    pagination: { page, totalPages: Math.ceil(total / PAGE), total },
+  });
 });
 
-// POST save product
-router.post('/products/:id(\\d+)', adminAuth, upload.single('image'), (req, res) => {
-  const { price, name_ar, description_en, description_ar, in_stock, featured } = req.body;
-  const id = req.params.id;
+router.post('/products/new', adminAuth, (req, res) => {
+  const a = tr(req);
+  const name = String(req.body.name_en || '').trim();
+  const section = SECTION_KEYS.includes(req.body.section) ? req.body.section : '';
+  if (!name || !section) {
+    req.flash('error', a('fill_required'));
+    return res.redirect(back(req, '/admin/products'));
+  }
+  let info;
+  if (section === 'brands') {
+    const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(parseInt(req.body.brand_id, 10));
+    if (!brand) { req.flash('error', a('choose_brand')); return res.redirect(back(req, '/admin/products')); }
+    // Keep the brand's line structure: put new products in its first line.
+    const line = db.prepare('SELECT id FROM brand_categories WHERE brand_id = ? ORDER BY sort_order, id LIMIT 1').get(brand.id);
+    info = db.prepare(`INSERT INTO products (name_en, category, brand, type, brand_category_id, in_stock)
+                       VALUES (?, 'unisex', ?, 'brand', ?, 1)`).run(name, brand.name, line ? line.id : null);
+  } else {
+    const house = String(req.body.house || '').trim() || 'Jamaludeen';
+    info = db.prepare(`INSERT INTO products (name_en, category, brand, type, price, in_stock)
+                       VALUES (?, ?, ?, 'local', 0, 1)`).run(name, section, house);
+  }
+  req.flash('success', a('product_created'));
+  res.redirect(`/admin/products/${info.lastInsertRowid}/edit`);
+});
 
-  const updates = {
-    price: price !== '' && !isNaN(parseFloat(price)) ? parseFloat(price) : null,
-    name_ar: name_ar?.trim() || null,
-    description_en: description_en?.trim() || null,
-    description_ar: description_ar?.trim() || null,
-    in_stock: in_stock === '1' ? 1 : 0,
-    featured: featured === '1' ? 1 : 0,
+router.get('/products/:id(\\d+)/edit', adminAuth, (req, res) => {
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!product) return res.status(404).render('404', { title: '404' });
+  res.render('admin/product-edit', {
+    title: tr(req)('edit_product'),
+    product,
+    brands: brandList(db),
+    refill: refillPricesUsd(getSettings()),
+  });
+});
+
+// Saving a product only ever changes that one product.
+router.post('/products/:id(\\d+)', adminAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  if (!product) return res.status(404).render('404', { title: '404' });
+  const text = v => String(v || '').trim() || null;
+  const name = String(req.body.name_en || '').trim() || product.name_en;
+
+  const cols = {
+    name_en: name,
+    name_ar: text(req.body.name_ar),
+    description_en: text(req.body.description_en),
+    description_ar: text(req.body.description_ar),
+    in_stock: req.body.in_stock === '1' ? 1 : 0,
+    featured: req.body.featured === '1' ? 1 : 0,
     updated_at: new Date().toISOString(),
   };
-
-  if (req.file) {
-    // Remove old image if exists
-    const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
-    if (old?.image_path) {
-      const oldPath = managedFilePath(old.image_path);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    updates.image_path = `/uploads/products/${req.file.filename}`;
+  if (product.type === 'brand') {
+    const price = parseFloat(req.body.price);
+    cols.price = Number.isFinite(price) && price >= 0 ? price : null;
+  } else {
+    cols.brand = String(req.body.house || '').trim() || product.brand;
+    if (SECTION_KEYS.includes(req.body.section) && req.body.section !== 'brands') cols.category = req.body.section;
   }
-
-  const setCols = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-  const vals = [...Object.values(updates), id];
-
-  db.prepare(`UPDATE products SET ${setCols} WHERE id = ?`).run(...vals);
-  const saved = db.prepare(`SELECT type, category, price, image_path FROM products WHERE id = ?`).get(id);
-  if (saved?.type === 'local') {
-    const sync = db.transaction(() => {
-      db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(`local_price_${saved.category}`, saved.price === null ? '' : String(saved.price));
-      if (saved.image_path) db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(`${saved.category}_image`, saved.image_path);
-      db.prepare(`UPDATE products SET price = ?, image_path = COALESCE(?, image_path), updated_at = ? WHERE type='local' AND category = ?`)
-        .run(saved.price, saved.image_path, new Date().toISOString(), saved.category);
-    });
-    sync();
-  }
-  req.flash('success', 'Product updated successfully.');
+  const set = Object.keys(cols).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE products SET ${set} WHERE id = ?`).run(...Object.values(cols), id);
+  req.flash('success', tr(req)('product_saved'));
   res.redirect(`/admin/products/${id}/edit`);
 });
 
-// POST update product image only
-router.post('/products/:id(\\d+)/image', adminAuth, upload.single('image'), (req, res) => {
-  const id = parseInt(req.params.id);
-  if (!req.file) {
-    req.flash('error', 'Please choose an image first.');
-    return res.redirect('back');
-  }
-
-  const old = db.prepare(`SELECT image_path FROM products WHERE id = ?`).get(id);
-  if (old?.image_path) {
-    const oldPath = managedFilePath(old.image_path);
-    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-  }
-
-  db.prepare(`UPDATE products SET image_path = ?, updated_at = ? WHERE id = ?`)
+router.post('/products/:id(\\d+)/image', adminAuth, withUpload(upload.single('image'), req => back(req, '/admin/products')), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const product = db.prepare('SELECT image_path FROM products WHERE id = ?').get(id);
+  if (!product) return res.status(404).render('404', { title: '404' });
+  if (!req.file) { req.flash('error', tr(req)('fill_required')); return res.redirect(back(req, '/admin/products')); }
+  removeManagedFile(product.image_path);
+  db.prepare('UPDATE products SET image_path = ?, updated_at = ? WHERE id = ?')
     .run(`/uploads/products/${req.file.filename}`, new Date().toISOString(), id);
-  const saved = db.prepare(`SELECT type, category, image_path FROM products WHERE id = ?`).get(id);
-  if (saved?.type === 'local') {
-    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(`${saved.category}_image`, saved.image_path);
-    db.prepare(`UPDATE products SET image_path = ?, updated_at = ? WHERE type='local' AND category = ?`)
-      .run(saved.image_path, new Date().toISOString(), saved.category);
-  }
-
-  req.flash('success', 'Image updated successfully.');
-  res.redirect('back');
+  req.flash('success', tr(req)('photo_updated'));
+  res.redirect(back(req, `/admin/products/${id}/edit`));
 });
 
-// POST delete product image
 router.post('/products/:id(\\d+)/delete-image', adminAuth, (req, res) => {
-  const product = db.prepare(`SELECT image_path, type, category FROM products WHERE id = ?`).get(req.params.id);
+  const id = parseInt(req.params.id, 10);
+  const product = db.prepare('SELECT image_path FROM products WHERE id = ?').get(id);
   if (product?.image_path) {
-    const imgPath = managedFilePath(product.image_path);
-    if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    db.prepare(`UPDATE products SET image_path = NULL WHERE id = ?`).run(req.params.id);
+    removeManagedFile(product.image_path);
+    db.prepare('UPDATE products SET image_path = NULL, updated_at = ? WHERE id = ?').run(new Date().toISOString(), id);
   }
-  if (product?.type === 'local') {
-    db.prepare(`DELETE FROM settings WHERE key = ?`).run(`${product.category}_image`);
-    db.prepare(`UPDATE products SET image_path = NULL WHERE type='local' AND category = ?`).run(product.category);
-  }
-  req.flash('success', 'Image removed.');
-  res.redirect(`/admin/products/${req.params.id}/edit`);
+  req.flash('success', tr(req)('photo_removed'));
+  res.redirect(`/admin/products/${id}/edit`);
 });
 
-// POST add new product
-router.post('/products/new', adminAuth, (req, res) => {
-  const { name_en, category, brand, type } = req.body;
-  if (!name_en || !category || !brand) {
-    req.flash('error', 'Name, category, and brand are required.');
-    return res.redirect('/admin/products');
-  }
-  const validType = type === 'brand' ? 'brand' : 'local';
-  const info = db.prepare(`INSERT INTO products (name_en, category, brand, type) VALUES (?, ?, ?, ?)`)
-                  .run(name_en.trim(), category, brand.trim(), validType);
-  res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
-});
-
-// POST apply local category defaults from one product (price + image)
-router.post('/products/:id(\\d+)/apply-local-default', adminAuth, (req, res) => {
-  const id = parseInt(req.params.id);
-  const product = db.prepare(`SELECT id, category, type, price, image_path FROM products WHERE id = ?`).get(id);
-
-  if (!product) {
-    req.flash('error', 'Product not found.');
-    return res.redirect('/admin/products');
-  }
-  if (product.type !== 'local' || !['men', 'women', 'unisex'].includes(product.category)) {
-    req.flash('error', 'This action is only available for local Men/Women/Unisex products.');
-    return res.redirect('/admin/products');
-  }
-  if (product.price === null || !product.image_path) {
-    req.flash('error', 'Selected product must have both a price and an image.');
-    return res.redirect('/admin/products');
-  }
-
-  const upsertSetting = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`);
-  const updateCategory = db.prepare(`
-    UPDATE products
-    SET price = ?, image_path = ?, updated_at = ?
-    WHERE type = 'local' AND category = ?
-  `);
-
-  const run = db.transaction(() => {
-    upsertSetting.run(`local_price_${product.category}`, String(product.price));
-    upsertSetting.run(`${product.category}_image`, product.image_path);
-    updateCategory.run(product.price, product.image_path, new Date().toISOString(), product.category);
+// ── Prices ──────────────────────────────────────────────────────────────────
+router.get('/prices', adminAuth, (req, res) => {
+  const brand = String(req.query.brand || '');
+  const q = String(req.query.q || '').trim();
+  const { where, params } = sectionWhere('brands', brand);
+  if (q) { where.push('(name_en LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
+  const products = db.prepare(`SELECT id, name_en, brand, price, image_path FROM products WHERE ${where.join(' AND ')} ORDER BY brand, name_en LIMIT 400`).all(...params);
+  const settings = getSettings();
+  res.render('admin/prices', {
+    title: tr(req)('prices'),
+    products,
+    brands: brandList(db),
+    refill: refillPricesUsd(settings),
+    rate: exchangeRate(settings),
+    filters: { brand, q },
   });
-
-  run();
-  req.flash('success', `Applied ${product.category} shared price and image to all local ${product.category} products.`);
-  res.redirect('/admin/products');
 });
 
-// ── Orders ────────────────────────────────────────────────────────────────────
+router.post('/prices/refill', adminAuth, (req, res) => {
+  const val = v => { const n = parseFloat(v); return Number.isFinite(n) && n > 0 ? String(n) : null; };
+  const p50 = val(req.body.price_50), p100 = val(req.body.price_100);
+  if (!p50 || !p100) { req.flash('error', tr(req)('fill_required')); return res.redirect('/admin/prices'); }
+  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  db.transaction(() => { upsert.run('refill_price_50ml_usd', p50); upsert.run('refill_price_100ml_usd', p100); })();
+  req.flash('success', tr(req)('refill_prices_saved'));
+  res.redirect('/admin/prices');
+});
+
+router.post('/prices/bulk', adminAuth, (req, res) => {
+  const prices = req.body.prices || {};
+  const update = db.prepare("UPDATE products SET price = ?, updated_at = ? WHERE id = ? AND type = 'brand'");
+  const now = new Date().toISOString();
+  db.transaction(() => {
+    for (const [id, value] of Object.entries(prices)) {
+      const p = parseFloat(value);
+      update.run(String(value).trim() === '' ? null : (Number.isFinite(p) && p >= 0 ? p : null), now, parseInt(id, 10));
+    }
+  })();
+  req.flash('success', tr(req)('prices_updated'));
+  res.redirect('/admin/prices' + (req.body._qs ? '?' + req.body._qs : ''));
+});
+
+// ── Images ──────────────────────────────────────────────────────────────────
+router.get('/images', adminAuth, (req, res) => {
+  const section = SECTION_KEYS.includes(req.query.section) ? req.query.section : 'brands';
+  const brand = section === 'brands' ? String(req.query.brand || '') : '';
+  const photo = ['with', 'without'].includes(req.query.photo) ? req.query.photo : '';
+  const page = pageOf(req.query.page);
+  const PAGE = 48;
+  const { where, params } = sectionWhere(section, brand);
+  if (photo === 'with') where.push("COALESCE(image_path, '') <> ''");
+  if (photo === 'without') where.push("COALESCE(image_path, '') = ''");
+  const ws = where.join(' AND ');
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM products WHERE ${ws}`).get(...params).c;
+  const products = db.prepare(`SELECT id, name_en, brand, image_path FROM products WHERE ${ws} ORDER BY name_en LIMIT ? OFFSET ?`)
+    .all(...params, PAGE, (page - 1) * PAGE);
+  res.render('admin/images', {
+    title: tr(req)('images'),
+    products,
+    counts: sectionCounts(db),
+    brands: brandList(db),
+    settings: getSettings(),
+    filters: { section, brand, photo },
+    pagination: { page, totalPages: Math.ceil(total / PAGE), total },
+  });
+});
+
+// ── Orders ──────────────────────────────────────────────────────────────────
+const ORDER_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
 router.get('/orders', adminAuth, (req, res) => {
-  const { status, page = 1 } = req.query;
-  const PAGE = 20;
-  const offset = (parseInt(page) - 1) * PAGE;
-
-  let where = '1=1';
+  const status = ORDER_STATUSES.includes(req.query.status) ? req.query.status : '';
+  const q = String(req.query.q || '').trim();
+  const page = pageOf(req.query.page);
+  const PAGE = 25;
+  const where = ['1=1'];
   const params = [];
-  if (status && status !== 'all') { where += ' AND status = ?'; params.push(status); }
-
-  const total = db.prepare(`SELECT COUNT(*) as c FROM orders WHERE ${where}`).get(...params).c;
-  const orders = db.prepare(`SELECT * FROM orders WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-                   .all(...params, PAGE, offset);
-
+  if (status) { where.push('status = ?'); params.push(status); }
+  if (q) { where.push('(order_number LIKE ? OR customer_name LIKE ? OR customer_phone LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  const ws = where.join(' AND ');
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM orders WHERE ${ws}`).get(...params).c;
+  const orders = db.prepare(`SELECT * FROM orders WHERE ${ws} ORDER BY id DESC LIMIT ? OFFSET ?`).all(...params, PAGE, (page - 1) * PAGE);
+  const statusCounts = Object.fromEntries(db.prepare('SELECT status, COUNT(*) c FROM orders GROUP BY status').all().map(r => [r.status, r.c]));
   res.render('admin/orders', {
-    title: 'Orders',
-    orders,
-    filters: { status },
-    pagination: { page: parseInt(page), totalPages: Math.ceil(total / PAGE), total }
+    title: tr(req)('orders'),
+    orders, statusCounts,
+    filters: { status, q },
+    pagination: { page, totalPages: Math.ceil(total / PAGE), total },
   });
 });
 
-router.get('/orders/:id', adminAuth, (req, res) => {
-  const order = db.prepare(`SELECT * FROM orders WHERE id = ?`).get(req.params.id);
-  if (!order) return res.status(404).send('Not found');
-  const items = db.prepare(`SELECT * FROM order_items WHERE order_id = ?`).all(order.id);
-  res.render('admin/order-detail', { title: `Order ${order.order_number}`, order, items });
+router.get('/orders/:id(\\d+)', adminAuth, (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).render('404', { title: '404' });
+  const items = db.prepare(`
+    SELECT oi.*, p.image_path FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id
+    WHERE oi.order_id = ? ORDER BY oi.id
+  `).all(order.id);
+  res.render('admin/order-detail', { title: `${tr(req)('order')} ${order.order_number}`, order, items });
 });
 
-router.post('/orders/:id/status', adminAuth, (req, res) => {
+router.post('/orders/:id(\\d+)/status', adminAuth, (req, res) => {
   const { status } = req.body;
-  const valid = ['pending','confirmed','shipped','delivered','cancelled'];
-  if (!valid.includes(status)) return res.redirect(`/admin/orders/${req.params.id}`);
-
   const orderId = parseInt(req.params.id, 10);
+  if (!ORDER_STATUSES.includes(status)) return res.redirect(`/admin/orders/${orderId}`);
   const order = db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);
-  if (!order) return res.status(404).send('Not found');
+  if (!order) return res.status(404).render('404', { title: '404' });
   if (order.status === status) return res.redirect(`/admin/orders/${orderId}`);
 
   try {
@@ -355,19 +355,15 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
           if (!item.product_id || !Number(item.stock_deduction)) continue;
           const p = db.prepare('SELECT * FROM products WHERE id=?').get(item.product_id);
           if (!p || !p.track_stock) continue;
-          if (Number(item.stock_deduction) > Number(p.stock_qty || 0)) {
-            throw new Error(`Not enough stock to reactivate ${item.product_name}.`);
-          }
+          if (Number(item.stock_deduction) > Number(p.stock_qty || 0)) throw new Error(`Not enough stock to reactivate ${item.product_name}.`);
         }
         for (const item of items) {
           if (!item.product_id || !Number(item.stock_deduction)) continue;
           const p = db.prepare('SELECT track_stock FROM products WHERE id=?').get(item.product_id);
           if (!p?.track_stock) continue;
-          db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
-            .run(item.stock_deduction, item.product_id);
+          db.prepare('UPDATE products SET stock_qty=stock_qty-?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(item.stock_deduction, item.product_id);
           db.prepare(`INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
-            VALUES (?,'sale',?,'online_order',?,'Order reactivated','Website Admin')`)
-            .run(item.product_id, -Number(item.stock_deduction), orderId);
+            VALUES (?,'sale',?,'online_order',?,'Order reactivated','Website Admin')`).run(item.product_id, -Number(item.stock_deduction), orderId);
         }
         db.prepare('UPDATE orders SET stock_reserved=1 WHERE id=?').run(orderId);
       }
@@ -378,11 +374,9 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
           if (!item.product_id || !Number(item.stock_deduction)) continue;
           const p = db.prepare('SELECT track_stock FROM products WHERE id=?').get(item.product_id);
           if (!p?.track_stock) continue;
-          db.prepare('UPDATE products SET stock_qty=stock_qty+?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
-            .run(item.stock_deduction, item.product_id);
+          db.prepare('UPDATE products SET stock_qty=stock_qty+?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(item.stock_deduction, item.product_id);
           db.prepare(`INSERT INTO inventory_movements(product_id,movement_type,quantity,reference_type,reference_id,note,staff_name)
-            VALUES (?,'return',?,'online_order',?,'Online order cancelled','Website Admin')`)
-            .run(item.product_id, Number(item.stock_deduction), orderId);
+            VALUES (?,'return',?,'online_order',?,'Online order cancelled','Website Admin')`).run(item.product_id, Number(item.stock_deduction), orderId);
         }
         db.prepare('UPDATE orders SET stock_reserved=0 WHERE id=?').run(orderId);
       }
@@ -390,16 +384,16 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
       let salesId = order.sales_id;
       if (status === 'delivered') {
         if (!salesId) {
-          const saleNumber = 'WEB-' + order.order_number;
+          // The sales ledger is in LBP; convert USD website orders at the current rate.
+          const rate = exchangeRate(getSettings());
+          const k = order.currency === 'USD' ? rate : 1;
           const saleInfo = db.prepare(`
             INSERT INTO sales(sale_number,customer_name,customer_phone,subtotal,discount,total,payment_method,
               exchange_rate,tendered_lbp,tendered_usd,change_lbp,change_usd,shift_id,cashier_name,notes,status,source)
-            VALUES (?,?,?,?,0,?,?,?,?,0,0,0,NULL,'Online Store',?,'completed','online')
-          `).run(
-            saleNumber, order.customer_name, order.customer_phone, order.subtotal, order.total,
-            order.payment_method, Number(db.prepare("SELECT value FROM settings WHERE key='system_exchange_rate'").get()?.value || 89500),
-            0, `Website order ${order.order_number}`
-          );
+            VALUES (?,?,?,?,0,?,?,?,0,0,0,0,NULL,'Online Store',?,'completed','online')
+          `).run('WEB-' + order.order_number, order.customer_name, order.customer_phone,
+            Math.round(order.subtotal * k), Math.round(order.total * k), order.payment_method, rate,
+            `Website order ${order.order_number}`);
           salesId = saleInfo.lastInsertRowid;
           const insertSaleItem = db.prepare(`
             INSERT INTO sale_items(sale_id,product_id,product_name,quantity,size_ml,stock_deduction,unit_price,unit_cost,line_total,note)
@@ -408,14 +402,15 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
           for (const item of items) {
             const p = item.product_id ? db.prepare('SELECT * FROM products WHERE id=?').get(item.product_id) : null;
             const cost = p ? saleUnitCost(p, item.size_ml) : 0;
-            insertSaleItem.run(salesId,item.product_id,item.product_name,item.quantity,item.size_ml,item.stock_deduction,item.price,cost,item.price*item.quantity,'Online order');
+            const unit = Math.round(item.price * k);
+            insertSaleItem.run(salesId, item.product_id, item.product_name, item.quantity, item.size_ml, item.stock_deduction, unit, cost, unit * item.quantity, 'Online order');
           }
-          db.prepare('UPDATE orders SET sales_id=? WHERE id=?').run(salesId,orderId);
+          db.prepare('UPDATE orders SET sales_id=? WHERE id=?').run(salesId, orderId);
         } else {
           db.prepare("UPDATE sales SET status='completed', refunded_at=NULL WHERE id=?").run(salesId);
         }
       } else if (salesId && order.status === 'delivered') {
-        db.prepare(`UPDATE sales SET status=?, refunded_at=CASE WHEN ?='refunded' THEN CURRENT_TIMESTAMP ELSE refunded_at END WHERE id=?`)
+        db.prepare("UPDATE sales SET status=?, refunded_at=CASE WHEN ?='refunded' THEN CURRENT_TIMESTAMP ELSE refunded_at END WHERE id=?")
           .run(status === 'cancelled' ? 'refunded' : 'voided', status === 'cancelled' ? 'refunded' : 'voided', salesId);
       } else if (salesId && status === 'cancelled') {
         db.prepare("UPDATE sales SET status='refunded', refunded_at=CURRENT_TIMESTAMP WHERE id=?").run(salesId);
@@ -423,394 +418,240 @@ router.post('/orders/:id/status', adminAuth, (req, res) => {
 
       db.prepare('UPDATE orders SET status=? WHERE id=?').run(status, orderId);
     })();
-
-    req.flash('success', 'Order status updated and inventory synchronized.');
+    req.flash('success', tr(req)('status_updated'));
   } catch (error) {
     req.flash('error', error.message);
   }
   res.redirect(`/admin/orders/${orderId}`);
 });
 
-// ── Settings ──────────────────────────────────────────────────────────────────
-router.get('/settings', adminAuth, (req, res) => {
-  const settings = getSettings();
-  res.render('admin/settings', { title: 'Settings', settings });
-});
-
-router.post('/settings', adminAuth, (req, res) => {
-  const allowed = ['whish_number','store_phone','store_whatsapp','store_address',
-                   'delivery_fee','hero_title_en','hero_title_ar','hero_sub_en','hero_sub_ar',
-                   'usd_rate'];
-  const upsert = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`);
-  const save = db.transaction(() => {
-    for (const key of allowed) {
-      if (req.body[key] !== undefined) upsert.run(key, req.body[key].trim());
-    }
-  });
-  save();
-  req.flash('success', 'Settings saved.');
-  res.redirect('/admin/settings');
-});
-
-// ── Admin password change ─────────────────────────────────────────────────────
-router.post('/change-password', adminAuth, (req, res) => {
-  const { current, newPass, confirm } = req.body;
-  const admin = db.prepare(`SELECT * FROM admins WHERE username = ?`).get(req.session.adminUsername);
-  if (!admin || !bcrypt.compareSync(current, admin.password)) {
-    req.flash('error', 'Current password is incorrect.');
-    return res.redirect('/admin/settings');
-  }
-  if (newPass !== confirm) {
-    req.flash('error', 'New passwords do not match.');
-    return res.redirect('/admin/settings');
-  }
-  if (newPass.length < 6) {
-    req.flash('error', 'Password must be at least 6 characters.');
-    return res.redirect('/admin/settings');
-  }
-  const hash = bcrypt.hashSync(newPass, 10);
-  db.prepare(`UPDATE admins SET password = ? WHERE id = ?`).run(hash, admin.id);
-  req.flash('success', 'Password changed successfully.');
-  res.redirect('/admin/settings');
-});
-
-// ── Settings — Image Uploads ───────────────────────────────────────────────────
-const VALID_IMG_TYPES = ['banner', 'men', 'women', 'unisex'];
-
-router.post('/settings/upload-image/:type', adminAuth, (req, res, next) => {
-  if (!VALID_IMG_TYPES.includes(req.params.type)) return res.status(400).send('Invalid type');
-  uploadSettings.single('image')(req, res, next);
-}, (req, res) => {
-  if (!req.file) { req.flash('error', 'No file received.'); return res.redirect('/admin/settings'); }
-  const key = `${req.params.type}_image`;
-  const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
-  if (old?.value) {
-    const p = managedFilePath(old.value);
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-  }
-  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(key, `/uploads/settings/${req.file.filename}`);
-  req.flash('success', `${req.params.type} image updated.`);
-  res.redirect('/admin/settings');
-});
-
-router.post('/settings/delete-image/:type', adminAuth, (req, res) => {
-  if (!VALID_IMG_TYPES.includes(req.params.type)) return res.status(400).send('Invalid type');
-  const key = `${req.params.type}_image`;
-  const old = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
-  if (old?.value) {
-    const p = managedFilePath(old.value);
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-    db.prepare(`UPDATE settings SET value = NULL WHERE key = ?`).run(key);
-  }
-  req.flash('success', 'Image removed.');
-  res.redirect('/admin/settings');
-});
-
-// ── Bulk Price Editor ─────────────────────────────────────────────────────────
-router.get('/prices', adminAuth, (req, res) => {
-  const { category = '', brand = '', q = '' } = req.query;
-  let where = ['1=1'];
-  const params = [];
-  where.push("type = 'brand'");
-  if (category) { where.push('category = ?'); params.push(category); }
-  if (brand)    { where.push('brand = ?');    params.push(brand); }
-  if (q)        { where.push('(name_en LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
-  const products = db.prepare(
-    `SELECT id, name_en, brand, category, type, price FROM products WHERE ${where.join(' AND ')} ORDER BY brand, name_en LIMIT 300`
-  ).all(...params);
-  const brandsList = db.prepare(`SELECT DISTINCT brand FROM products WHERE type='brand' ORDER BY brand`).all().map(r => r.brand);
-  const localPriceSettings = getSettings();
-  const localPrices = {
-    men: localPriceSettings.local_price_men || '',
-    women: localPriceSettings.local_price_women || '',
-    unisex: localPriceSettings.local_price_unisex || '',
-  };
-
-  res.render('admin/prices', { title: 'Bulk Prices', products, brandsList, localPrices, filters: { category, brand, q } });
-});
-
-router.post('/prices/local', adminAuth, (req, res) => {
-  const parsePrice = (v) => {
-    if (v === undefined || v === null || String(v).trim() === '') return null;
-    const n = parseFloat(v);
-    return !isNaN(n) && n >= 0 ? n : null;
-  };
-
-  const values = {
-    men: parsePrice(req.body.men),
-    women: parsePrice(req.body.women),
-    unisex: parsePrice(req.body.unisex),
-  };
-
-  const upsertSetting = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`);
-  const updateLocalCategory = db.prepare(`UPDATE products SET price = ?, updated_at = ? WHERE type = 'local' AND category = ?`);
-
-  const save = db.transaction(() => {
-    for (const category of ['men', 'women', 'unisex']) {
-      const price = values[category];
-      upsertSetting.run(`local_price_${category}`, price === null ? '' : String(price));
-      updateLocalCategory.run(price, new Date().toISOString(), category);
-    }
-  });
-
-  save();
-  req.flash('success', 'Standard prices updated for Men, Women, and Unisex sections.');
-  res.redirect('/admin/prices');
-});
-
-router.post('/prices/bulk', adminAuth, (req, res) => {
-  const prices = req.body.prices || {};
-  const qs = req.body._qs || '';
-  const update = db.prepare(`UPDATE products SET price = ?, updated_at = ? WHERE id = ? AND type = 'brand'`);
-  const now = new Date().toISOString();
-  let updatedCount = 0;
-  const run = db.transaction(() => {
-    for (const [id, price] of Object.entries(prices)) {
-      const p = price === '' ? null : parseFloat(price);
-      const info = update.run(!isNaN(p) && p >= 0 ? p : null, now, parseInt(id));
-      updatedCount += info.changes;
-    }
-  });
-  run();
-  req.flash('success', `Updated ${updatedCount} brand product prices.`);
-  res.redirect('/admin/prices' + (qs ? '?' + qs : ''));
-});
-
-// ── Order Stats API (for live notifications) ──────────────────────────────────
 router.get('/api/orders/stats', adminAuth, (req, res) => {
-  const pending = db.prepare(`SELECT COUNT(*) as c FROM orders WHERE status='pending'`).get().c;
-  const latest  = db.prepare(`SELECT id, order_number, customer_name, total FROM orders ORDER BY id DESC LIMIT 1`).get();
+  const pending = db.prepare("SELECT COUNT(*) AS c FROM orders WHERE status='pending'").get().c;
+  const latest = db.prepare('SELECT id, order_number, customer_name, total, currency FROM orders ORDER BY id DESC LIMIT 1').get();
   res.json({ pending, latest: latest || null });
 });
 
-// ── Product Images (quick-upload, mobile-friendly) ────────────────────────────
-router.get('/images', adminAuth, (req, res) => {
-  const { brand } = req.query;
-  const params = brand ? [brand] : [];
-  const where = brand ? `WHERE type='brand' AND brand = ?` : `WHERE type='brand'`;
-  const products = db.prepare(`SELECT id, name_en, brand, image_path FROM products ${where} ORDER BY brand, name_en`).all(...params);
-  const brandsList = db.prepare(`SELECT DISTINCT brand FROM products WHERE type='brand' ORDER BY brand`).all().map(r => r.brand);
+// ── Settings ────────────────────────────────────────────────────────────────
+router.get('/settings', adminAuth, (req, res) => {
   const settings = getSettings();
-  res.render('admin/images', { title: 'Product Images', products, brandsList, settings, filters: { brand: brand || '' } });
+  res.render('admin/settings', { title: tr(req)('settings'), settings, rate: exchangeRate(settings) });
 });
 
-// ── Brands ────────────────────────────────────────────────────────────────────
+router.post('/settings', adminAuth, (req, res) => {
+  const allowed = ['whish_number', 'store_phone', 'store_whatsapp', 'store_address', 'delivery_fee', 'instagram', 'tiktok'];
+  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  db.transaction(() => {
+    for (const key of allowed) if (req.body[key] !== undefined) upsert.run(key, String(req.body[key]).trim());
+    const rate = parseFloat(req.body.exchange_rate);
+    if (Number.isFinite(rate) && rate > 0) {
+      // Website and Store System share one exchange rate.
+      upsert.run('usd_rate', String(rate));
+      upsert.run('system_exchange_rate', String(rate));
+    }
+  })();
+  req.flash('success', tr(req)('settings_saved'));
+  res.redirect('/admin/settings');
+});
+
+router.post('/change-password', adminAuth, (req, res) => {
+  const a = tr(req);
+  const { current, newPass, confirm } = req.body;
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(req.session.adminUsername);
+  if (!admin || !bcrypt.compareSync(String(current || ''), admin.password)) { req.flash('error', a('pw_wrong')); return res.redirect('/admin/settings'); }
+  if (newPass !== confirm) { req.flash('error', a('pw_mismatch')); return res.redirect('/admin/settings'); }
+  if (String(newPass || '').length < 8) { req.flash('error', a('pw_short')); return res.redirect('/admin/settings'); }
+  db.prepare('UPDATE admins SET password = ? WHERE id = ?').run(bcrypt.hashSync(newPass, 10), admin.id);
+  req.flash('success', a('pw_changed'));
+  res.redirect('/admin/settings');
+});
+
+const SITE_IMAGES = ['banner', 'men', 'women', 'unisex'];
+router.post('/settings/upload-image/:type', adminAuth, (req, res, next) => {
+  if (!SITE_IMAGES.includes(req.params.type)) return res.status(400).send('Invalid type');
+  next();
+}, withUpload(uploadSettings.single('image'), req => back(req, '/admin/images')), (req, res) => {
+  if (!req.file) { req.flash('error', tr(req)('fill_required')); return res.redirect(back(req, '/admin/images')); }
+  const key = `${req.params.type}_image`;
+  const old = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  removeManagedFile(old?.value);
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, `/uploads/settings/${req.file.filename}`);
+  req.flash('success', tr(req)('photo_updated'));
+  res.redirect(back(req, '/admin/images'));
+});
+
+router.post('/settings/delete-image/:type', adminAuth, (req, res) => {
+  if (!SITE_IMAGES.includes(req.params.type)) return res.status(400).send('Invalid type');
+  const key = `${req.params.type}_image`;
+  const old = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  removeManagedFile(old?.value);
+  db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+  req.flash('success', tr(req)('photo_removed'));
+  res.redirect(back(req, '/admin/images'));
+});
+
+// ── Brands ──────────────────────────────────────────────────────────────────
 router.get('/brands', adminAuth, (req, res) => {
   const brands = db.prepare(`
-    SELECT b.*, COUNT(bc.id) as cat_count
-    FROM brands b
-    LEFT JOIN brand_categories bc ON bc.brand_id = b.id
-    GROUP BY b.id ORDER BY b.name ASC
+    SELECT b.*,
+      (SELECT COUNT(*) FROM brand_categories bc WHERE bc.brand_id = b.id) AS line_count,
+      (SELECT COUNT(*) FROM products p WHERE p.type = 'brand' AND p.brand = b.name) AS product_count
+    FROM brands b ORDER BY b.name
   `).all();
-  res.render('admin/brands', { title: 'Brands', brands });
+  res.render('admin/brands', { title: tr(req)('brands'), brands });
 });
 
 router.post('/brands/new', adminAuth, (req, res) => {
-  const { name, name_ar, type } = req.body;
-  if (!name?.trim()) { req.flash('error', 'Brand name required.'); return res.redirect('/admin/brands'); }
-  const validType = ['western','khaleeji'].includes(type) ? type : 'western';
+  const a = tr(req);
+  const name = String(req.body.name || '').trim();
+  if (!name) { req.flash('error', a('fill_required')); return res.redirect('/admin/brands'); }
+  const type = ['western', 'khaleeji'].includes(req.body.type) ? req.body.type : 'western';
   try {
-    const info = db.prepare(`INSERT INTO brands (name, name_ar, type) VALUES (?, ?, ?)`).run(name.trim(), name_ar?.trim() || null, validType);
-    req.flash('success', 'Brand created. Now add its first category.');
+    const info = db.prepare('INSERT INTO brands (name, name_ar, type) VALUES (?, ?, ?)').run(name, String(req.body.name_ar || '').trim() || null, type);
+    // Every brand gets a first line so its page on the website works immediately.
+    db.prepare("INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, '', 0)").run(info.lastInsertRowid, name);
+    req.flash('success', a('brand_created'));
     return res.redirect(`/admin/brands/${info.lastInsertRowid}/categories`);
-  } catch (e) {
-    req.flash('error', 'Brand name already exists.');
+  } catch (_) {
+    req.flash('error', a('brand_exists'));
+    res.redirect('/admin/brands');
+  }
+});
+
+router.post('/brands/:id(\\d+)/logo', adminAuth, withUpload(uploadBrand.single('logo'), '/admin/brands'), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!req.file) { req.flash('error', tr(req)('fill_required')); return res.redirect('/admin/brands'); }
+  const old = db.prepare('SELECT logo_path FROM brands WHERE id = ?').get(id);
+  removeManagedFile(old?.logo_path);
+  db.prepare('UPDATE brands SET logo_path = ? WHERE id = ?').run(`/uploads/brands/${req.file.filename}`, id);
+  req.flash('success', tr(req)('photo_updated'));
+  res.redirect('/admin/brands');
+});
+
+router.post('/brands/:id(\\d+)/edit', adminAuth, (req, res) => {
+  const a = tr(req);
+  const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(req.params.id);
+  if (!brand) return res.redirect('/admin/brands');
+  const name = String(req.body.name || '').trim() || brand.name;
+  const type = ['western', 'khaleeji'].includes(req.body.type) ? req.body.type : brand.type;
+  try {
+    db.transaction(() => {
+      db.prepare('UPDATE brands SET name = ?, name_ar = ?, type = ? WHERE id = ?').run(name, String(req.body.name_ar || '').trim() || null, type, brand.id);
+      // Products reference their brand by name; keep them attached after a rename.
+      if (name !== brand.name) db.prepare("UPDATE products SET brand = ? WHERE type = 'brand' AND brand = ?").run(name, brand.name);
+    })();
+    req.flash('success', a('brand_updated'));
+  } catch (_) {
+    req.flash('error', a('brand_exists'));
   }
   res.redirect('/admin/brands');
 });
 
-router.post('/brands/:id/logo', adminAuth, uploadBrand.single('logo'), (req, res) => {
-  const id = parseInt(req.params.id);
-  if (!req.file) { req.flash('error', 'Please choose a logo.'); return res.redirect('/admin/brands'); }
-  const old = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(id);
-  if (old?.logo_path) { const p = managedFilePath(old.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
-  db.prepare(`UPDATE brands SET logo_path = ? WHERE id = ?`).run(`/uploads/brands/${req.file.filename}`, id);
-  req.flash('success', 'Logo updated.');
+router.post('/brands/:id(\\d+)/delete', adminAuth, (req, res) => {
+  const brand = db.prepare('SELECT logo_path FROM brands WHERE id = ?').get(req.params.id);
+  removeManagedFile(brand?.logo_path);
+  db.prepare('DELETE FROM brands WHERE id = ?').run(req.params.id);
+  req.flash('success', tr(req)('brand_deleted'));
   res.redirect('/admin/brands');
 });
 
-router.post('/brands/:id/edit', adminAuth, (req, res) => {
-  const { name, name_ar, type } = req.body;
-  const validType = ['western','khaleeji'].includes(type) ? type : 'western';
-  db.prepare(`UPDATE brands SET name = ?, name_ar = ?, type = ? WHERE id = ?`).run(name?.trim() || '', name_ar?.trim() || null, validType, req.params.id);
-  req.flash('success', 'Brand updated.');
-  res.redirect('/admin/brands');
-});
-
-router.post('/brands/:id/delete', adminAuth, (req, res) => {
-  const brand = db.prepare(`SELECT logo_path FROM brands WHERE id = ?`).get(req.params.id);
-  if (brand?.logo_path) { const p = managedFilePath(brand.logo_path); if (fs.existsSync(p)) fs.unlinkSync(p); }
-  db.prepare(`DELETE FROM brands WHERE id = ?`).run(req.params.id);
-  req.flash('success', 'Brand deleted.');
-  res.redirect('/admin/brands');
-});
-
-// ── Brand Categories ──────────────────────────────────────────────────────────
-
-// Multer for brand-category images
-const brandCatUploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'brands');
-const uploadBrandCat = multer({
-  storage: multer.diskStorage({
-    destination: brandCatUploadsDir,
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `cat-${req.params.brandId}-${Date.now()}${ext}`);
-    }
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const ok = ['.jpg','.jpeg','.png','.webp'];
-    ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null,true) : cb(new Error('Images only'));
-  }
-});
-
-// GET /admin/brands/:brandId/categories
-router.get('/brands/:brandId/categories', adminAuth, (req, res) => {
-  const brand = db.prepare(`SELECT * FROM brands WHERE id = ?`).get(req.params.brandId);
-  if (!brand) return res.status(404).send('Brand not found');
+// ── Brand lines (brand_categories) ──────────────────────────────────────────
+router.get('/brands/:brandId(\\d+)/categories', adminAuth, (req, res) => {
+  const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(req.params.brandId);
+  if (!brand) return res.status(404).render('404', { title: '404' });
   const categories = db.prepare(`
-    SELECT bc.*, COUNT(p.id) as product_count
-    FROM brand_categories bc
-    LEFT JOIN products p ON p.brand_category_id = bc.id
-    WHERE bc.brand_id = ?
-    GROUP BY bc.id
-    ORDER BY bc.sort_order ASC, bc.name_en ASC
+    SELECT bc.*, COUNT(p.id) AS product_count
+    FROM brand_categories bc LEFT JOIN products p ON p.brand_category_id = bc.id
+    WHERE bc.brand_id = ? GROUP BY bc.id ORDER BY bc.sort_order, bc.name_en
   `).all(brand.id);
-  res.render('admin/brand-categories', { title: `${brand.name} — Categories`, brand, categories });
+  res.render('admin/brand-categories', { title: brand.name, brand, categories });
 });
 
-// POST /admin/brands/:brandId/categories/new
-router.post('/brands/:brandId/categories/new', adminAuth, (req, res) => {
-  const brand = db.prepare(`SELECT * FROM brands WHERE id = ?`).get(req.params.brandId);
-  if (!brand) return res.status(404).send('Brand not found');
-  const { name_en, name_ar, sort_order } = req.body;
-  if (!name_en?.trim()) {
-    req.flash('error', 'Category name is required.');
-    return res.redirect(`/admin/brands/${brand.id}/categories`);
-  }
-  const info = db.prepare(`INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, ?, ?)`)
-    .run(brand.id, name_en.trim(), name_ar?.trim() || null, parseInt(sort_order) || 0);
-  req.flash('success', 'Category created. Now add products to it.');
+router.post('/brands/:brandId(\\d+)/categories/new', adminAuth, (req, res) => {
+  const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(req.params.brandId);
+  if (!brand) return res.status(404).render('404', { title: '404' });
+  const name = String(req.body.name_en || '').trim();
+  if (!name) { req.flash('error', tr(req)('fill_required')); return res.redirect(`/admin/brands/${brand.id}/categories`); }
+  const info = db.prepare('INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, ?, ?)')
+    .run(brand.id, name, String(req.body.name_ar || '').trim() || null, parseInt(req.body.sort_order, 10) || 0);
+  req.flash('success', tr(req)('line_saved'));
   res.redirect(`/admin/brands/${brand.id}/categories/${info.lastInsertRowid}/products`);
 });
 
-// POST /admin/brands/:brandId/categories/:catId/edit
-router.post('/brands/:brandId/categories/:catId/edit', adminAuth, uploadBrandCat.single('image'), (req, res) => {
+router.post('/brands/:brandId(\\d+)/categories/:catId(\\d+)/edit', adminAuth,
+  withUpload(uploadBrandCat.single('image'), req => `/admin/brands/${req.params.brandId}/categories`), (req, res) => {
+    const { brandId, catId } = req.params;
+    const cat = db.prepare('SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?').get(catId, brandId);
+    if (!cat) return res.status(404).render('404', { title: '404' });
+    const cols = {
+      name_en: String(req.body.name_en || '').trim() || cat.name_en,
+      name_ar: String(req.body.name_ar || '').trim() || null,
+      sort_order: parseInt(req.body.sort_order, 10) || 0,
+    };
+    if (req.file) { removeManagedFile(cat.image_path); cols.image_path = `/uploads/brands/${req.file.filename}`; }
+    db.prepare(`UPDATE brand_categories SET ${Object.keys(cols).map(k => `${k} = ?`).join(', ')} WHERE id = ?`).run(...Object.values(cols), catId);
+    req.flash('success', tr(req)('line_saved'));
+    res.redirect(`/admin/brands/${brandId}/categories`);
+  });
+
+router.post('/brands/:brandId(\\d+)/categories/:catId(\\d+)/delete', adminAuth, (req, res) => {
   const { brandId, catId } = req.params;
-  const cat = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
-  if (!cat) return res.status(404).send('Not found');
+  const cat = db.prepare('SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?').get(catId, brandId);
+  removeManagedFile(cat?.image_path);
+  db.prepare('UPDATE products SET brand_category_id = NULL WHERE brand_category_id = ?').run(catId);
+  db.prepare('DELETE FROM brand_categories WHERE id = ? AND brand_id = ?').run(catId, brandId);
+  req.flash('success', tr(req)('line_deleted'));
+  res.redirect(`/admin/brands/${brandId}/categories`);
+});
 
-  const { name_en, name_ar, sort_order } = req.body;
-  const updates = {
-    name_en: name_en?.trim() || cat.name_en,
-    name_ar: name_ar?.trim() || null,
-    sort_order: parseInt(sort_order) || 0,
-  };
+router.get('/brands/:brandId(\\d+)/categories/:catId(\\d+)/products', adminAuth, (req, res) => {
+  const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(req.params.brandId);
+  const category = db.prepare('SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?').get(req.params.catId, req.params.brandId);
+  if (!brand || !category) return res.status(404).render('404', { title: '404' });
+  const assigned = db.prepare("SELECT * FROM products WHERE type='brand' AND brand_category_id = ? ORDER BY name_en").all(category.id);
+  const unassigned = db.prepare("SELECT * FROM products WHERE type='brand' AND brand = ? AND brand_category_id IS NULL ORDER BY name_en").all(brand.name);
+  res.render('admin/brand-category-products', { title: `${brand.name} · ${category.name_en}`, brand, category, assigned, unassigned });
+});
 
-  if (req.file) {
-    if (cat.image_path) {
-      const old = managedFilePath(cat.image_path);
-      if (fs.existsSync(old)) fs.unlinkSync(old);
+router.post('/brands/:brandId(\\d+)/categories/:catId(\\d+)/products/new', adminAuth,
+  withUpload(upload.single('image'), req => `/admin/brands/${req.params.brandId}/categories/${req.params.catId}/products`), (req, res) => {
+    const { brandId, catId } = req.params;
+    const brand = db.prepare('SELECT * FROM brands WHERE id = ?').get(brandId);
+    const line = db.prepare('SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?').get(catId, brandId);
+    if (!brand || !line) return res.status(404).render('404', { title: '404' });
+    const name = String(req.body.name_en || '').trim();
+    if (!name) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      req.flash('error', tr(req)('fill_required'));
+      return res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
     }
-    updates.image_path = `/uploads/brands/${req.file.filename}`;
-  }
+    const price = parseFloat(req.body.price);
+    const info = db.prepare(`
+      INSERT INTO products (name_en, name_ar, category, brand, type, price, image_path, brand_category_id, description_en, description_ar, in_stock)
+      VALUES (?, ?, 'unisex', ?, 'brand', ?, ?, ?, ?, ?, 1)
+    `).run(name, String(req.body.name_ar || '').trim() || null, brand.name,
+      Number.isFinite(price) && price >= 0 ? price : null,
+      req.file ? `/uploads/products/${req.file.filename}` : null, line.id,
+      String(req.body.description_en || '').trim() || null, String(req.body.description_ar || '').trim() || null);
+    req.flash('success', tr(req)('product_created'));
+    res.redirect(`/admin/products/${info.lastInsertRowid}/edit`);
+  });
 
-  const cols = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-  db.prepare(`UPDATE brand_categories SET ${cols} WHERE id = ?`).run(...Object.values(updates), catId);
-  req.flash('success', 'Category updated.');
-  res.redirect(`/admin/brands/${brandId}/categories`);
-});
-
-// POST /admin/brands/:brandId/categories/:catId/delete
-router.post('/brands/:brandId/categories/:catId/delete', adminAuth, (req, res) => {
+router.post('/brands/:brandId(\\d+)/categories/:catId(\\d+)/products/add', adminAuth, (req, res) => {
   const { brandId, catId } = req.params;
-  const cat = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
-  if (cat?.image_path) {
-    const p = managedFilePath(cat.image_path);
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-  }
-  // Unlink products from this category
-  db.prepare(`UPDATE products SET brand_category_id = NULL WHERE brand_category_id = ?`).run(catId);
-  db.prepare(`DELETE FROM brand_categories WHERE id = ? AND brand_id = ?`).run(catId, brandId);
-  req.flash('success', 'Category deleted.');
-  res.redirect(`/admin/brands/${brandId}/categories`);
-});
-
-// ── Product Category Assignment ───────────────────────────────────────────────
-// GET /admin/brands/:brandId/categories/:catId/products — manage products in a category
-router.get('/brands/:brandId/categories/:catId/products', adminAuth, (req, res) => {
-  const brand    = db.prepare(`SELECT * FROM brands WHERE id = ?`).get(req.params.brandId);
-  const category = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(req.params.catId, req.params.brandId);
-  if (!brand || !category) return res.status(404).send('Not found');
-
-  // Products already in this category
-  const assigned = db.prepare(`SELECT * FROM products WHERE type='brand' AND brand_category_id = ? ORDER BY name_en`).all(category.id);
-  // Products not yet in any category (brand_category_id IS NULL) — available to add
-  const unassigned = db.prepare(`SELECT * FROM products WHERE type='brand' AND brand = ? AND brand_category_id IS NULL ORDER BY name_en`).all(brand.name);
-
-  res.render('admin/brand-category-products', { title: `${brand.name} / ${category.name_en} — Products`, brand, category, assigned, unassigned });
-});
-
-// POST /admin/brands/:brandId/categories/:catId/products/add
-// Create a brand product directly inside a brand category.
-router.post('/brands/:brandId/categories/:catId/products/new', adminAuth, upload.single('image'), (req, res) => {
-  const { brandId, catId } = req.params;
-  const brand = db.prepare(`SELECT * FROM brands WHERE id = ?`).get(brandId);
-  const categoryRow = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
-  if (!brand || !categoryRow) return res.status(404).send('Brand category not found');
-
-  const name = req.body.name_en?.trim();
-  const gender = ['men', 'women', 'unisex'].includes(req.body.category) ? req.body.category : 'unisex';
-  const price = req.body.price !== '' && !Number.isNaN(Number(req.body.price)) ? Number(req.body.price) : null;
-  if (!name) {
-    if (req.file) fs.unlinkSync(req.file.path);
-    req.flash('error', 'Product name is required.');
-    return res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
-  }
-
-  const imagePath = req.file ? `/uploads/products/${req.file.filename}` : null;
-  const info = db.prepare(`
-    INSERT INTO products
-      (name_en, name_ar, category, brand, type, price, image_path, brand_category_id,
-       description_en, description_ar, in_stock)
-    VALUES (?, ?, ?, ?, 'brand', ?, ?, ?, ?, ?, ?)
-  `).run(
-    name,
-    req.body.name_ar?.trim() || null,
-    gender,
-    brand.name,
-    price,
-    imagePath,
-    categoryRow.id,
-    req.body.description_en?.trim() || null,
-    req.body.description_ar?.trim() || null,
-    req.body.in_stock === '0' ? 0 : 1
-  );
-
-  req.flash('success', `${name} was added to ${categoryRow.name_en}.`);
-  res.redirect(`/admin/products/${info.lastInsertRowid}/edit`);
-});
-
-router.post('/brands/:brandId/categories/:catId/products/add', adminAuth, (req, res) => {
-  const { brandId, catId } = req.params;
-  const category = db.prepare(`SELECT id FROM brand_categories WHERE id = ? AND brand_id = ?`).get(catId, brandId);
-  if (!category) return res.status(404).send('Not found');
-
-  const ids = [].concat(req.body.product_ids || []).map(id => parseInt(id)).filter(n => !isNaN(n));
-  const brand = db.prepare(`SELECT name FROM brands WHERE id = ?`).get(brandId);
-  const update = db.prepare(`UPDATE products SET brand_category_id = ? WHERE id = ? AND type='brand' AND brand = ?`);
-  const run = db.transaction(() => ids.forEach(id => update.run(catId, id, brand.name)));
-  run();
-  req.flash('success', `${ids.length} product(s) added to category.`);
+  const line = db.prepare('SELECT id FROM brand_categories WHERE id = ? AND brand_id = ?').get(catId, brandId);
+  const brand = db.prepare('SELECT name FROM brands WHERE id = ?').get(brandId);
+  if (!line || !brand) return res.status(404).render('404', { title: '404' });
+  const ids = [].concat(req.body.product_ids || []).map(id => parseInt(id, 10)).filter(Number.isFinite);
+  const update = db.prepare("UPDATE products SET brand_category_id = ? WHERE id = ? AND type='brand' AND brand = ?");
+  db.transaction(() => ids.forEach(id => update.run(catId, id, brand.name)))();
+  req.flash('success', tr(req)('products_added'));
   res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
 });
 
-// POST /admin/brands/:brandId/categories/:catId/products/remove
-router.post('/brands/:brandId/categories/:catId/products/remove', adminAuth, (req, res) => {
+router.post('/brands/:brandId(\\d+)/categories/:catId(\\d+)/products/remove', adminAuth, (req, res) => {
   const { brandId, catId } = req.params;
-  const productId = parseInt(req.body.product_id);
-  db.prepare(`UPDATE products SET brand_category_id = NULL WHERE id = ? AND brand_category_id = ?`).run(productId, catId);
-  req.flash('success', 'Product removed from category.');
+  db.prepare('UPDATE products SET brand_category_id = NULL WHERE id = ? AND brand_category_id = ?').run(parseInt(req.body.product_id, 10), catId);
+  req.flash('success', tr(req)('product_removed_line'));
   res.redirect(`/admin/brands/${brandId}/categories/${catId}/products`);
 });
 

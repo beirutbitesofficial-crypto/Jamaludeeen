@@ -22,7 +22,7 @@
         </div>
         <div class="hero__badge">
           <span>50 · 100 ml</span>
-          <strong><%= ar ? 'من $7' : 'From $7' %></strong>
+          <strong><%= ar ? 'من' : 'From' %> $<%= refillUsd[50] %></strong>
           <em><%= ar ? 'توقيع جمال الدين' : 'Signature refills' %></em>
         </div>
       </div>
@@ -105,7 +105,7 @@
       <div class="story__stats reveal">
         <div><strong><%= stats.brands %></strong><span><%= ar ? 'دار عطور' : 'Fragrance houses' %></span></div>
         <div><strong><%= stats.men + stats.women + stats.unisex %></strong><span><%= ar ? 'عطر توقيع' : 'Signature scents' %></span></div>
-        <div><strong>$7</strong><span><%= ar ? 'ابتداءً من، 50ml' : 'From, for 50 ml' %></span></div>
+        <div><strong>$<%= refillUsd[50] %></strong><span><%= ar ? 'ابتداءً من، 50ml' : 'From, for 50 ml' %></span></div>
       </div>
     </div>
   </section>

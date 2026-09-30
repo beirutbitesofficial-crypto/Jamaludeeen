@@ -186,6 +186,10 @@ addColumn('order_items', 'size_ml INTEGER');
 addColumn('order_items', 'stock_deduction REAL NOT NULL DEFAULT 0');
 addColumn('orders', 'stock_reserved INTEGER NOT NULL DEFAULT 0');
 addColumn('orders', 'sales_id INTEGER REFERENCES sales(id) ON DELETE SET NULL');
+addColumn('orders', 'currency TEXT');
+// Website orders made only of signature refills are priced in USD. Older rows have no
+// currency recorded; LBP totals are always in the hundreds of thousands, USD ones are not.
+db.exec("UPDATE orders SET currency = CASE WHEN total < 5000 THEN 'USD' ELSE 'LBP' END WHERE currency IS NULL");
 
 const setSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 [
