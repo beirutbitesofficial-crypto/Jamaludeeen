@@ -3,9 +3,11 @@ const router = express.Router();
 const db = require('../database/db');
 const { PRODUCT_IMAGES } = require('../database/product-images');
 const { EXTRA_PRODUCT_IMAGES } = require('../database/product-images-batch-05');
+const { BRAND_PRODUCT_IMAGES } = require('../database/brand-product-images');
 
 const PAGE_SIZE = 24;
-const ALL_PRODUCT_IMAGES = [...PRODUCT_IMAGES, ...EXTRA_PRODUCT_IMAGES];
+// Locally hosted photos come last so they replace the older hotlinked URLs.
+const ALL_PRODUCT_IMAGES = [...PRODUCT_IMAGES, ...EXTRA_PRODUCT_IMAGES, ...BRAND_PRODUCT_IMAGES];
 
 // Apply curated image mappings to the existing production catalog without
 // recreating products or changing their IDs. This is safe to run at startup.
@@ -16,6 +18,7 @@ try {
     WHERE type = 'brand'
       AND UPPER(TRIM(brand)) = UPPER(TRIM(?))
       AND UPPER(TRIM(name_en)) = UPPER(TRIM(?))
+      AND COALESCE(image_path, '') NOT LIKE '/uploads/%'
   `);
   const syncImages = db.transaction(() => {
     for (const item of ALL_PRODUCT_IMAGES) {
