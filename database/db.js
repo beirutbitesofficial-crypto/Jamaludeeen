@@ -225,6 +225,25 @@ if (brandCatalogVersion !== BRAND_CATALOG_VERSION) {
   console.log(`Brand catalog synchronized: ${result.products} products in ${result.brands} brands.`);
 }
 
+// One-time removal of brand houses the store no longer carries. Orders and sales
+// keep their own product names, so sales history is unaffected.
+const REMOVED_BRANDS_VERSION = '2026-10-01-v1';
+const removedBrandsVersion = db.prepare(`SELECT value FROM settings WHERE key='removed_brands_version'`).get()?.value;
+if (removedBrandsVersion !== REMOVED_BRANDS_VERSION) {
+  const { REMOVED_BRANDS } = require('./import-excel');
+  const names = [...REMOVED_BRANDS];
+  const marks = names.map(() => '?').join(',');
+  const removeBrands = db.transaction(() => {
+    const products = db.prepare(`DELETE FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) IN (${marks})`).run(...names).changes;
+    db.prepare(`DELETE FROM brand_categories WHERE brand_id IN (SELECT id FROM brands WHERE UPPER(TRIM(name)) IN (${marks}))`).run(...names);
+    const brands = db.prepare(`DELETE FROM brands WHERE UPPER(TRIM(name)) IN (${marks})`).run(...names).changes;
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('removed_brands_version', ?)`).run(REMOVED_BRANDS_VERSION);
+    return { products, brands };
+  });
+  const removed = removeBrands();
+  console.log(`Removed discontinued brands: ${removed.brands} brands, ${removed.products} products.`);
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;
