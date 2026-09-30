@@ -19,6 +19,9 @@ const KHALEEJI = new Set([
   'RIFFS', 'SHAYKH ALKAR', 'AJMAL', 'ARABIAN OUD',
 ]);
 
+// Houses the store no longer carries. Kept out even if they remain in TAHA.xlsx.
+const REMOVED_BRANDS = new Set(['HAMZA AL LABBAN', 'MAKEOVER', 'AUCEACADEMY', 'PARTY QUEEN']);
+
 function readCatalog(file = DEFAULT_FILE) {
   const workbook = XLSX.readFile(file);
   const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -29,6 +32,7 @@ function readCatalog(file = DEFAULT_FILE) {
     const brand = String(row[2] || '').trim();
     const priceUsd = Number(row[3]);
     if (!name || !brand || !Number.isFinite(priceUsd)) return [];
+    if (REMOVED_BRANDS.has(brand.toUpperCase())) return [];
 
     return [{
       name,
@@ -86,7 +90,7 @@ function synchronizeBrandCatalog(db, file = DEFAULT_FILE) {
   return { products: products.length, brands: brandNames.length };
 }
 
-module.exports = { readCatalog, synchronizeBrandCatalog };
+module.exports = { readCatalog, synchronizeBrandCatalog, REMOVED_BRANDS };
 
 if (require.main === module) {
   const db = require('./db');
