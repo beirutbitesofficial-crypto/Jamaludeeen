@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database/store-system');
 const { applyLocalRulesToProduct } = require('../helpers/localProductRules');
 const { normalizeSize, salePrice, stockDeduction } = require('../helpers/inventory');
+const { priceCart, formatMoney, STORE_WHATSAPP } = require('../helpers/pricing');
 
 function getSettings() {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -15,14 +16,7 @@ function generateOrderNumber() {
   return `JM-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-const ORDER_WHATSAPP_NUMBER = '96176927146';
-
-function formatAmount(amount, currency) {
-  const value = Number(amount || 0);
-  return currency === 'USD'
-    ? `$${value.toFixed(2).replace(/\.00$/, '')}`
-    : `${value.toLocaleString()} LBP`;
-}
+const ORDER_WHATSAPP_NUMBER = STORE_WHATSAPP;
 
 function buildWhatsAppOrderMessage({
   orderNumber,
@@ -36,14 +30,11 @@ function buildWhatsAppOrderMessage({
   subtotal,
   deliveryFee,
   total,
+  currency,
 }) {
   const paymentLabel = paymentMethod === 'cod'
     ? 'Cash on Delivery'
     : 'Paid / Whish Money';
-
-  const currency = items.length && items.every(item => item.type === 'local')
-    ? 'USD'
-    : 'LBP';
 
   const lines = [
     'NEW ORDER - JAMALUDEEN',
@@ -57,13 +48,12 @@ function buildWhatsAppOrderMessage({
     'Products:',
     ...items.map((item, index) => {
       const size = item.size_ml ? ` · ${item.size_ml}ml` : '';
-      const itemCurrency = item.type === 'local' ? 'USD' : 'LBP';
-      return `${index + 1}. ${item.name_en}${size} x${item.qty} - ${formatAmount((item.price || 0) * item.qty, itemCurrency)}`;
+      return `${index + 1}. ${item.name_en}${size} x${item.qty} - ${formatMoney((item.price || 0) * item.qty, currency)}`;
     }),
     '',
-    `Subtotal: ${formatAmount(subtotal, currency)}`,
-    `Delivery: ${deliveryFee > 0 ? formatAmount(deliveryFee, currency) : 'Free'}`,
-    `TOTAL: ${formatAmount(total, currency)}`,
+    `Subtotal: ${formatMoney(subtotal, currency)}`,
+    `Delivery: ${deliveryFee > 0 ? formatMoney(deliveryFee, currency) : 'Free'}`,
+    `TOTAL: ${formatMoney(total, currency)}`,
   ];
 
   if (notes?.trim()) {
@@ -113,23 +103,9 @@ router.get('/', (req, res) => {
   if (!cart.length) return res.redirect('/cart');
 
   const settings = getSettings();
-  const items = cartItems(cart, settings);
-  const deliveryFee = Math.max(0, parseFloat(settings.delivery_fee || 0) || 0);
-  const subtotal = items.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
-  const total = subtotal + deliveryFee;
-  const currency = items.length && items.every(item => item.type === 'local')
-    ? 'USD'
-    : 'LBP';
+  const cartView = priceCart(cartItems(cart, settings), settings);
 
-  res.render('checkout', {
-    title: 'Checkout',
-    items,
-    subtotal,
-    deliveryFee,
-    total,
-    settings,
-    currency,
-  });
+  res.render('checkout', { title: 'Checkout', settings, ...cartView });
 });
 
 // POST /checkout
@@ -169,12 +145,12 @@ router.post('/', (req, res) => {
   }
 
   const settings = getSettings();
-  const deliveryFee = Math.max(0, parseFloat(settings.delivery_fee || 0) || 0);
   const orderNumber = generateOrderNumber();
 
   try {
     const result = db.transaction(() => {
-      const items = cartItems(cart, settings, { strict: true });
+      const priced = priceCart(cartItems(cart, settings, { strict: true }), settings);
+      const { items, subtotal, deliveryFee, total, currency } = priced;
 
       if (!items.length) {
         throw new Error('Your cart is empty.');
@@ -192,12 +168,6 @@ router.post('/', (req, res) => {
           );
         }
       }
-
-      const subtotal = items.reduce(
-        (sum, item) => sum + (item.price || 0) * item.qty,
-        0
-      );
-      const total = subtotal + deliveryFee;
 
       const info = db.prepare(`
         INSERT INTO orders
@@ -256,12 +226,10 @@ router.post('/', (req, res) => {
         }
       }
 
-      return { orderId, items, subtotal, total };
+      return { orderId, items, subtotal, deliveryFee, total, currency };
     })();
 
-    const currency = result.items.length && result.items.every(item => item.type === 'local')
-      ? 'USD'
-      : 'LBP';
+    const { currency } = result;
 
     req.session.cart = [];
     req.session.lastOrder = {
@@ -283,14 +251,17 @@ router.post('/', (req, res) => {
       notes,
       items: result.items,
       subtotal: result.subtotal,
-      deliveryFee,
+      deliveryFee: result.deliveryFee,
       total: result.total,
+      currency,
     });
 
-    const whatsappUrl =
+    // Show the confirmation page first; it hands the customer over to WhatsApp
+    // with the full order message, so they always see their order number.
+    req.session.lastOrder.whatsappUrl =
       `https://wa.me/${ORDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`;
 
-    res.redirect(whatsappUrl);
+    res.redirect('/checkout/success');
   } catch (error) {
     console.error('Checkout error:', error);
 

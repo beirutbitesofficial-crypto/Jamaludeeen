@@ -17,22 +17,31 @@ router.get('/', (req, res) => {
     men:    db.prepare(`SELECT COUNT(*) as c FROM products WHERE category='men'   AND type='local'`).get().c,
     women:  db.prepare(`SELECT COUNT(*) as c FROM products WHERE category='women' AND type='local'`).get().c,
     unisex: db.prepare(`SELECT COUNT(*) as c FROM products WHERE category='unisex' AND type='local'`).get().c,
-    brands: db.prepare(`SELECT COUNT(*) as c FROM products WHERE type='brand'`).get().c,
+    brands: db.prepare(`SELECT COUNT(*) as c FROM brands`).get().c,
   };
 
-  const brands = db.prepare(`SELECT DISTINCT brand FROM products WHERE type='brand' ORDER BY brand ASC`).all().map(r => r.brand);
+  const brands = db.prepare(`SELECT id, name FROM brands ORDER BY name ASC`).all();
+
+  // Signature local refills for the home page when nothing is marked as featured.
+  const rawSignature = featured.length ? [] : db.prepare(`
+    SELECT * FROM products
+    WHERE type = 'local' AND in_stock = 1 AND image_path IS NOT NULL AND image_path != ''
+    ORDER BY (image_path LIKE '/images/%') DESC, RANDOM() LIMIT 8
+  `).all();
+  const signature = applyLocalRulesToProducts(rawSignature, settings);
 
   const rawBestSellers = db.prepare(`
     SELECT p.*, SUM(oi.quantity) as total_sold
     FROM products p
     JOIN order_items oi ON p.id = oi.product_id
+    WHERE p.in_stock = 1
     GROUP BY p.id
     ORDER BY total_sold DESC
     LIMIT 8
   `).all();
   const bestSellers = applyLocalRulesToProducts(rawBestSellers, settings);
 
-  res.render('index', { title: 'Home', featured, stats, settings, brands, bestSellers });
+  res.render('index', { title: 'Home', featured: featured.length ? featured : signature, stats, settings, brands, bestSellers });
 });
 
 // Contact / About

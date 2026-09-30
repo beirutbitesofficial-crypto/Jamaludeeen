@@ -1,103 +1,85 @@
 <%- include('partials/header', { title: 'Wishlist' }) %>
+<% const ar = lang === 'ar'; %>
 
-<div class="container">
-  <div class="page-header">
-    <h1 class="page-header__title"><%= lang === 'ar' ? '♡ المفضلة' : '♡ Wishlist' %></h1>
-    <span class="page-header__count" id="wishlistHeader"></span>
-  </div>
+<main class="section section--page">
+  <div class="container">
+    <header class="page-title">
+      <p class="eyebrow"><span></span><%= ar ? 'محفوظاتك' : 'Saved for later' %></p>
+      <h1 class="display display--xl"><%= ar ? 'المفضلة' : 'Wishlist' %></h1>
+      <p id="wishlistHeader"></p>
+    </header>
 
-  <div id="wishlistEmpty" style="display:none">
-    <div class="empty-state">
-      <div class="empty-state__icon">♡</div>
-      <h3><%= lang === 'ar' ? 'قائمة المفضلة فارغة' : 'Your wishlist is empty' %></h3>
-      <p><%= lang === 'ar' ? 'اضغط على القلب على أي عطر لحفظه هنا' : 'Tap the heart on any perfume to save it here' %></p>
-      <a href="/shop/men" class="btn btn--primary" style="margin-top:20px"><%= lang === 'ar' ? 'تصفح العطور' : 'Browse Perfumes' %></a>
+    <div class="empty empty--large" id="wishlistEmpty" hidden>
+      <span class="empty__mark">♡</span>
+      <h2><%= ar ? 'قائمة المفضلة فارغة' : 'Your wishlist is empty' %></h2>
+      <p><%= ar ? 'اضغط على القلب على أي عطر لحفظه هنا' : 'Tap the heart on any fragrance to keep it here.' %></p>
+      <a href="/shop/men" class="btn btn--dark"><%= ar ? 'تصفح العطور' : 'Browse fragrances' %></a>
     </div>
-  </div>
 
-  <div id="wishlistGrid" class="products-grid" style="padding-bottom:80px"></div>
-</div>
+    <div id="wishlistGrid" class="grid-products"></div>
+  </div>
+</main>
 
 <script>
-(function() {
-  const WISHLIST_KEY = 'jm_wishlist';
-  const lang = '<%= lang %>';
+document.addEventListener('DOMContentLoaded', function () {
+  const ar = <%- JSON.stringify(ar) %>;
+  const grid = document.getElementById('wishlistGrid');
+  const empty = document.getElementById('wishlistEmpty');
+  const header = document.getElementById('wishlistHeader');
 
-  function getIds() {
-    try { return JSON.parse(localStorage.getItem(WISHLIST_KEY)) || []; }
-    catch { return []; }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const heart = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+
+  function setCount(n) {
+    header.textContent = n ? n + (ar ? ' عطر محفوظ' : (n === 1 ? ' fragrance saved' : ' fragrances saved')) : '';
+    empty.hidden = n > 0;
+    grid.hidden = n === 0;
+    window.updateWishlistCount && window.updateWishlistCount();
   }
 
-  function removeFromWishlist(id) {
-    const ids = getIds().filter(x => x !== String(id));
-    localStorage.setItem(WISHLIST_KEY, JSON.stringify(ids));
-    document.getElementById('item-' + id)?.remove();
-    updateHeader(ids.length);
-    if (ids.length === 0) {
-      document.getElementById('wishlistEmpty').style.display = '';
-      document.getElementById('wishlistGrid').style.display = 'none';
-    }
+  function price(p) {
+    if (p.type === 'local' && p.price_50ml) return '<span>' + (ar ? 'من' : 'From') + ' <bdi>$' + esc(p.price_50ml) + '</bdi></span><em dir="ltr">50 · 100 ml</em>';
+    if (p.price) return '<span class="price-display" data-lbp="' + Number(p.price) + '">' + (window.currencyFmt ? window.currencyFmt(Number(p.price)) : Number(p.price).toLocaleString('en-US') + ' LBP') + '</span>';
+    return '<span class="is-muted">' + (ar ? 'السعر قريباً' : 'Price coming soon') + '</span>';
   }
 
-  function updateHeader(count) {
-    const el = document.getElementById('wishlistHeader');
-    if (el) el.textContent = count + (lang === 'ar' ? ' عطر' : ' perfumes');
-    document.querySelectorAll('.wishlist-count').forEach(b => {
-      b.textContent = count;
-      b.style.display = count > 0 ? 'flex' : 'none';
-    });
+  function card(p) {
+    const media = p.image_path
+      ? '<img src="' + esc(p.image_path) + '" alt="' + esc(p.name_en) + '" loading="lazy" referrerpolicy="no-referrer" data-fallback="' + esc(p.brand || '') + '"/>'
+      : '<div class="card__placeholder"><span class="card__monogram">J</span><span class="card__ph-name">' + esc(p.name_en) + '</span></div>';
+    return '<article class="card is-visible" data-card="' + p.id + '">' +
+      '<div class="card__media-wrap"><a href="/shop/item/' + p.id + '" class="card__media">' + media + '</a>' +
+      '<button class="wish-btn card__wish is-active" type="button" data-remove="' + p.id + '" aria-label="Remove">' + heart + '</button>' +
+      '<a href="/shop/item/' + p.id + '" class="card__quick"><span>' + (ar ? 'عرض المنتج' : 'View product') + '</span></a></div>' +
+      '<div class="card__body"><p class="card__house">' + esc(p.brand || 'Jamaludeen') + '</p>' +
+      '<a href="/shop/item/' + p.id + '" class="card__name">' + esc(p.name_en) + '</a>' +
+      '<p class="card__price">' + price(p) + '</p></div></article>';
   }
 
-  function renderCard(p) {
-    const price = p.price
-      ? (window.currencyFmt ? window.currencyFmt(p.price) : p.price.toLocaleString() + ' LBP')
-      : (lang === 'ar' ? 'السعر قريباً' : 'Price coming soon');
-    const img = p.image_path
-      ? `<img src="${p.image_path}" alt="${p.name_en}" loading="lazy"/>`
-      : `<div class="product-card__placeholder"><span>✦</span></div>`;
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    e.preventDefault();
+    const id = btn.dataset.remove;
+    window.toggleWishlist(id);
+    grid.querySelector('[data-card="' + id + '"]')?.remove();
+    setCount(grid.children.length);
+  });
 
-    return `
-    <div class="product-card" id="item-${p.id}">
-      <a href="/shop/item/${p.id}" class="product-card__image-link">
-        <div class="product-card__image">${img}
-          <div class="product-card__overlay"><span class="product-card__overlay-text">${lang === 'ar' ? 'عرض' : 'View'}</span></div>
-        </div>
-      </a>
-      <button class="btn-wishlist active" data-id="${p.id}" title="Remove" onclick="removeFromWishlist(${p.id})">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-      </button>
-      <div class="product-card__body">
-        <p class="product-card__brand">${p.brand || ''}</p>
-        <a href="/shop/item/${p.id}"><h3 class="product-card__name">${p.name_en}</h3></a>
-        <div class="product-card__footer">
-          <span class="product-card__price${!p.price ? ' product-card__price--na' : ''}${p.price && p.type !== 'local' ? ' price-display' : ''}" ${p.price && p.type !== 'local' ? `data-lbp="${p.price}"` : ''}>${price}</span>
-        </div>
-      </div>
-    </div>`;
-  }
+  const ids = window.getWishlist ? window.getWishlist() : [];
+  if (!ids.length) return setCount(0);
 
-  const ids = getIds();
-  if (!ids.length) {
-    document.getElementById('wishlistEmpty').style.display = '';
-    return;
-  }
-
-  updateHeader(ids.length);
-
-  fetch('/api/products?ids=' + ids.join(','))
+  fetch('/api/products?ids=' + encodeURIComponent(ids.join(',')))
     .then(r => r.json())
     .then(products => {
-      if (!products.length) {
-        document.getElementById('wishlistEmpty').style.display = '';
-        return;
-      }
-      document.getElementById('wishlistGrid').innerHTML = products.map(renderCard).join('');
-      // expose removeFromWishlist to onclick
-      window.removeFromWishlist = removeFromWishlist;
-    });
-})();
+      // Drop ids of products that no longer exist so the badge stays accurate.
+      const found = products.map(p => String(p.id));
+      if (window.saveWishlist) window.saveWishlist(ids.filter(id => found.includes(id)));
+      grid.innerHTML = products.map(card).join('');
+      setCount(products.length);
+    })
+    .catch(() => setCount(0));
+});
 </script>
 
 <%- include('partials/footer') %>

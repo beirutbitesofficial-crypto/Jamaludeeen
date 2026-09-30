@@ -1,146 +1,153 @@
-<%- include('partials/header', { title: 'Home' }) %>
+<%- include('partials/header', { title: 'Home', bodyClass: 'is-home' }) %>
+<% const ar = lang === 'ar'; const heroImage = settings.banner_image || '/images/men/bleu-de-chanel.png'; %>
 
-<main class="store-home">
-  <section class="store-hero" <% if (settings.banner_image) { %>style="--hero-image:url('<%= settings.banner_image %>')"<% } %>>
-    <div class="store-hero__media"></div>
-    <div class="store-hero__shade"></div>
-    <div class="container store-hero__inner">
-      <div class="store-hero__content">
-        <p class="store-kicker">JAMALUDEEN · PERFUMERY</p>
-        <h1><%= lang === 'ar' ? 'عطر يروي حكايتك' : 'A fragrance that tells your story.' %></h1>
-        <p class="store-hero__copy"><%= lang === 'ar' ? 'اكتشف تشكيلة مختارة من العطور الرجالية والنسائية واليونيسكس، مع توصيل لكل لبنان.' : 'Discover a curated selection of men’s, women’s and unisex fragrances, delivered across Lebanon.' %></p>
-        <div class="store-hero__actions">
-          <a href="/shop/men" class="store-btn store-btn--light"><%= lang === 'ar' ? 'تسوّق للرجال' : 'Shop men' %></a>
-          <a href="/shop/women" class="store-btn store-btn--ghost-light"><%= lang === 'ar' ? 'تسوّق للنساء' : 'Shop women' %></a>
+<main>
+  <section class="hero">
+    <div class="hero__glow"></div>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow eyebrow--light"><span></span><%= ar ? 'دار عطور · لبنان' : 'Maison de Parfum · Lebanon' %></p>
+        <h1 class="hero__title">
+          <% if (ar) { %>عطرٌ <em>يروي</em><br/>حكايتك<% } else { %>A fragrance<br/>that tells <em>your</em><br/>story.<% } %>
+        </h1>
+        <p class="hero__lede"><%= ar ? 'تشكيلة مختارة بعناية من العطور الرجالية والنسائية واليونيسكس، من أرقى الدور العالمية والعربية — تُحضَّر بعناية وتُسلَّم لكل لبنان.' : 'A considered edit of men’s, women’s and unisex fragrances from the finest international and Arabic houses — prepared with care, delivered across Lebanon.' %></p>
+        <div class="hero__actions">
+          <a href="/shop/men" class="btn btn--gold"><%= ar ? 'اكتشف المجموعة' : 'Discover the collection' %></a>
+          <a href="/collections" class="btn btn--line-light"><%= ar ? 'الماركات' : 'The houses' %></a>
         </div>
       </div>
-      <div class="store-hero__meta">
-        <span><%= lang === 'ar' ? 'توصيل لجميع المناطق' : 'Nationwide delivery' %></span>
-        <span><%= lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on delivery' %></span>
-        <span><%= lang === 'ar' ? 'طلب سريع عبر واتساب' : 'Easy WhatsApp ordering' %></span>
+      <div class="hero__visual">
+        <div class="hero__frame">
+          <img src="<%= heroImage %>" alt="" fetchpriority="high"/>
+        </div>
+        <div class="hero__badge">
+          <span>50 · 100 ml</span>
+          <strong><%= ar ? 'من $7' : 'From $7' %></strong>
+          <em><%= ar ? 'توقيع جمال الدين' : 'Signature refills' %></em>
+        </div>
       </div>
+    </div>
+    <div class="container hero__meta">
+      <div><b>I</b><span><%= ar ? 'توصيل لجميع المناطق' : 'Nationwide delivery' %></span></div>
+      <div><b>II</b><span><%= ar ? 'دفع عند الاستلام' : 'Cash on delivery' %></span></div>
+      <div><b>III</b><span><%= ar ? 'طلب سريع عبر واتساب' : 'Personal WhatsApp service' %></span></div>
     </div>
   </section>
 
-  <section class="store-section store-section--tight">
+  <% if (brands.length) { %>
+  <section class="marquee" aria-label="<%= t.brands %>">
+    <div class="marquee__track">
+      <% for (let r = 0; r < 2; r++) { %>
+      <div class="marquee__group" <% if (r) { %>aria-hidden="true"<% } %>>
+        <% brands.forEach(b => { %><a href="/collections/<%= b.id %>" <% if (r) { %>tabindex="-1"<% } %>><%= b.name %></a><i>✦</i><% }) %>
+      </div>
+      <% } %>
+    </div>
+  </section>
+  <% } %>
+
+  <section class="section">
     <div class="container">
-      <div class="store-section__head">
+      <div class="section-head reveal">
         <div>
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'تسوّق حسب الفئة' : 'SHOP BY CATEGORY' %></p>
-          <h2><%= lang === 'ar' ? 'اختار العطر اللي بيشبهك' : 'Find the scent that feels like you.' %></h2>
+          <p class="eyebrow"><span></span><%= ar ? 'تسوّق حسب الفئة' : 'The Collections' %></p>
+          <h2 class="display"><%= ar ? 'اختار العطر اللي بيشبهك' : 'Find the scent that feels like you.' %></h2>
         </div>
-        <a href="/collections" class="store-text-link"><%= lang === 'ar' ? 'كل الماركات' : 'Explore all brands' %> <span>↗</span></a>
+        <a href="/collections" class="link-arrow"><%= ar ? 'كل الماركات' : 'Explore all houses' %></a>
       </div>
 
-      <div class="store-category-grid">
-        <a href="/shop/men" class="store-category-card store-category-card--large">
-          <div class="store-category-card__media" <% if (settings.men_image) { %>style="background-image:url('<%= settings.men_image %>')"<% } %>></div>
-          <div class="store-category-card__overlay"></div>
-          <div class="store-category-card__content">
-            <span><%= stats.men %> <%= t.products %></span>
-            <h3><%= t.men_perfumes %></h3>
-            <b><%= t.shop_now %> →</b>
+      <div class="cats">
+        <% [
+          { key: 'men', title: t.men_perfumes, count: stats.men, img: settings.men_image || '/images/men/black-orchid-tom-ford.webp', num: 'I' },
+          { key: 'women', title: t.women_perfumes, count: stats.women, img: settings.women_image, num: 'II' },
+          { key: 'unisex', title: t.unisex_perfumes, count: stats.unisex, img: settings.unisex_image, num: 'III' },
+        ].forEach(c => { %>
+        <a href="/shop/<%= c.key %>" class="cat reveal cat--<%= c.key %>">
+          <div class="cat__media" <% if (c.img) { %>style="background-image:url('<%= c.img %>')"<% } %>></div>
+          <div class="cat__veil"></div>
+          <span class="cat__num"><%= c.num %></span>
+          <div class="cat__body">
+            <span class="cat__count"><%= c.count %> <%= t.products %></span>
+            <h3><%= c.title %></h3>
+            <span class="cat__cta"><%= t.shop_now %></span>
           </div>
         </a>
-
-        <a href="/shop/women" class="store-category-card">
-          <div class="store-category-card__media" <% if (settings.women_image) { %>style="background-image:url('<%= settings.women_image %>')"<% } %>></div>
-          <div class="store-category-card__overlay"></div>
-          <div class="store-category-card__content">
-            <span><%= stats.women %> <%= t.products %></span>
-            <h3><%= t.women_perfumes %></h3>
-            <b><%= t.shop_now %> →</b>
-          </div>
-        </a>
-
-        <a href="/shop/unisex" class="store-category-card">
-          <div class="store-category-card__media" <% if (settings.unisex_image) { %>style="background-image:url('<%= settings.unisex_image %>')"<% } %>></div>
-          <div class="store-category-card__overlay"></div>
-          <div class="store-category-card__content">
-            <span><%= stats.unisex %> <%= t.products %></span>
-            <h3><%= t.unisex_perfumes %></h3>
-            <b><%= t.shop_now %> →</b>
-          </div>
-        </a>
+        <% }) %>
       </div>
     </div>
   </section>
 
   <% if (featured && featured.length) { %>
-  <section class="store-section store-section--products">
+  <section class="section section--ivory">
     <div class="container">
-      <div class="store-section__head">
+      <div class="section-head reveal">
         <div>
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'مختارات جمال الدين' : 'JAMALUDEEN EDIT' %></p>
-          <h2><%= lang === 'ar' ? 'مختارات مميزة' : 'Featured fragrances' %></h2>
+          <p class="eyebrow"><span></span><%= ar ? 'مختارات جمال الدين' : 'The Jamaludeen Edit' %></p>
+          <h2 class="display"><%= ar ? 'مختارات مميزة' : 'Signature fragrances' %></h2>
         </div>
-        <a href="/collections" class="store-text-link"><%= t.view_all %> <span>→</span></a>
+        <a href="/shop/men" class="link-arrow"><%= t.view_all %></a>
       </div>
-      <div class="products-grid store-products-grid">
-        <% featured.forEach(p => { %>
-          <%- include('partials/product-card', { p }) %>
-        <% }) %>
+      <div class="grid-products">
+        <% featured.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
       </div>
     </div>
   </section>
   <% } %>
 
-  <section class="store-editorial">
-    <div class="container store-editorial__grid">
-      <div class="store-editorial__copy">
-        <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'تجربة تسوّق أسهل' : 'A BETTER WAY TO SHOP' %></p>
-        <h2><%= lang === 'ar' ? 'كل شي بدّك ياه لتختار عطرك بثقة.' : 'Everything you need to choose with confidence.' %></h2>
-        <p><%= lang === 'ar' ? 'تصفّح حسب الفئة أو الماركة، احفظ المفضلة، أضف للسلة، وأكمل طلبك بخطوات واضحة وسريعة.' : 'Browse by category or brand, save favorites, add to bag and complete your order with a clean, simple checkout.' %></p>
-        <a href="/collections" class="store-btn store-btn--dark"><%= lang === 'ar' ? 'اكتشف الماركات' : 'Discover brands' %></a>
+  <section class="story">
+    <div class="container story__grid">
+      <div class="story__copy reveal">
+        <p class="eyebrow eyebrow--light"><span></span><%= ar ? 'فن العطر' : 'The Art of Scent' %></p>
+        <h2 class="display display--light"><%= ar ? 'كل شي بدّك ياه لتختار عطرك بثقة.' : 'Everything you need to choose with confidence.' %></h2>
+        <p><%= ar ? 'تصفّح حسب الفئة أو الماركة، احفظ المفضلة، وأكمل طلبك بخطوات واضحة وسريعة — مع خدمة شخصية على واتساب لتساعدك تلاقي عطرك.' : 'Browse by collection or house, save your favourites and complete your order in a few calm steps — with personal WhatsApp service to help you find your signature.' %></p>
+        <a href="/contact" class="btn btn--line-light"><%= ar ? 'زورونا في البوتيك' : 'Visit the boutique' %></a>
       </div>
-      <div class="store-editorial__stats">
-        <div><strong><%= stats.brands %>+</strong><span><%= lang === 'ar' ? 'ماركة' : 'brands' %></span></div>
-        <div><strong><%= stats.men + stats.women + stats.unisex %>+</strong><span><%= lang === 'ar' ? 'عطر' : 'fragrances' %></span></div>
-        <div><strong>LB</strong><span><%= lang === 'ar' ? 'توصيل لكل لبنان' : 'delivery across Lebanon' %></span></div>
+      <div class="story__stats reveal">
+        <div><strong><%= stats.brands %></strong><span><%= ar ? 'دار عطور' : 'Fragrance houses' %></span></div>
+        <div><strong><%= stats.men + stats.women + stats.unisex %></strong><span><%= ar ? 'عطر توقيع' : 'Signature scents' %></span></div>
+        <div><strong>$7</strong><span><%= ar ? 'ابتداءً من، 50ml' : 'From, for 50 ml' %></span></div>
       </div>
     </div>
   </section>
 
   <% if (bestSellers && bestSellers.length) { %>
-  <section class="store-section store-section--products store-section--cream">
+  <section class="section">
     <div class="container">
-      <div class="store-section__head">
+      <div class="section-head reveal">
         <div>
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'الأكثر طلباً' : 'MOST WANTED' %></p>
-          <h2><%= lang === 'ar' ? 'الأكثر مبيعاً' : 'Best sellers' %></h2>
+          <p class="eyebrow"><span></span><%= ar ? 'الأكثر طلباً' : 'Most Wanted' %></p>
+          <h2 class="display"><%= ar ? 'الأكثر مبيعاً' : 'Best sellers' %></h2>
         </div>
-        <a href="/collections" class="store-text-link"><%= t.view_all %> <span>→</span></a>
+        <a href="/shop/men" class="link-arrow"><%= t.view_all %></a>
       </div>
-      <div class="products-grid store-products-grid">
-        <% bestSellers.forEach(p => { %>
-          <%- include('partials/product-card', { p }) %>
-        <% }) %>
+      <div class="grid-products">
+        <% bestSellers.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
       </div>
     </div>
   </section>
   <% } %>
 
-  <section class="store-section store-brands">
+  <% if (brands.length) { %>
+  <section class="section section--ivory">
     <div class="container">
-      <div class="store-section__head store-section__head--center">
+      <div class="section-head section-head--center reveal">
         <div>
-          <p class="store-kicker store-kicker--dark"><%= lang === 'ar' ? 'تسوّق حسب الماركة' : 'SHOP BY BRAND' %></p>
-          <h2><%= lang === 'ar' ? 'ماركات عالمية وعربية' : 'International & Arabic houses' %></h2>
+          <p class="eyebrow eyebrow--center"><span></span><%= ar ? 'تسوّق حسب الماركة' : 'The Houses' %><span></span></p>
+          <h2 class="display"><%= ar ? 'ماركات عالمية وعربية' : 'International & Arabic houses' %></h2>
         </div>
       </div>
-      <div class="store-brand-cloud">
-        <% brands.forEach(b => { %>
-          <a href="/collections?brand=<%= encodeURIComponent(b) %>"><%= b %></a>
-        <% }) %>
+      <div class="houses reveal">
+        <% brands.forEach(b => { %><a href="/collections/<%= b.id %>"><%= b.name %></a><% }) %>
       </div>
     </div>
   </section>
+  <% } %>
 
-  <section class="store-benefits">
-    <div class="container store-benefits__grid">
-      <div><span>01</span><strong><%= lang === 'ar' ? 'توصيل لكل لبنان' : 'Delivery across Lebanon' %></strong><p><%= lang === 'ar' ? 'طلبك بيوصل لعندك بكل المناطق.' : 'Your order delivered wherever you are.' %></p></div>
-      <div><span>02</span><strong><%= lang === 'ar' ? 'دفع مرن' : 'Flexible payment' %></strong><p><%= lang === 'ar' ? 'كاش عند الاستلام أو Whish Money.' : 'Cash on delivery or Whish Money.' %></p></div>
-      <div><span>03</span><strong><%= lang === 'ar' ? 'خدمة مباشرة' : 'Direct support' %></strong><p><%= lang === 'ar' ? 'تواصل معنا مباشرة عبر واتساب.' : 'Reach us directly on WhatsApp.' %></p></div>
+  <section class="promises">
+    <div class="container promises__grid">
+      <div class="reveal"><span class="promises__icon">✦</span><strong><%= ar ? 'توصيل لكل لبنان' : 'Delivery across Lebanon' %></strong><p><%= ar ? 'طلبك بيوصل لعندك بكل المناطق.' : 'Carefully packed and delivered wherever you are.' %></p></div>
+      <div class="reveal"><span class="promises__icon">✦</span><strong><%= ar ? 'دفع مرن' : 'Flexible payment' %></strong><p><%= ar ? 'كاش عند الاستلام أو ويش موني.' : 'Cash on delivery or Whish Money.' %></p></div>
+      <div class="reveal"><span class="promises__icon">✦</span><strong><%= ar ? 'خدمة شخصية' : 'Personal service' %></strong><p><%= ar ? 'تواصل معنا مباشرة عبر واتساب.' : 'Speak with us directly on WhatsApp.' %></p></div>
     </div>
   </section>
 </main>

@@ -63,8 +63,9 @@ router.get('/:brandId(\\d+)/category/:catId(\\d+)', (req, res) => {
   const category = db.prepare(`SELECT * FROM brand_categories WHERE id = ? AND brand_id = ?`).get(req.params.catId, req.params.brandId);
   if (!brand || !category) return res.status(404).render('404', { title: '404' });
 
-  const { q, page = 1 } = req.query;
-  const offset = (parseInt(page) - 1) * PAGE_SIZE;
+  const { q } = req.query;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
   let where = ['p.brand_category_id = ?'];
   const params = [category.id];
@@ -82,7 +83,7 @@ router.get('/:brandId(\\d+)/category/:catId(\\d+)', (req, res) => {
     title: `${brand.name} — ${category.name_en}`,
     brand, category, products,
     filters: { q: q?.trim() || '' },
-    pagination: { page: parseInt(page), totalPages, total },
+    pagination: { page, totalPages, total },
   });
 });
 

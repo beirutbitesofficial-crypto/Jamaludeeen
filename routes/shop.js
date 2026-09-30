@@ -7,8 +7,9 @@ const PAGE_SIZE = 24;
 const VALID_CATEGORIES = ['men', 'women', 'unisex'];
 
 function renderCategoryShop(req, res, category) {
-  const { q, page = 1 } = req.query;
-  const offset = (parseInt(page) - 1) * PAGE_SIZE;
+  const { q } = req.query;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
   const settings = getSettingsMap(db);
 
   let where = ["p.type = 'local'", 'p.category = ?'];
@@ -39,7 +40,7 @@ function renderCategoryShop(req, res, category) {
     title: 'Shop',
     products,
     filters,
-    pagination: { page: parseInt(page), totalPages, total },
+    pagination: { page, totalPages, total },
   });
 }
 
@@ -68,9 +69,10 @@ router.get('/item/:id(\\d+)', (req, res) => {
   // Related products (same category, same brand, not self)
   const rawRelated = db.prepare(`
     SELECT * FROM products
-    WHERE (brand = ? OR category = ?) AND id != ? AND in_stock = 1
+    WHERE type = ? AND (brand = ? OR category = ?) AND id != ? AND in_stock = 1
+    ORDER BY (brand = ?) DESC, RANDOM()
     LIMIT 4
-  `).all(product.brand, product.category, product.id);
+  `).all(product.type, product.brand, product.category, product.id, product.brand);
   const related = applyLocalRulesToProducts(rawRelated, settings);
 
   res.render('product', { title: product.name_en, product, related });

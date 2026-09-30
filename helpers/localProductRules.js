@@ -22,7 +22,8 @@ function applyLocalRulesToProduct(product, settings = {}) {
 
   return {
     ...product,
-    image_path: sharedImage || product.image_path || null,
+    // A product's own photo wins; the category image is only a fallback.
+    image_path: product.image_path || sharedImage || null,
     price: price50,
     price_50ml: price50,
     price_100ml: price100,

@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database/store-system');
 const { getSettingsMap, applyLocalRulesToProduct } = require('../helpers/localProductRules');
 const { normalizeSize, salePrice, stockDeduction } = require('../helpers/inventory');
+const { priceCart } = require('../helpers/pricing');
 
 function back(req, fallback = '/cart') {
   return req.get('Referrer') || fallback;
@@ -35,14 +36,9 @@ router.get('/', (req, res) => {
     }
   }
 
-  const deliveryFee = parseFloat(
-    db.prepare("SELECT value FROM settings WHERE key = 'delivery_fee'").get()?.value || 0
-  );
-  const subtotal = items.reduce((s, i) => s + (i.price || 0) * i.qty, 0);
-  const total = subtotal + (subtotal > 0 ? deliveryFee : 0);
-  const currency = items.length && items.every(i => i.type === 'local') ? 'USD' : 'LBP';
+  const cartView = priceCart(items, settings);
 
-  res.render('cart', { title: 'Cart', items, subtotal, deliveryFee, total, currency });
+  res.render('cart', { title: 'Cart', ...cartView });
 });
 
 // POST /cart/add
