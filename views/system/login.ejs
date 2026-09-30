@@ -1,23 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= a.lang %>" dir="<%= a.dir %>">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><%= title %> | JAMALUDEEN</title>
-  <link rel="stylesheet" href="/css/system.css?v=1">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex"/>
+  <meta name="theme-color" content="#0f0e0c"/>
+  <title><%= title %> · JAMALUDEEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261001-2"/>
 </head>
-<body class="sys-login-body">
-  <main class="sys-login-card">
-    <div class="sys-brand">JAMALUDEEN</div>
-    <h1>Store System</h1>
-    <p class="muted">POS · Inventory · Reports</p>
-    <% if (error && error.length) { %><div class="sys-alert sys-alert--error"><%= error[0] %></div><% } %>
-    <form method="POST" action="/system/login" class="sys-form">
-      <label>Username<input name="username" autocomplete="username" required autofocus></label>
-      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
-      <button class="sys-btn sys-btn--primary" type="submit">Sign in</button>
-    </form>
-    <a href="/" class="sys-back-link">← Back to store</a>
-  </main>
+<body>
+  <div class="login">
+    <section class="login__art">
+      <div class="login__word">JAMALUDEEN</div>
+      <h2><%= a.lang === 'ar' ? 'بيع أسرع، مخزون أوضح.' : 'Sell faster. Know your stock.' %></h2>
+      <p><%= a('men') %> · <%= a('women') %> · <%= a('unisex') %> · <%= a('brands') %></p>
+    </section>
+    <section class="login__panel">
+      <div class="login__card">
+        <p class="bo-kicker"><%= a('store_system') %></p>
+        <h1><%= a('welcome') %></h1>
+        <p><%= a('system_tagline') %></p>
+        <% if (error && error.length) { %><div class="flash flash--error"><%- icon('alert') %><span><%= error[0] %></span></div><% } %>
+        <form method="POST" action="/system/login" class="form">
+          <label class="field"><span><%= a('username') %></span><input name="username" autocomplete="username" required autofocus dir="ltr"/></label>
+          <label class="field"><span><%= a('password') %></span><input name="password" type="password" autocomplete="current-password" required dir="ltr"/></label>
+          <button class="btn btn--dark btn--lg btn--block" type="submit"><%= a('login') %></button>
+        </form>
+        <div class="login__foot">
+          <a href="/"><%= a('back_to_store') %></a>
+          <form action="/set-lang" method="POST"><button class="btn btn--sm lang-btn" name="lang" value="<%= a.lang === 'ar' ? 'en' : 'ar' %>"><%- icon('globe') %><%= a('language') %></button></form>
+        </div>
+      </div>
+    </section>
+  </div>
 </body>
 </html>

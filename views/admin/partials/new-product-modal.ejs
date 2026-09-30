@@ -1,0 +1,21 @@
+<div class="modal" id="newProduct" role="dialog" aria-modal="true">
+  <div class="modal__box">
+    <div class="modal__head"><h2><%= a('new_product') %></h2><button class="modal__close" type="button" data-close aria-label="<%= a('close') %>"><%- icon('x') %></button></div>
+    <form action="/admin/products/new" method="POST" class="modal__body form" id="newProductForm">
+      <div class="field"><span><%= a('section') %> *</span>
+        <div class="tabs" style="width:100%">
+          <% ['men','women','unisex','brands'].forEach((k, i) => { %>
+          <label style="flex:1"><input type="radio" name="section" value="<%= k %>" <%= (typeof defaultSection !== 'undefined' ? defaultSection === k : i === 0) ? 'checked' : '' %> hidden onchange="document.getElementById('npBrand').hidden = this.value !== 'brands'; document.getElementById('npHouse').hidden = this.value === 'brands'"/><span class="btn btn--sm btn--ghost" style="width:100%"><%= a(k) %></span></label>
+          <% }) %>
+        </div>
+      </div>
+      <label class="field"><span><%= a('name_en') %> *</span><input name="name_en" required/></label>
+      <label class="field" id="npHouse" <% if (typeof defaultSection !== 'undefined' && defaultSection === 'brands') { %>hidden<% } %>><span><%= a('original_house') %></span><input name="house" placeholder="Dior, Chanel…"/></label>
+      <label class="field" id="npBrand" <% if (typeof defaultSection === 'undefined' || defaultSection !== 'brands') { %>hidden<% } %>><span><%= a('brand') %> *</span>
+        <select name="brand_id"><option value=""><%= a('choose_brand') %></option><% brands.forEach(b => { %><option value="<%= b.id %>" <%= typeof defaultBrand !== 'undefined' && defaultBrand === b.name ? 'selected' : '' %>><%= b.name %></option><% }) %></select>
+      </label>
+      <div class="form__actions"><button type="submit" class="btn btn--dark"><%= a('create') %></button><button type="button" class="btn" data-close><%= a('cancel') %></button></div>
+    </form>
+  </div>
+</div>
+<style>#newProductForm .tabs input:checked + .btn { background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.08); }</style>

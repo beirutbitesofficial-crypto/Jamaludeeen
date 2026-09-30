@@ -1,158 +1,39 @@
-<%- include('../partials/admin-header', { title: 'Settings' }) %>
-
-<div class="admin-page">
-  <h1 class="admin-page__title">⚙️ Settings</h1>
-
-  <div class="settings-layout">
-
-    <!-- Store Settings -->
-    <div class="settings-card">
-      <h3 class="panel-title">Store Settings</h3>
-      <form action="/admin/settings" method="POST">
-        <div class="form-group">
-          <label class="form-label">ByWhish Money Number</label>
-          <input type="text" name="whish_number" class="form-input"
-                 value="<%= settings.whish_number || '' %>" placeholder="+961 70 000 000"/>
-          <p class="form-hint">Customers will send payment to this number</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Store Phone</label>
-          <input type="text" name="store_phone" class="form-input"
-                 value="<%= settings.store_phone || '' %>" placeholder="+961 70 000 000"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">WhatsApp Number</label>
-          <input type="text" name="store_whatsapp" class="form-input"
-                 value="<%= settings.store_whatsapp || '' %>" placeholder="+96170000000"/>
-          <p class="form-hint">Include country code, no spaces (e.g. 96170123456)</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Store Address / Location</label>
-          <input type="text" name="store_address" class="form-input"
-                 value="<%= settings.store_address || '' %>" placeholder="Lebanon"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Delivery Fee (LBP) — 0 for free</label>
-          <input type="number" name="delivery_fee" class="form-input"
-                 value="<%= settings.delivery_fee || 0 %>" min="0" step="1000"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">USD Exchange Rate (LBP per $1)</label>
-          <input type="number" name="usd_rate" class="form-input"
-                 value="<%= settings.usd_rate || 89500 %>" min="1" step="500"/>
-          <p class="form-hint">Used for LBP ⇔ USD toggle on the store. Current: 1 USD = <%= settings.usd_rate || 89500 %> LBP</p>
-        </div>
-        <button type="submit" class="btn btn--primary">💾 Save Settings</button>
-      </form>
-    </div>
-
-    <!-- Hero Banner -->
-    <div class="settings-card">
-      <h3 class="panel-title">Home Page Banner Text</h3>
-      <form action="/admin/settings" method="POST">
-        <div class="form-group">
-          <label class="form-label">Hero Title (English)</label>
-          <input type="text" name="hero_title_en" class="form-input"
-                 value="<%= settings.hero_title_en || '' %>"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hero Title (Arabic)</label>
-          <input type="text" name="hero_title_ar" class="form-input" dir="rtl"
-                 value="<%= settings.hero_title_ar || '' %>"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hero Subtitle (English)</label>
-          <input type="text" name="hero_sub_en" class="form-input"
-                 value="<%= settings.hero_sub_en || '' %>"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hero Subtitle (Arabic)</label>
-          <input type="text" name="hero_sub_ar" class="form-input" dir="rtl"
-                 value="<%= settings.hero_sub_ar || '' %>"/>
-        </div>
-        <button type="submit" class="btn btn--primary">💾 Save Banner</button>
-      </form>
-    </div>
-
-    <!-- Change Password -->
-    <div class="settings-card">
-      <h3 class="panel-title">Change Admin Password</h3>
-      <form action="/admin/change-password" method="POST">
-        <div class="form-group">
-          <label class="form-label">Current Password</label>
-          <input type="password" name="current" class="form-input" required/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">New Password</label>
-          <input type="password" name="newPass" class="form-input" required minlength="6"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Confirm New Password</label>
-          <input type="password" name="confirm" class="form-input" required minlength="6"/>
-        </div>
-        <button type="submit" class="btn btn--outline">🔒 Change Password</button>
-      </form>
-    </div>
-
-    <!-- Banner Image -->
-    <div class="settings-card">
-      <h3 class="panel-title">🖼️ Hero Banner Image</h3>
-      <p class="form-hint" style="margin-bottom:16px">This image appears as the homepage hero background.</p>
-
-      <% if (settings.banner_image) { %>
-        <div class="img-preview-wrap">
-          <img src="<%= settings.banner_image %>" class="settings-img-preview" alt="Banner"/>
-          <form action="/admin/settings/delete-image/banner" method="POST" style="margin-top:8px">
-            <button type="submit" class="btn btn--outline btn--sm btn--danger"
-                    onclick="return confirm('Remove banner image?')">✕ Remove</button>
-          </form>
-        </div>
-      <% } else { %>
-        <div class="img-placeholder-box">No banner image set</div>
-      <% } %>
-
-      <form action="/admin/settings/upload-image/banner" method="POST" enctype="multipart/form-data" class="upload-form-inline">
-        <label class="upload-btn-big">
-          📷 <%= settings.banner_image ? 'Change Banner' : 'Upload Banner' %>
-          <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
-                 onchange="this.form.submit()"/>
-        </label>
-        <p class="form-hint">JPG/PNG/WebP — max 10 MB. Recommended: 1920×1080</p>
-      </form>
-    </div>
-
-    <!-- Category Images -->
-    <div class="settings-card">
-      <h3 class="panel-title">🗂️ Category Images</h3>
-      <p class="form-hint" style="margin-bottom:20px">One background image per category card on homepage.</p>
-
-      <div class="cat-img-grid">
-        <% [['men','♟ Men'],['women','✦ Women'],['unisex','◈ Unisex']].forEach(([cat,label]) => { %>
-        <div class="cat-img-card">
-          <div class="cat-img-card__label"><%= label %></div>
-          <% const key = cat + '_image'; const img = settings[key]; %>
-          <% if (img) { %>
-            <img src="<%= img %>" class="cat-img-card__img" alt="<%= cat %>"/>
-            <form action="/admin/settings/delete-image/<%= cat %>" method="POST">
-              <button type="submit" class="btn btn--sm btn--danger"
-                      onclick="return confirm('Remove?')">✕</button>
-            </form>
-          <% } else { %>
-            <div class="cat-img-placeholder">No image</div>
-          <% } %>
-          <form action="/admin/settings/upload-image/<%= cat %>" method="POST" enctype="multipart/form-data">
-            <label class="upload-btn-big upload-btn-big--sm">
-              📷 <%= img ? 'Change' : 'Upload' %>
-              <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
-                     onchange="this.form.submit()"/>
-            </label>
-          </form>
-        </div>
-        <% }) %>
-      </div>
-    </div>
-
-  </div>
+<%- include('../partials/admin-header', { title: a('settings') }) %>
+<div class="bo-head">
+  <div><p class="bo-kicker"><%= a('admin_panel') %></p><h1><%= a('settings') %></h1></div>
 </div>
 
+<div class="grid grid--side">
+  <form class="card" action="/admin/settings" method="POST">
+    <div class="card__head"><h2><%- icon('store') %> <%= a('store_details') %></h2><button class="btn btn--dark" type="submit"><%- icon('check') %><%= a('save_changes') %></button></div>
+    <div class="card__body form">
+      <label class="field"><span><%= a('exchange_rate') %></span>
+        <span class="input-affix"><span>1 USD =</span><input type="number" name="exchange_rate" min="1" step="100" value="<%= rate %>" required dir="ltr"/><span>LBP</span></span>
+        <small><%= a('exchange_hint') %></small></label>
+      <div class="field--row">
+        <label class="field"><span><%= a('store_phone') %></span><input name="store_phone" value="<%= settings.store_phone || '' %>" dir="ltr"/></label>
+        <label class="field"><span><%= a('store_whatsapp') %></span><input name="store_whatsapp" value="<%= settings.store_whatsapp || '' %>" dir="ltr" placeholder="9613xxxxxx"/><small><%= a('store_whatsapp_hint') %></small></label>
+      </div>
+      <div class="field--row">
+        <label class="field"><span><%= a('whish_number') %></span><input name="whish_number" value="<%= settings.whish_number || '' %>" dir="ltr"/><small><%= a('whish_hint') %></small></label>
+        <label class="field"><span><%= a('delivery_fee') %></span><span class="input-affix"><input type="number" name="delivery_fee" min="0" step="1000" value="<%= settings.delivery_fee || 0 %>" dir="ltr"/><span>LBP</span></span></label>
+      </div>
+      <label class="field"><span><%= a('store_address') %></span><input name="store_address" value="<%= settings.store_address || '' %>"/></label>
+      <div class="field--row">
+        <label class="field"><span><%= a('instagram') %></span><input name="instagram" value="<%= settings.instagram || '' %>" dir="ltr" placeholder="https://instagram.com/…"/></label>
+        <label class="field"><span><%= a('tiktok') %></span><input name="tiktok" value="<%= settings.tiktok || '' %>" dir="ltr" placeholder="https://tiktok.com/@…"/></label>
+      </div>
+    </div>
+  </form>
+
+  <form class="card" action="/admin/change-password" method="POST" style="align-self:start">
+    <div class="card__head"><h2><%= a('change_password') %></h2></div>
+    <div class="card__body form">
+      <label class="field"><span><%= a('current_password') %></span><input type="password" name="current" required autocomplete="current-password"/></label>
+      <label class="field"><span><%= a('new_password') %></span><input type="password" name="newPass" required minlength="8" autocomplete="new-password"/><small><%= a('pw_short') %></small></label>
+      <label class="field"><span><%= a('confirm_password') %></span><input type="password" name="confirm" required minlength="8" autocomplete="new-password"/></label>
+      <button class="btn btn--dark btn--block" type="submit"><%= a('change_password') %></button>
+    </div>
+  </form>
+</div>
 <%- include('../partials/admin-footer') %>

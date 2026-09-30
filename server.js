@@ -20,7 +20,10 @@ if (IS_PRODUCTION) {
 }
 const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
-const { exchangeRate, whatsappNumber } = require('./helpers/pricing');
+const { exchangeRate, whatsappNumber, formatMoney } = require('./helpers/pricing');
+const { translator } = require('./helpers/back-office-i18n');
+const { refillPricesUsd } = require('./helpers/catalog');
+const { icon } = require('./helpers/icons');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -145,14 +148,23 @@ app.use((req, res, next) => {
   res.locals.usdRate = exchangeRate(settings);
   res.locals.waNumber = whatsappNumber(settings.store_whatsapp);
   res.locals.currentPath = req.path;
+  res.locals.a = translator(lang);
+  res.locals.refillUsd = refillPricesUsd(settings);
+  res.locals.icon = icon;
+  res.locals.money = formatMoney;
   next();
 });
 
 // Language toggle
 app.post('/set-lang', (req, res) => {
   req.session.lang = req.body.lang === 'ar' ? 'ar' : 'en';
-  const back = req.headers.referer || '/';
-  res.redirect(back);
+  // Only return to a page on this site (never an external referer).
+  let back = '/';
+  try {
+    const ref = new URL(req.headers.referer || '', 'http://local');
+    if (!req.headers.referer || ref.host === req.headers.host) back = ref.pathname + ref.search;
+  } catch (_) {}
+  res.redirect(back.startsWith('/') && !back.startsWith('//') ? back : '/');
 });
 
 // Routes. These imports initialize SQLite/catalog data on first run, so they

@@ -31,7 +31,7 @@
 
         <div class="pdp__price-row">
           <% if (isLocal) { %>
-            <span class="pdp__price" id="pdpPrice" dir="ltr">$<%= product.price_50ml || 7 %></span>
+            <span class="pdp__price" id="pdpPrice" dir="ltr">$<%= product.price_50ml || refillUsd[50] %></span>
             <span class="pdp__unit" id="pdpUnit" dir="ltr">50 ml</span>
           <% } else if (product.price) { %>
             <span class="pdp__price price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString('en-US') %> LBP</span>
@@ -54,12 +54,12 @@
           <fieldset class="sizes">
             <legend><%= ar ? 'اختر الحجم' : 'Select size' %></legend>
             <label class="size">
-              <input type="radio" name="size_ml" value="50" data-price="<%= product.price_50ml || 7 %>" checked/>
-              <span class="size__box"><strong dir="ltr">50 ml</strong><em>$<%= product.price_50ml || 7 %></em></span>
+              <input type="radio" name="size_ml" value="50" data-price="<%= product.price_50ml || refillUsd[50] %>" checked/>
+              <span class="size__box"><strong dir="ltr">50 ml</strong><em>$<%= product.price_50ml || refillUsd[50] %></em></span>
             </label>
             <label class="size">
-              <input type="radio" name="size_ml" value="100" data-price="<%= product.price_100ml || 13 %>"/>
-              <span class="size__box"><strong dir="ltr">100 ml</strong><em>$<%= product.price_100ml || 13 %></em><b><%= ar ? 'قيمة أفضل' : 'Best value' %></b></span>
+              <input type="radio" name="size_ml" value="100" data-price="<%= product.price_100ml || refillUsd[100] %>"/>
+              <span class="size__box"><strong dir="ltr">100 ml</strong><em>$<%= product.price_100ml || refillUsd[100] %></em><b><%= ar ? 'قيمة أفضل' : 'Best value' %></b></span>
             </label>
           </fieldset>
           <% } %>

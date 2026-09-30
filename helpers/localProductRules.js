@@ -1,3 +1,5 @@
+const { refillPricesUsd } = require('./catalog');
+
 function parsePrice(value) {
   if (value === undefined || value === null || String(value).trim() === '') return null;
   const n = parseFloat(value);
@@ -16,9 +18,10 @@ function applyLocalRulesToProduct(product, settings = {}) {
   const category = product.category;
   const sharedImage = settings[`${category}_image`];
 
-  // Jamaludeen refill perfumes use one fixed USD price list everywhere.
-  const price50 = 7;
-  const price100 = 13;
+  // Jamaludeen refill perfumes use one USD price list everywhere (admin → Prices).
+  const prices = refillPricesUsd(settings);
+  const price50 = prices[50];
+  const price100 = prices[100];
 
   return {
     ...product,

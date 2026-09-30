@@ -1,63 +1,55 @@
-<%- include('../partials/admin-header', { title: 'Catalog Categories' }) %>
-
-<div class="admin-page catalog-admin">
-  <div class="admin-page__header">
-    <div>
-      <p class="admin-kicker">STORE STRUCTURE</p>
-      <h1 class="admin-page__title">Catalog Categories</h1>
-      <p class="admin-page__sub">Manage the four sections customers see in the main navigation.</p>
-    </div>
-    <a href="/" target="_blank" class="btn btn--outline">View Store</a>
+<%- include('../partials/admin-header', { title: a('collections') }) %>
+<div class="bo-head">
+  <div>
+    <p class="bo-kicker"><%= a('catalog') %></p>
+    <h1><%= a('collections') %></h1>
+    <p><%= a('catalog_intro') %></p>
   </div>
-
-  <div class="catalog-grid">
-    <% categories.forEach(cat => { %>
-    <article class="catalog-tile catalog-tile--<%= cat.key %>">
-      <div class="catalog-tile__media" <% if (cat.image) { %>style="background-image:url('<%= cat.image %>')"<% } %>>
-        <span class="catalog-tile__label">SHARED CATALOG</span>
-      </div>
-      <div class="catalog-tile__body">
-        <div class="catalog-tile__top">
-          <h2><%= cat.key[0].toUpperCase() + cat.key.slice(1) %></h2>
-          <span class="count-badge"><%= cat.count %> products</span>
-        </div>
-        <p>Every product in this section uses one shared image and one shared price.</p>
-        <div class="catalog-tile__meta">
-          <span>Shared price</span>
-          <strong><%= cat.price ? Number(cat.price).toLocaleString() + ' LBP' : 'Not set' %></strong>
-        </div>
-        <div class="catalog-tile__actions">
-          <a href="/admin/products?type=local&category=<%= cat.key %>" class="btn btn--primary">Manage Products</a>
-          <a href="/admin/images#<%= cat.key %>" class="btn btn--outline">Image</a>
-          <a href="/admin/prices" class="btn btn--outline">Price</a>
-        </div>
-      </div>
-    </article>
-    <% }) %>
-
-    <article class="catalog-tile catalog-tile--brands">
-      <div class="catalog-tile__media catalog-tile__media--brands">
-        <span class="catalog-tile__label">INDIVIDUAL CATALOG</span>
-        <span class="catalog-tile__monogram">J</span>
-      </div>
-      <div class="catalog-tile__body">
-        <div class="catalog-tile__top">
-          <h2>Brands</h2>
-          <span class="count-badge"><%= brandStats.count %> products</span>
-        </div>
-        <p>Each brand product keeps its own image and price, independently.</p>
-        <div class="catalog-tile__meta">
-          <span>Active brands</span>
-          <strong><%= brandStats.brands %></strong>
-        </div>
-        <div class="catalog-tile__actions">
-          <a href="/admin/products?type=brand" class="btn btn--primary">Manage Products</a>
-          <a href="/admin/brands" class="btn btn--outline">Manage Brands</a>
-          <a href="/admin/images" class="btn btn--outline">Images</a>
-        </div>
-      </div>
-    </article>
+  <div class="bo-head__actions">
+    <button class="btn btn--dark" data-open="newProduct"><%- icon('plus') %><%= a('add_product') %></button>
   </div>
 </div>
 
+<div class="grid grid--4">
+  <% ['men','women','unisex'].forEach(k => { %>
+  <article class="card tile">
+    <div class="tile__media" <% if (covers[k]) { %>style="background-image:url('<%= covers[k] %>')"<% } %>><span><%= a(k) %></span></div>
+    <div class="tile__body">
+      <div class="tile__meta"><span><%= a('products') %></span><b class="num"><%= counts[k] %></b></div>
+      <div class="tile__meta"><span>50 / 100 ml</span><b dir="ltr">$<%= refill[50] %> · $<%= refill[100] %></b></div>
+      <div class="tile__actions">
+        <a href="/admin/products?section=<%= k %>" class="btn btn--dark btn--sm"><%= a('manage') %></a>
+        <a href="/admin/images?section=<%= k %>" class="btn btn--sm"><%= a('images') %></a>
+        <a href="/shop/<%= k %>" target="_blank" class="btn btn--sm btn--ghost"><%- icon('external') %></a>
+      </div>
+    </div>
+  </article>
+  <% }) %>
+  <article class="card tile">
+    <div class="tile__media"><span><%= a('brands') %></span></div>
+    <div class="tile__body">
+      <div class="tile__meta"><span><%= a('products') %></span><b class="num"><%= counts.brands %></b></div>
+      <div class="tile__meta"><span><%= a('brands') %></span><b class="num"><%= brands.length %></b></div>
+      <div class="tile__actions">
+        <a href="/admin/products?section=brands" class="btn btn--dark btn--sm"><%= a('manage') %></a>
+        <a href="/admin/brands" class="btn btn--sm"><%= a('brands') %></a>
+        <a href="/collections" target="_blank" class="btn btn--sm btn--ghost"><%- icon('external') %></a>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="grid grid--2">
+  <div class="note"><%- icon('bottle') %><span><%= a('refill_note') %></span></div>
+  <div class="note"><%- icon('tag') %><span><%= a('brand_note') %></span></div>
+</div>
+
+<section class="card">
+  <div class="card__head"><h2><%= a('brands') %></h2><a href="/admin/brands" class="btn btn--sm btn--ghost"><%= a('manage') %></a></div>
+  <div class="card__body chips">
+    <% brands.forEach(b => { %><a class="chip" href="/admin/products?section=brands&brand=<%= encodeURIComponent(b.name) %>"><%= b.name %> <small class="num"><%= b.count %></small></a><% }) %>
+  </div>
+</section>
+
+<%- include('partials/new-product-modal') %>
 <%- include('../partials/admin-footer') %>
