@@ -58,12 +58,12 @@
 
       <div class="cats">
         <% [
-          { key: 'men', title: t.men_perfumes, count: stats.men, img: settings.men_image || '/images/men/black-orchid-tom-ford.webp', num: 'I' },
-          { key: 'women', title: t.women_perfumes, count: stats.women, img: settings.women_image, num: 'II' },
-          { key: 'unisex', title: t.unisex_perfumes, count: stats.unisex, img: settings.unisex_image, num: 'III' },
+          { key: 'men', title: t.men_perfumes, count: stats.men, img: covers.men, pos: 'center 40%', num: 'I' },
+          { key: 'women', title: t.women_perfumes, count: stats.women, img: covers.women, pos: 'center 35%', num: 'II' },
+          { key: 'unisex', title: t.unisex_perfumes, count: stats.unisex, img: covers.unisex, pos: '70% center', num: 'III' },
         ].forEach(c => { %>
         <a href="/shop/<%= c.key %>" class="cat reveal cat--<%= c.key %>">
-          <div class="cat__media" <% if (c.img) { %>style="background-image:url('<%= c.img %>')"<% } %>></div>
+          <div class="cat__media" <% if (c.img) { %>style="background-image:url('<%= c.img %>');background-position:<%= c.pos %>"<% } %>></div>
           <div class="cat__veil"></div>
           <span class="cat__num"><%= c.num %></span>
           <div class="cat__body">
