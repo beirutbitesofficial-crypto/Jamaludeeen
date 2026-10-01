@@ -56,7 +56,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { $$('.modal.open').forEach(m => m.classList.remove('open')); setMenu(false); setCart(false); } });
 
   const TAB_KEY = 'jm_sys_tab';
-  const tabTitle = { dashboard: 'dashboard', pos: 'pos', inventory: 'inventory', sales: 'sales', customers: 'customers', purchases: 'purchases', expenses: 'expenses', reports: 'reports', team: 'team' };
+  const tabTitle = { online: 'online_orders', dashboard: 'dashboard', pos: 'pos', inventory: 'inventory', sales: 'sales', customers: 'customers', purchases: 'purchases', expenses: 'expenses', reports: 'reports', team: 'team' };
   function setTab(name) {
     if (!$('#tab-' + name)) name = 'dashboard';
     $$('.sys-tab').forEach(x => x.classList.toggle('active', x.id === 'tab-' + name));
@@ -64,7 +64,7 @@
     $('#topTitle').textContent = t(tabTitle[name]);
     setMenu(false);
     try { localStorage.setItem(TAB_KEY, name); } catch (_) {}
-    ({ dashboard: loadDashboard, pos: () => { loadPos(); loadShift(); }, inventory: loadInventory, sales: loadSales, customers: loadCustomers,
+    ({ online: loadOnline, dashboard: loadDashboard, pos: () => { loadPos(); loadShift(); }, inventory: loadInventory, sales: loadSales, customers: loadCustomers,
        purchases: loadPurchases, expenses: loadExpenses, reports: loadReports, team: loadUsers })[name]?.();
     window.scrollTo(0, 0);
   }
@@ -100,9 +100,9 @@
       const d = await api('/system/api/dashboard');
       const s = d.today;
       $('#dashboardMetrics').innerHTML = isMgr
-        ? stat(t('today_sales'), lbp(s.sales_total)) + stat(t('transactions'), s.sales_count) +
+        ? stat(t('today_sales'), lbp(s.sales_total)) + stat(t('online_today'), lbp(d.online.total)) +
           stat(t('net_profit'), lbp(s.net_profit), s.net_profit >= 0 ? 'stat--good' : 'stat--bad') +
-          stat(t('low_stock'), d.lowStock, d.lowStock > 0 ? 'stat--alert' : '')
+          `<button type="button" class="card stat ${d.online.open_orders ? 'stat--alert' : ''}" data-go-online style="text-align:start;cursor:pointer;font:inherit"><span class="stat__label">${esc(t('open_orders'))}</span><span class="stat__value num">${d.online.open_orders}</span></button>`
         : stat(t('today_sales'), lbp(s.sales_total)) + stat(t('transactions'), s.sales_count) +
           stat(t('low_stock'), d.lowStock, d.lowStock > 0 ? 'stat--alert' : '') + stat(t('catalog_items'), d.products);
       $('#recentSales').innerHTML = d.recent.length
@@ -110,6 +110,7 @@
           d.recent.map(s => `<tr data-sale="${s.id}" style="cursor:pointer"><td class="num" dir="ltr"><b>${esc(s.sale_number)}</b></td><td>${esc(s.customer_name || t('walk_in'))}</td><td>${esc(s.cashier_name)}</td><td>${esc(payLabel(s.payment_method))}</td><td class="num" dir="ltr"><b>${lbp(s.total)}</b></td></tr>`).join('')}</tbody></table></div>`
         : empty(t('no_sales'));
       $$('#recentSales [data-sale]').forEach(r => r.onclick = () => showSale(Number(r.dataset.sale)));
+      $('[data-go-online]')?.addEventListener('click', () => setTab('online'));
       renderShift(d.shift);
     } catch (e) { toast(e.message, true); }
   }
@@ -418,12 +419,72 @@
       const d = await api(`/system/api/sales?from=${$('#salesFrom').value}&to=${$('#salesTo').value}`);
       host.innerHTML = d.sales.length ? d.sales.map(s => `<tr>
         <td class="num" dir="ltr"><b>${esc(s.sale_number)}</b></td><td class="muted">${when(s.created_at)}</td><td>${esc(s.customer_name || t('walk_in'))}</td>
-        <td>${esc(s.cashier_name)}</td><td>${esc(payLabel(s.payment_method))}</td><td class="num" dir="ltr"><b>${lbp(s.total)}</b></td><td>${statusPill(s.status)}</td>
+        <td>${s.source === 'online' ? `<span class="pill pill--blue">${t('source_online')}</span>` : esc(s.cashier_name)}</td><td>${esc(payLabel(s.payment_method))}</td><td class="num" dir="ltr"><b>${lbp(s.total)}</b></td><td>${statusPill(s.status)}</td>
         <td class="actions"><button class="btn btn--sm" data-sale="${s.id}">${t('view')}</button></td></tr>`).join('') : empty(t('no_sales'), 8);
     } catch (e) { toast(e.message, true); }
   }
   $('#salesFilterBtn')?.addEventListener('click', loadSales);
   $('#salesRows')?.addEventListener('click', e => { const b = e.target.closest('[data-sale]'); if (b) showSale(+b.dataset.sale); });
+
+  // ── Online (website) orders ──────────────────────────────────
+  let oStatus = '', oTimer;
+  const ostPill = st => `<span class="pill st-${st}">${esc(t('st_' + st))}</span>`;
+  const NEXT = { pending: 'confirmed', confirmed: 'shipped', shipped: 'delivered' };
+  async function loadOnline() {
+    const host = $('#onlineRows'); if (!host) return;
+    try {
+      const d = await api(`/system/api/online-orders?status=${oStatus}&q=${encodeURIComponent($('#onlineSearch').value.trim())}`);
+      const c = d.counts, all = Object.values(c).reduce((a, b) => a + b, 0);
+      $$('[data-ocount]').forEach(el => { el.textContent = el.dataset.ocount === 'all' ? all : (c[el.dataset.ocount] || 0); });
+      const open = (c.pending || 0) + (c.confirmed || 0) + (c.shipped || 0);
+      $('#onlineStats').innerHTML = stat(t('open_orders'), open, open ? 'stat--alert' : '') + stat(t('open_value'), lbp(d.open_value_lbp)) + stat(t('st_delivered'), c.delivered || 0, 'stat--good');
+      host.innerHTML = d.orders.length ? d.orders.map(o => `<tr>
+        <td class="num" dir="ltr"><b>${esc(o.order_number)}</b></td><td class="muted">${when(o.created_at)}</td>
+        <td><b>${esc(o.customer_name)}</b><br><small class="muted" dir="ltr">${esc(o.customer_phone)}</small></td><td>${esc(o.customer_city)}</td>
+        <td><span class="pill pill--plain">${esc(t(o.payment_method))}</span></td>
+        <td class="num" dir="ltr"><b>${o.currency === 'USD' ? usd(o.total) : lbp(o.total)}</b>${o.currency === 'USD' ? `<br><small class="muted">${lbp(o.total_lbp)}</small>` : ''}</td>
+        <td>${ostPill(o.status)}</td>
+        <td class="actions" style="white-space:nowrap">${NEXT[o.status] ? `<button class="btn btn--sm btn--dark" data-oset="${o.id}" data-to="${NEXT[o.status]}">${t('st_' + NEXT[o.status])}</button> ` : ''}<button class="btn btn--sm" data-order="${o.id}">${t('view')}</button></td></tr>`).join('')
+        : empty(t('no_orders'), 8);
+    } catch (e) { toast(e.message, true); }
+  }
+  async function setOrderStatus(id, status) {
+    try { await api(`/system/api/online-orders/${id}/status`, { method: 'POST', body: { status } }); toast(t('status_updated')); closeModal('orderModal'); loadOnline(); }
+    catch (e) { toast(e.message, true); }
+  }
+  async function showOrder(id) {
+    try {
+      const { order: o, items } = await api('/system/api/online-orders/' + id);
+      const cur = v => o.currency === 'USD' ? usd(v) : lbp(v);
+      const wa = String(o.customer_phone || '').replace(/\D/g, '').replace(/^0/, '961');
+      $('#orderTitle').textContent = o.order_number;
+      $('#orderDetail').innerHTML = `<div class="receipt">
+        <dl class="kv"><dt>${t('date')}</dt><dd>${when(o.created_at)}</dd><dt>${t('customer')}</dt><dd><b>${esc(o.customer_name)}</b> · <a dir="ltr" href="tel:${esc(o.customer_phone)}">${esc(o.customer_phone)}</a></dd>
+          <dt>${t('address')}</dt><dd>${esc(o.customer_city)} — ${esc(o.customer_address)}</dd><dt>${t('payment')}</dt><dd>${esc(t(o.payment_method))}</dd>
+          ${o.notes ? `<dt>${t('notes')}</dt><dd>${esc(o.notes)}</dd>` : ''}<dt>${t('status')}</dt><dd>${ostPill(o.status)}</dd></dl>
+        <div class="table-wrap" style="margin:14px 0"><table class="table"><thead><tr><th>${t('product')}</th><th>${t('quantity')}</th><th>${t('price')}</th><th>${t('total')}</th></tr></thead><tbody>${
+          items.map(i => `<tr><td><span class="prod-cell">${i.image_path ? `<img class="thumb" src="${esc(i.image_path)}" alt="">` : '<span class="thumb thumb--empty">J</span>'}<span><strong>${esc(i.product_name)}</strong>${i.size_ml ? `<small>${i.size_ml} ml</small>` : ''}</span></span></td><td class="num">${i.quantity}</td><td class="num" dir="ltr">${cur(i.price)}</td><td class="num" dir="ltr">${cur(i.price * i.quantity)}</td></tr>`).join('')}</tbody></table></div>
+        <dl class="kv" style="max-width:340px;margin-inline-start:auto"><dt>${t('subtotal')}</dt><dd class="num" dir="ltr">${cur(o.subtotal)}</dd><dt>${t('delivery')}</dt><dd class="num" dir="ltr">${o.delivery_fee ? cur(o.delivery_fee) : t('free')}</dd>
+          <dt><b>${t('total')}</b></dt><dd class="num" dir="ltr"><b>${cur(o.total)}</b>${o.currency === 'USD' ? ` <span class="muted">(${lbp(o.total_lbp)})</span>` : ''}</dd></dl>
+        <div class="receipt__actions">
+          <a class="btn" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>
+          <select id="orderStatusSel" class="input" style="width:auto">${['pending','confirmed','shipped','delivered','cancelled'].map(st => `<option value="${st}" ${st === o.status ? 'selected' : ''}>${t('st_' + st)}</option>`).join('')}</select>
+          <button class="btn btn--dark" id="orderStatusBtn">${t('update_status')}</button>
+        </div></div>`;
+      openModal('orderModal');
+      $('#orderStatusBtn').onclick = () => { const st = $('#orderStatusSel').value; if (st !== o.status) setOrderStatus(o.id, st); };
+    } catch (e) { toast(e.message, true); }
+  }
+  $('#onlineTabs')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-ostatus]'); if (!b) return;
+    oStatus = b.dataset.ostatus; $$('#onlineTabs [data-ostatus]').forEach(x => x.classList.toggle('is-active', x === b)); loadOnline();
+  });
+  $('#onlineSearch')?.addEventListener('input', () => { clearTimeout(oTimer); oTimer = setTimeout(loadOnline, 250); });
+  $('#onlineRows')?.addEventListener('click', e => {
+    const v = e.target.closest('[data-order]'), s2 = e.target.closest('[data-oset]');
+    if (v) showOrder(+v.dataset.order);
+    if (s2) setOrderStatus(+s2.dataset.oset, s2.dataset.to);
+  });
 
   // ── Customers ────────────────────────────────────────────────
   let custTimer;
@@ -539,6 +600,19 @@
       $('#reportMetrics').innerHTML = stat(t('revenue'), lbp(d.sales.revenue)) + stat(t('cogs'), lbp(d.cogs)) +
         stat(t('gross_profit'), lbp(d.gross_profit), d.gross_profit >= 0 ? 'stat--good' : 'stat--bad') +
         stat(t('expenses'), lbp(d.expenses)) + stat(t('net_profit'), lbp(d.net_profit), d.net_profit >= 0 ? 'stat--good' : 'stat--bad');
+      const ch = d.channels, isOwner = SYS.user.role === 'owner';
+      const chCard = (label, c, extra = '') => `<div class="card stat"><span class="stat__label">${esc(label)} · <span class="num">${c.count}</span> ${t('sales_word')}</span>
+        <span class="stat__value num" dir="ltr">${lbp(c.revenue)}</span>
+        <span class="stat__sub">${t('cogs')}: <span dir="ltr">${lbp(c.cogs)}</span></span>
+        <span class="stat__sub">${t('gross_profit')}: <b dir="ltr" style="color:var(--${c.gross_profit >= 0 ? 'green' : 'red'})">${lbp(c.gross_profit)}</b></span>${extra}</div>`;
+      const shareExtra = `<span class="stat__sub" style="margin-top:6px">${t('partner_share')} (<span class="num">${ch.online.partner_share_pct}%</span>): <b dir="ltr">${lbp(ch.online.partner_share)}</b></span>` +
+        (isOwner ? `<form id="shareForm" style="display:flex;gap:6px;margin-top:8px"><span class="input-affix" style="max-width:140px"><input type="number" name="percent" min="0" max="100" step="0.5" value="${ch.online.partner_share_pct}" dir="ltr"><span>%</span></span><button class="btn btn--sm">${t('save')}</button></form>` : '');
+      $('#channelReport').innerHTML = `<div class="grid grid--2">${chCard(t('in_store'), ch.pos)}${chCard(t('online'), ch.online, shareExtra)}</div>`;
+      $('#shareForm')?.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        try { await api('/system/api/settings/online-share', { method: 'POST', body: { percent: Number(new FormData(ev.target).get('percent')) } }); toast(t('partner_saved')); loadReports(); }
+        catch (e) { toast(e.message, true); }
+      });
       $('#topProducts').innerHTML = d.top.map((x, i) => `<div class="list-row"><span><span class="muted num">${i + 1}.</span> <b>${esc(x.product_name)}</b> <small class="muted">×${x.qty}</small></span><span class="num" dir="ltr">${lbp(x.revenue)}</span></div>`).join('') || empty(t('no_sales'));
       $('#paymentReport').innerHTML = d.payments.map(x => `<div class="list-row"><span><b>${esc(payLabel(x.payment_method))}</b> <small class="muted">· ${x.count} ${t('sales_word')}</small></span><span class="num" dir="ltr">${lbp(x.total)}</span></div>`).join('') || empty(t('no_sales'));
     } catch (e) { toast(e.message, true); }

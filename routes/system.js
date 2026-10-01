@@ -7,6 +7,7 @@ const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateL
 const { SECTION_KEYS, sectionWhere, sectionCounts, brandList, refillPricesUsd } = require('../helpers/catalog');
 const { exchangeRate: rateOf } = require('../helpers/pricing');
 const { translator, STRINGS } = require('../helpers/back-office-i18n');
+const { updateOrderStatus, ORDER_STATUSES } = require('../helpers/orders');
 
 // Arabic versions of API error messages (the English text stays the key).
 const AR_ERRORS = [
@@ -48,6 +49,9 @@ const AR_ERRORS = [
   [/^A shift is already open\.$/, 'يوجد وردية مفتوحة مسبقاً.'],
   [/^No open shift\.$/, 'لا يوجد وردية مفتوحة.'],
   [/^Invalid exchange rate\.$/, 'سعر صرف غير صحيح.'],
+  [/^Invalid status\.$/, 'حالة غير صحيحة.'],
+  [/^Order not found\.$/, 'الطلب غير موجود.'],
+  [/^Invalid percentage\.$/, 'نسبة غير صحيحة.'],
   [/^Not enough stock to reactivate (.+)\.$/, 'لا يوجد مخزون كافٍ لإعادة تفعيل $1.'],
 ];
 function translateError(message, lang) {
@@ -199,7 +203,13 @@ router.get('/api/dashboard', requireSystem, (req, res) => {
     FROM sales ORDER BY id DESC LIMIT 8
   `).all();
   const canManage = ['owner','manager'].includes(req.systemUser.role);
+  const online = db.prepare(`
+    SELECT COUNT(*) count, COALESCE(SUM(total),0) total FROM sales
+    WHERE status='completed' AND source='online' AND date(created_at,'localtime')=date('now','localtime')
+  `).get();
+  const onlinePending = db.prepare("SELECT COUNT(*) c FROM orders WHERE status IN ('pending','confirmed','shipped')").get().c;
   res.json({
+    online: { ...online, open_orders: onlinePending },
     today: canManage
       ? { ...today, cogs, expenses: expense, gross_profit: today.sales_total - cogs, net_profit: today.sales_total - cogs - expense }
       : { ...today },
@@ -532,6 +542,45 @@ router.post('/api/purchases', requireManager, (req,res) => {
   } catch(e){ res.status(400).json({error:e.message}); }
 });
 
+// ── Website (online) orders ────────────────────────────────────────────────
+function orderLbp(order, rate) {
+  const k = order.currency === 'USD' ? rate : 1;
+  return Math.round(Number(order.total || 0) * k);
+}
+router.get('/api/online-orders', requireManager, (req, res) => {
+  const status = ORDER_STATUSES.includes(req.query.status) ? req.query.status : '';
+  const q = String(req.query.q || '').trim();
+  const where = ['1=1'], params = [];
+  if (status) { where.push('status=?'); params.push(status); }
+  if (q) { where.push('(order_number LIKE ? OR customer_name LIKE ? OR customer_phone LIKE ?)'); params.push('%'+q+'%','%'+q+'%','%'+q+'%'); }
+  const rate = rateOf(settings());
+  const orders = db.prepare(`SELECT * FROM orders WHERE ${where.join(' AND ')} ORDER BY id DESC LIMIT 200`).all(...params)
+    .map(o => ({ ...o, total_lbp: orderLbp(o, rate) }));
+  const counts = Object.fromEntries(db.prepare('SELECT status, COUNT(*) c FROM orders GROUP BY status').all().map(r => [r.status, r.c]));
+  const open = db.prepare("SELECT * FROM orders WHERE status IN ('pending','confirmed','shipped')").all();
+  res.json({ orders, counts, open_value_lbp: open.reduce((sum, o) => sum + orderLbp(o, rate), 0) });
+});
+router.get('/api/online-orders/:id', requireManager, (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found.' });
+  const items = db.prepare(`SELECT oi.*, p.image_path FROM order_items oi LEFT JOIN products p ON p.id=oi.product_id WHERE oi.order_id=? ORDER BY oi.id`).all(order.id);
+  res.json({ order: { ...order, total_lbp: orderLbp(order, rateOf(settings())) }, items });
+});
+router.post('/api/online-orders/:id/status', requireManager, (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found.' });
+  try {
+    updateOrderStatus(db, order, String(req.body.status || ''), req.systemUser.name);
+    res.json({ ok: true, order: db.prepare('SELECT * FROM orders WHERE id=?').get(order.id) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+router.post('/api/settings/online-share', requireOwner, (req, res) => {
+  const pct = num(req.body.percent, -1);
+  if (pct < 0 || pct > 100) return res.status(400).json({ error: 'Invalid percentage.' });
+  db.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES ('online_partner_share',?)").run(String(pct));
+  res.json({ ok: true, percent: pct });
+});
+
 router.get('/api/reports', requireManager, (req,res) => {
   const {from,to}=dateRange(req.query);
   const sales=db.prepare(`
@@ -558,7 +607,19 @@ router.get('/api/reports', requireManager, (req,res) => {
     WHERE status='completed' AND date(created_at,'localtime') BETWEEN date(?) AND date(?)
     GROUP BY payment_method ORDER BY total DESC
   `).all(from,to);
-  res.json({from,to,sales,cogs,expenses,gross_profit:sales.revenue-cogs,net_profit:sales.revenue-cogs-expenses,top,payments});
+  // Split by channel: in-store (POS) vs website (online).
+  const byChannel = {};
+  for (const ch of ['pos','online']) {
+    const rev = db.prepare(`SELECT COUNT(*) count, COALESCE(SUM(total),0) revenue FROM sales
+      WHERE status='completed' AND (CASE WHEN source='online' THEN 'online' ELSE 'pos' END)=? AND date(created_at,'localtime') BETWEEN date(?) AND date(?)`).get(ch,from,to);
+    const c = db.prepare(`SELECT COALESCE(SUM(si.unit_cost*si.quantity),0) cogs FROM sale_items si JOIN sales s ON s.id=si.sale_id
+      WHERE s.status='completed' AND (CASE WHEN s.source='online' THEN 'online' ELSE 'pos' END)=? AND date(s.created_at,'localtime') BETWEEN date(?) AND date(?)`).get(ch,from,to).cogs;
+    byChannel[ch] = { count: rev.count, revenue: rev.revenue, cogs: c, gross_profit: rev.revenue - c };
+  }
+  const share = Math.min(100, Math.max(0, num(settings().online_partner_share, 0)));
+  byChannel.online.partner_share_pct = share;
+  byChannel.online.partner_share = Math.round(byChannel.online.gross_profit * share / 100);
+  res.json({from,to,sales,cogs,expenses,gross_profit:sales.revenue-cogs,net_profit:sales.revenue-cogs-expenses,top,payments,channels:byChannel});
 });
 
 router.get('/api/users', requireOwner, (req,res) => res.json({ users:db.prepare('SELECT id,full_name,username,role,active,created_at FROM staff_users ORDER BY full_name').all() }));

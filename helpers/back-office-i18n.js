@@ -378,6 +378,21 @@ const STRINGS = {
   website_admin: ['Website admin', 'إدارة الموقع'],
   receipt_thanks: ['Thank you for shopping at Jamaludeen', 'شكراً لتسوقكم من جمال الدين'],
   description: ['Description', 'الوصف'],
+  online_orders: ['Online orders', 'طلبات الموقع'],
+  online_intro: ['Website orders — confirm, ship and deliver. Delivered orders are added to sales and reports automatically.', 'طلبات الموقع — تأكيد وشحن وتسليم. الطلبات المسلّمة تُضاف تلقائياً إلى المبيعات والتقارير.'],
+  online_today: ['Online sales today', 'مبيعات الموقع اليوم'],
+  open_orders: ['Open online orders', 'طلبات موقع مفتوحة'],
+  open_value: ['Value of open orders', 'قيمة الطلبات المفتوحة'],
+  in_store: ['In store', 'في المتجر'],
+  online: ['Online', 'أونلاين'],
+  channels: ['Sales by channel', 'المبيعات حسب القناة'],
+  partner_share: ['Partner share of online profit', 'حصة الشريك من أرباح الموقع'],
+  partner_share_pct: ['Partner share (%)', 'نسبة الشريك (%)'],
+  partner_saved: ['Partner share saved.', 'تم حفظ نسبة الشريك.'],
+  orders_count: ['orders', 'طلبات'],
+  delivered_note: ['Profit counts orders once they are delivered.', 'الأرباح تُحسب عند تسليم الطلب.'],
+  source_online: ['Website', 'الموقع'],
+  source_pos: ['Store', 'المتجر'],
 };
 
 function translator(lang) {

@@ -20,6 +20,7 @@
     { label: a('store_system'), items: [
       isMgr && ['inventory', 'box', a('inventory')],
       ['sales', 'receipt', a('sales')],
+      isMgr && ['online', 'globe', a('online_orders')],
       ['customers', 'users', a('customers')],
       isMgr && ['purchases', 'truck', a('purchases')],
       isMgr && ['expenses', 'wallet', a('expenses')],
@@ -181,6 +182,23 @@
           <tbody id="salesRows"></tbody></table></div></section>
       </section>
 
+<% if (isMgr) { %>
+      <!-- Online orders -->
+      <section class="sys-tab" id="tab-online">
+        <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('online_orders') %></h1><p><%= a('online_intro') %></p></div>
+          <div class="bo-head__actions"><a class="btn" href="/admin/orders"><%- icon('external') %><%= a('website_admin') %></a></div></div>
+        <div class="grid grid--3" id="onlineStats"></div>
+        <nav class="tabs" id="onlineTabs" style="margin-top:20px">
+          <button type="button" data-ostatus="" class="is-active"><%= a('st_all') %><span class="tabs__count num" data-ocount="all"></span></button>
+          <% ['pending','confirmed','shipped','delivered','cancelled'].forEach(st => { %><button type="button" data-ostatus="<%= st %>"><%= a('st_' + st) %><span class="tabs__count num" data-ocount="<%= st %>"></span></button><% }) %>
+        </nav>
+        <div class="toolbar"><label class="search toolbar__grow"><%- icon('search') %><input id="onlineSearch" type="search" placeholder="# / <%= a('customer') %> / <%= a('phone') %>"/></label></div>
+        <section class="card"><div class="table-wrap"><table class="table">
+          <thead><tr><th>#</th><th><%= a('date') %></th><th><%= a('customer') %></th><th><%= a('city') %></th><th><%= a('payment') %></th><th><%= a('total') %></th><th><%= a('status') %></th><th></th></tr></thead>
+          <tbody id="onlineRows"></tbody></table></div></section>
+      </section>
+<% } %>
+
       <!-- Customers -->
       <section class="sys-tab" id="tab-customers">
         <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('customers') %></h1></div></div>
@@ -267,6 +285,10 @@
           <button class="btn btn--dark" id="reportBtn"><%= a('generate') %></button>
         </div>
         <div class="grid grid--4 grid--5" id="reportMetrics"></div>
+        <section class="card" style="margin-top:20px">
+          <div class="card__head"><h2><%- icon('chart') %> <%= a('channels') %></h2><small class="hint"><%= a('delivered_note') %></small></div>
+          <div class="card__body" id="channelReport"></div>
+        </section>
         <div class="grid grid--2" style="margin-top:20px">
           <section class="card"><div class="card__head"><h2><%= a('best_sellers') %></h2></div><div id="topProducts"></div></section>
           <section class="card"><div class="card__head"><h2><%= a('payments') %></h2></div><div id="paymentReport"></div></section>
@@ -354,6 +376,7 @@
     </div>
   </div>
 </div>
+<div class="modal" id="orderModal"><div class="modal__box modal__box--wide"><div class="modal__head"><h3 id="orderTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="orderDetail"></div></div></div>
 <div class="modal" id="saleModal"><div class="modal__box modal__box--wide"><div class="modal__head"><h3 id="saleTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="saleDetail"></div></div></div>
 <div class="modal" id="shiftModal"><div class="modal__box"><div class="modal__head"><h3 id="shiftTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="shiftModalContent"></div></div></div>
 <div class="toast" id="toast"></div>

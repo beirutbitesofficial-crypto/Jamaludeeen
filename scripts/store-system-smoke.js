@@ -207,6 +207,20 @@ async function main() {
     assert(db2.prepare('SELECT stock_qty FROM products WHERE id=?').get(productId).stock_qty === 1100, 'Cancellation did not restore 100ml.');
     assert(db2.prepare('SELECT status FROM sales WHERE id=?').get(delivered.sales_id).status === 'refunded', 'Cancelled delivered order did not reverse sales ledger.');
 
+    // Store System can manage website orders and reports them as the online channel.
+    response = await form('/cart/add', { productId: String(productId), qty: '1', size_ml: '50' });
+    response = await form('/checkout', { name: 'Online Partner', phone: '70000001', address: 'Street', city: 'Beirut', payment_method: 'cod', notes: '' });
+    const order2 = db2.prepare("SELECT * FROM orders WHERE customer_name='Online Partner'").get();
+    const list = await (await request('/system/api/online-orders?status=pending')).json();
+    assert(list.orders.some(o => o.id === order2.id), 'Store System does not list pending website orders.');
+    await json('/system/api/online-orders/' + order2.id + '/status', { status: 'delivered' });
+    const sale2 = db2.prepare('SELECT * FROM sales WHERE id=(SELECT sales_id FROM orders WHERE id=?)').get(order2.id);
+    assert(sale2 && sale2.source === 'online' && sale2.status === 'completed', 'Store System delivery did not record an online sale.');
+    await json('/system/api/settings/online-share', { percent: 50 });
+    const rep = await (await request('/system/api/reports')).json();
+    assert(rep.channels.online.count >= 1 && rep.channels.online.revenue === sale2.total, 'Online channel revenue is wrong.');
+    assert(rep.channels.online.partner_share === Math.round(rep.channels.online.gross_profit / 2), 'Partner share is wrong.');
+
     db2.close();
     console.log('PRODUCTION SMOKE OK');
   } finally {
