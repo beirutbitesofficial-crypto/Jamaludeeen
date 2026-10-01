@@ -14,6 +14,7 @@ const DEFAULT_COVERS = {
   men: '/images/covers/men.webp',
   women: '/images/covers/women.webp',
   unisex: '/images/covers/unisex.webp',
+  banner: '/images/covers/hero.webp',
 };
 function collectionCovers(settings = {}) {
   return Object.fromEntries(Object.keys(DEFAULT_COVERS).map(k => [k, settings[k + '_image'] || DEFAULT_COVERS[k]]));
