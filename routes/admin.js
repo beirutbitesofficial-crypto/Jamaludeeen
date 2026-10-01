@@ -10,7 +10,7 @@ const adminAuth = require('../middleware/adminAuth');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
 const { uploadsDir: persistentUploadsDir } = require('../database/runtime-paths');
 const { translator } = require('../helpers/back-office-i18n');
-const { SECTION_KEYS, refillPricesUsd, sectionWhere, sectionCounts, brandList } = require('../helpers/catalog');
+const { SECTION_KEYS, refillPricesUsd, sectionWhere, sectionCounts, brandList, collectionCovers } = require('../helpers/catalog');
 const { exchangeRate } = require('../helpers/pricing');
 
 const tr = req => translator(req.session.lang);
@@ -112,7 +112,7 @@ router.get('/catalog', adminAuth, (req, res) => {
     title: tr(req)('catalog'),
     counts: sectionCounts(db),
     brands: brandList(db),
-    covers: { men: settings.men_image, women: settings.women_image, unisex: settings.unisex_image },
+    covers: collectionCovers(settings),
     refill: refillPricesUsd(settings),
   });
 });

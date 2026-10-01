@@ -9,6 +9,16 @@ const SECTIONS = [
 ];
 const SECTION_KEYS = SECTIONS.map(s => s.key);
 
+// Homepage collection covers (admin uploads in Admin → Images override these).
+const DEFAULT_COVERS = {
+  men: '/images/covers/men.webp',
+  women: '/images/covers/women.webp',
+  unisex: '/images/covers/unisex.webp',
+};
+function collectionCovers(settings = {}) {
+  return Object.fromEntries(Object.keys(DEFAULT_COVERS).map(k => [k, settings[k + '_image'] || DEFAULT_COVERS[k]]));
+}
+
 const DEFAULT_REFILL_USD = { 50: 7, 100: 13 };
 
 function num(value, fallback) {
@@ -58,4 +68,4 @@ function brandList(db) {
   `).all();
 }
 
-module.exports = { SECTIONS, SECTION_KEYS, refillPricesUsd, sectionWhere, sectionOf, sectionCounts, brandList };
+module.exports = { DEFAULT_COVERS, collectionCovers, SECTIONS, SECTION_KEYS, refillPricesUsd, sectionWhere, sectionOf, sectionCounts, brandList };

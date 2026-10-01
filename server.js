@@ -22,7 +22,7 @@ const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
 const { exchangeRate, whatsappNumber, formatMoney } = require('./helpers/pricing');
 const { translator } = require('./helpers/back-office-i18n');
-const { refillPricesUsd } = require('./helpers/catalog');
+const { refillPricesUsd, collectionCovers } = require('./helpers/catalog');
 const { icon } = require('./helpers/icons');
 
 const app = express();
@@ -150,6 +150,7 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.a = translator(lang);
   res.locals.refillUsd = refillPricesUsd(settings);
+  res.locals.covers = collectionCovers(settings);
   res.locals.icon = icon;
   res.locals.money = formatMoney;
   next();
