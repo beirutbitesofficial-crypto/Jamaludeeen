@@ -2,35 +2,37 @@
 <% const ar = lang === 'ar'; const heroImage = settings.banner_image || '/images/covers/hero.webp'; %>
 
 <main>
-  <section class="hero">
-    <div class="hero__glow"></div>
+  <section class="hero hero--cine" data-hero>
+    <script>/* Hide animated layers until the motion script takes over (never longer than 3.5s). */
+      (function (d) { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        d.classList.add('cine-pending'); setTimeout(function () { d.classList.remove('cine-pending'); }, 3500); })(document.documentElement);</script>
+    <div class="hero__glow" data-glow></div>
+    <div class="hero__aura" data-aura></div>
     <div class="container hero__grid">
-      <div class="hero__copy">
-        <p class="eyebrow eyebrow--light"><span></span><%= ar ? 'دار عطور · لبنان' : 'Maison de Parfum · Lebanon' %></p>
-        <h1 class="hero__title">
-          <% if (ar) { %>عطرٌ <em>يروي</em><br/>حكايتك<% } else { %>A fragrance<br/>that tells <em>your</em><br/>story.<% } %>
+      <div class="hero__copy" data-hero-copy>
+        <p class="eyebrow eyebrow--light" data-cine><span></span><%= ar ? 'دار عطور · لبنان' : 'Maison de Parfum · Lebanon' %></p>
+        <h1 class="hero__title" data-hero-title>
+          <% (ar ? ['عطرٌ <em>يروي</em>', 'حكايتك'] : ['A fragrance', 'that tells <em>your</em>', 'story.']).forEach(line => { %><span class="tline"><span class="tline__in" data-cine><%- line %></span></span><% }) %>
         </h1>
-        <p class="hero__lede"><%= ar ? 'تشكيلة مختارة بعناية من العطور الرجالية والنسائية واليونيسكس، من أرقى الدور العالمية والعربية — تُحضَّر بعناية وتُسلَّم لكل لبنان.' : 'A considered edit of men’s, women’s and unisex fragrances from the finest international and Arabic houses — prepared with care, delivered across Lebanon.' %></p>
-        <div class="hero__actions">
+        <p class="hero__lede" data-cine><%= ar ? 'تشكيلة مختارة بعناية من العطور الرجالية والنسائية واليونيسكس، من أرقى الدور العالمية والعربية — تُحضَّر بعناية وتُسلَّم لكل لبنان.' : 'A considered edit of men’s, women’s and unisex fragrances from the finest international and Arabic houses — prepared with care, delivered across Lebanon.' %></p>
+        <div class="hero__actions" data-cine>
           <a href="/shop/men" class="btn btn--gold"><%= ar ? 'اكتشف المجموعة' : 'Discover the collection' %></a>
           <a href="/collections" class="btn btn--line-light"><%= ar ? 'الماركات' : 'The houses' %></a>
         </div>
       </div>
-      <div class="hero__visual">
-        <div class="hero__frame">
-          <img src="<%= heroImage %>" alt="" fetchpriority="high"/>
-        </div>
-        <div class="hero__badge">
-          <span>50 · 100 ml</span>
-          <strong><%= ar ? 'من' : 'From' %> $<%= refillUsd[50] %></strong>
+      <div class="hero__visual" data-hero-visual>
+        <%- include('partials/hero-stage', { heroImage }) %>
+        <div class="hero__badge" data-cine data-badge>
+          <span dir="ltr">50 · 100 ml</span>
+          <strong><%= ar ? 'من' : 'From' %> <bdi dir="ltr">$<%= refillUsd[50] %></bdi></strong>
           <em><%= ar ? 'توقيع جمال الدين' : 'Signature refills' %></em>
         </div>
       </div>
     </div>
-    <div class="container hero__meta">
-      <div><b>I</b><span><%= ar ? 'توصيل لجميع المناطق' : 'Nationwide delivery' %></span></div>
-      <div><b>II</b><span><%= ar ? 'دفع عند الاستلام' : 'Cash on delivery' %></span></div>
-      <div><b>III</b><span><%= ar ? 'طلب سريع عبر واتساب' : 'Personal WhatsApp service' %></span></div>
+    <div class="container hero__meta" data-hero-meta>
+      <div data-cine><b>I</b><span><%= ar ? 'توصيل لجميع المناطق' : 'Nationwide delivery' %></span></div>
+      <div data-cine><b>II</b><span><%= ar ? 'دفع عند الاستلام' : 'Cash on delivery' %></span></div>
+      <div data-cine><b>III</b><span><%= ar ? 'طلب سريع عبر واتساب' : 'Personal WhatsApp service' %></span></div>
     </div>
   </section>
 
@@ -48,7 +50,7 @@
 
   <section class="section">
     <div class="container">
-      <div class="section-head reveal">
+      <div class="section-head" data-head>
         <div>
           <p class="eyebrow"><span></span><%= ar ? 'تسوّق حسب الفئة' : 'The Collections' %></p>
           <h2 class="display"><%= ar ? 'اختار العطر اللي بيشبهك' : 'Find the scent that feels like you.' %></h2>
@@ -62,7 +64,7 @@
           { key: 'women', title: t.women_perfumes, count: stats.women, img: covers.women, pos: 'center 35%', num: 'II' },
           { key: 'unisex', title: t.unisex_perfumes, count: stats.unisex, img: covers.unisex, pos: '70% center', num: 'III' },
         ].forEach(c => { %>
-        <a href="/shop/<%= c.key %>" class="cat reveal cat--<%= c.key %>">
+        <a href="/shop/<%= c.key %>" class="cat cat--<%= c.key %>" data-cat>
           <div class="cat__media" <% if (c.img) { %>style="background-image:url('<%= c.img %>');background-position:<%= c.pos %>"<% } %>></div>
           <div class="cat__veil"></div>
           <span class="cat__num"><%= c.num %></span>
@@ -80,14 +82,14 @@
   <% if (featured && featured.length) { %>
   <section class="section section--ivory">
     <div class="container">
-      <div class="section-head reveal">
+      <div class="section-head" data-head>
         <div>
           <p class="eyebrow"><span></span><%= ar ? 'مختارات جمال الدين' : 'The Jamaludeen Edit' %></p>
           <h2 class="display"><%= ar ? 'مختارات مميزة' : 'Signature fragrances' %></h2>
         </div>
         <a href="/shop/men" class="link-arrow"><%= t.view_all %></a>
       </div>
-      <div class="grid-products">
+      <div class="grid-products" data-cards>
         <% featured.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
       </div>
     </div>
@@ -95,14 +97,15 @@
   <% } %>
 
   <section class="story">
+    <span class="story__mark" aria-hidden="true" data-story-mark>J</span>
     <div class="container story__grid">
-      <div class="story__copy reveal">
+      <div class="story__copy" data-head>
         <p class="eyebrow eyebrow--light"><span></span><%= ar ? 'فن العطر' : 'The Art of Scent' %></p>
         <h2 class="display display--light"><%= ar ? 'كل شي بدّك ياه لتختار عطرك بثقة.' : 'Everything you need to choose with confidence.' %></h2>
         <p><%= ar ? 'تصفّح حسب الفئة أو الماركة، احفظ المفضلة، وأكمل طلبك بخطوات واضحة وسريعة — مع خدمة شخصية على واتساب لتساعدك تلاقي عطرك.' : 'Browse by collection or house, save your favourites and complete your order in a few calm steps — with personal WhatsApp service to help you find your signature.' %></p>
         <a href="/contact" class="btn btn--line-light"><%= ar ? 'زورونا في البوتيك' : 'Visit the boutique' %></a>
       </div>
-      <div class="story__stats reveal">
+      <div class="story__stats" data-stats>
         <div><strong><%= stats.brands %></strong><span><%= ar ? 'دار عطور' : 'Fragrance houses' %></span></div>
         <div><strong><%= stats.men + stats.women + stats.unisex %></strong><span><%= ar ? 'عطر توقيع' : 'Signature scents' %></span></div>
         <div><strong>$<%= refillUsd[50] %></strong><span><%= ar ? 'ابتداءً من، 50ml' : 'From, for 50 ml' %></span></div>
@@ -113,14 +116,14 @@
   <% if (bestSellers && bestSellers.length) { %>
   <section class="section">
     <div class="container">
-      <div class="section-head reveal">
+      <div class="section-head" data-head>
         <div>
           <p class="eyebrow"><span></span><%= ar ? 'الأكثر طلباً' : 'Most Wanted' %></p>
           <h2 class="display"><%= ar ? 'الأكثر مبيعاً' : 'Best sellers' %></h2>
         </div>
         <a href="/shop/men" class="link-arrow"><%= t.view_all %></a>
       </div>
-      <div class="grid-products">
+      <div class="grid-products" data-cards>
         <% bestSellers.forEach(p => { %><%- include('partials/product-card', { p }) %><% }) %>
       </div>
     </div>
@@ -130,7 +133,7 @@
   <% if (brands.length) { %>
   <section class="section section--ivory">
     <div class="container">
-      <div class="section-head section-head--center reveal">
+      <div class="section-head section-head--center" data-head>
         <div>
           <p class="eyebrow eyebrow--center"><span></span><%= ar ? 'تسوّق حسب الماركة' : 'The Houses' %><span></span></p>
           <h2 class="display"><%= ar ? 'ماركات عالمية وعربية' : 'International & Arabic houses' %></h2>
@@ -152,4 +155,9 @@
   </section>
 </main>
 
+<script src="/vendor/gsap/gsap.min.js?v=3.13.0" defer></script>
+<script src="/vendor/gsap/ScrollTrigger.min.js?v=3.13.0" defer></script>
+<script src="/js/motion/split.js?v=20261003-1" defer></script>
+<script src="/js/motion/sparks.js?v=20261003-1" defer></script>
+<script src="/js/motion/home.js?v=20261003-1" defer></script>
 <%- include('partials/footer') %>

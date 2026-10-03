@@ -1,0 +1,156 @@
+/* ═══════════════════════════════════════════════════════════════
+   JAMALUDEEN — Cinematic homepage (loaded on the homepage only)
+   Layered hero stage + motion hooks driven by /js/motion/home.js.
+   Every layer has a finished, static position here so the page is
+   complete without JavaScript or with reduced motion.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─ Pending state: hide animated layers until GSAP takes over ─ */
+.cine-pending .hero--cine [data-cine],
+.cine-pending .hero--cine .stage > * { opacity: 0; }
+.hero--cine [data-cine], .hero--cine .stage > * { transition: opacity .8s ease; }
+.cine-ready .hero--cine [data-cine], .cine-ready .hero--cine .stage > * { transition: none; }
+
+/* The old CSS entrance animations are replaced by the GSAP timeline */
+.hero--cine .eyebrow, .hero--cine .hero__title, .hero--cine .hero__lede,
+.hero--cine .hero__actions, .hero--cine .hero__visual { animation: none; }
+
+.hero--cine { isolation: isolate; }
+.hero--cine .hero__grid { grid-template-columns: 1fr minmax(0, 1fr); min-height: min(86vh, 860px); padding-block: clamp(40px, 5vw, 72px) 28px; }
+.hero__aura {
+  position: absolute; z-index: 0; pointer-events: none;
+  width: 62vw; height: 62vw; top: -6vw; inset-inline-end: -14vw; border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 32, 72, .34), rgba(122, 32, 72, .08) 40%, transparent 64%);
+}
+
+/* ─ Title: each line is a mask for the reveal ─────────────── */
+.hero--cine .hero__title .tline { display: block; overflow: hidden; padding: 0 .08em .12em; margin: 0 -.08em -.12em; }
+.hero--cine .hero__title .tline__in { display: block; }
+
+/* ─ Stage ─────────────────────────────────────────────────── */
+.hero--cine .hero__visual { max-width: none; justify-self: center; display: flex; justify-content: center; }
+.stage {
+  position: relative;
+  width: min(100%, calc(min(76vh, 720px) * .84));
+  aspect-ratio: .84;
+  margin-inline: auto;
+}
+.stage > * { position: absolute; }
+.stage img { display: block; max-width: none; user-select: none; -webkit-user-drag: none; }
+
+.stage__arch {
+  z-index: 1;
+  inset: 4% 12% 7% 12%;
+  overflow: hidden;
+  border-radius: 999px 999px 0 0;
+  background:
+    radial-gradient(70% 55% at 50% 38%, rgba(140, 52, 88, .38), transparent 70%),
+    linear-gradient(180deg, #24161c 0%, #120d0e 62%, #0b0a09 100%);
+  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(212, 182, 124, .12);
+}
+.stage__arch::before {
+  content: ''; position: absolute; inset: 12px; z-index: 3; pointer-events: none;
+  border: 1px solid rgba(212, 182, 124, .42); border-bottom: 0; border-radius: inherit;
+}
+.stage__backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .14; filter: saturate(.7) contrast(1.05); }
+.stage__smoke { position: absolute; left: 4%; bottom: 6%; width: 92%; height: auto; opacity: .3; mix-blend-mode: screen; }
+.stage__floor {
+  position: absolute; inset: auto 0 0 0; height: 22%; z-index: 2;
+  background:
+    radial-gradient(60% 70% at 50% 0%, rgba(212, 182, 124, .16), transparent 70%),
+    linear-gradient(180deg, rgba(10, 9, 8, 0), #0a0908 70%);
+  border-top: 1px solid rgba(212, 182, 124, .14);
+}
+
+/* ─ Bottles (cut-outs: body + separate cap) ────────────────── */
+.bottle { aspect-ratio: 222 / 638; }
+.bottle__float { position: absolute; inset: 0; }
+.bottle__float > * { position: absolute; }
+.bottle__body { left: .9%; top: 13.8%; width: 98.2%; height: 86.2%; }
+.bottle__cap { left: 13.5%; top: 0; width: 73%; height: 15.7%; z-index: 2; transform-origin: 50% 90%; }
+.bottle__cap img { width: 100%; height: 100%; transform-origin: 50% 90%; }
+.bottle__neck {
+  left: 24%; width: 52%; top: 12.4%; height: 3.4%; border-radius: 3px;
+  background: linear-gradient(90deg, #0b0b0b, #3a3a3a 30%, #0d0d0d 55%, #2a2a2a 80%, #0b0b0b);
+}
+.bottle__reflect {
+  left: .9%; top: 100%; width: 98.2%; height: 34%;
+  object-fit: cover; object-position: bottom;
+  transform: scaleY(-1); transform-origin: top; opacity: .2;
+  -webkit-mask-image: linear-gradient(0deg, rgba(0,0,0,.9), transparent 75%);
+          mask-image: linear-gradient(0deg, rgba(0,0,0,.9), transparent 75%);
+}
+.bottle--hero { z-index: 5; width: 27%; left: 36.5%; bottom: 11%; filter: drop-shadow(0 30px 30px rgba(0, 0, 0, .55)); }
+.bottle--side { z-index: 3; width: 17%; bottom: 17%; filter: brightness(.55) saturate(.85) blur(.4px); }
+.bottle--women { left: 14%; }
+.bottle--unisex { right: 14%; }
+
+/* ─ Sparks, petals, blooms ───────────────────────────────── */
+.stage__sparks { inset: -12% -16%; width: 132%; height: 124%; pointer-events: none; }
+.stage__sparks--back { z-index: 4; }
+.stage__sparks--front { z-index: 6; }
+.stage__petals { inset: 0; z-index: 7; pointer-events: none; }
+.petal {
+  position: absolute; left: var(--x); top: var(--y); width: 6.5%; aspect-ratio: 60 / 90;
+  transform: rotate(var(--r)) scale(var(--s));
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .35));
+}
+.stage__bloom { pointer-events: none; }
+.stage__bloom img { width: 100%; height: auto; }
+.stage__bloom--back { z-index: 2; width: 50%; right: -6%; top: -3%; opacity: .92; }
+.stage__bloom--front { z-index: 8; width: 50%; left: -17%; bottom: -9%; }
+
+.hero--cine .hero__badge { z-index: 9; inset-inline-start: auto; inset-inline-end: -10px; top: 9%; bottom: auto; }
+.hero--cine .hero__glow { animation: none; }
+
+/* ─ Story: real element for the giant monogram (parallax) ─── */
+.is-home .story::before { display: none; }
+.story__mark {
+  position: absolute; inset-inline-end: -2vw; top: 50%; translate: 0 -50%;
+  font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 38vw; line-height: 1;
+  color: rgba(184, 149, 90, .06); pointer-events: none;
+}
+
+/* ─ Collections: room for the clip reveal ─────────────────── */
+.cat__media { will-change: auto; }
+
+/* ─ Responsive compositions ───────────────────────────────── */
+@media (max-width: 1180px) {
+  .hero--cine .hero__badge { inset-inline-end: 0; }
+}
+@media (max-width: 1024px) {
+  .hero--cine .hero__grid { grid-template-columns: 1fr; gap: 28px; padding-top: 24px; }
+  .hero--cine .hero__visual { order: -1; }
+  .stage { width: min(100%, 520px, calc(62vh * .84)); }
+  .hero__aura { width: 120vw; height: 120vw; top: -30vw; inset-inline-end: -10vw; }
+  .hero--cine .hero__copy { text-align: start; }
+}
+@media (max-width: 720px) {
+  .hero--cine .hero__grid { padding-top: 12px; gap: 18px; }
+  .stage { width: min(100%, 430px, calc(60vh * .84)); }
+  .stage__arch { inset: 4% 9% 7% 9%; }
+  .bottle--hero { width: 31%; left: 34.5%; }
+  .bottle--side { width: 17%; bottom: 19%; }
+  .bottle--women { left: 12%; }
+  .bottle--unisex { right: 12%; }
+  .stage__bloom--front { width: 50%; left: -8%; bottom: -5%; }
+  .stage__bloom--back { width: 46%; right: -4%; }
+  .petal { width: 7.5%; }
+  .hero--cine .hero__badge { inset-inline-end: 0; top: auto; bottom: 4%; padding: 12px 16px; }
+  .hero--cine .hero__badge strong { font-size: 1.45rem; }
+  .hero--cine .hero__badge span { font-size: .52rem; }
+  .hero--cine .hero__title { font-size: clamp(2.6rem, 12vw, 3.4rem); margin-bottom: 20px; }
+  .hero--cine .hero__lede { margin-bottom: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-pending .hero--cine [data-cine], .cine-pending .hero--cine .stage > * { opacity: 1; }
+}
+
+/* Hover zoom on collection cards uses the independent `scale` property so it
+   composes with the GSAP parallax transform instead of being overridden by it. */
+.is-home .cat:hover .cat__media { scale: 1.06; }
+.is-home .cat__media { transition: scale 1.4s var(--ease-out); }
+
+/* ScrollTrigger manages scroll positions on refresh; CSS smooth scrolling fights it. */
+html.cine-ready { scroll-behavior: auto; }
