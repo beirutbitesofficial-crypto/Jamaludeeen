@@ -154,3 +154,27 @@
 
 /* ScrollTrigger manages scroll positions on refresh; CSS smooth scrolling fights it. */
 html.cine-ready { scroll-behavior: auto; }
+
+/* ─ Scent trail: perfume ribbon from the bottle to the collections ─ */
+.scent { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+.scent.is-on { opacity: 1; }
+.scent__svg, .scent__mist { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.scent__svg path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.scent__haze { stroke: rgba(212, 168, 90, .14); stroke-width: 26; }
+.scent__body { stroke: url(#scentGold); stroke-width: 5; opacity: .75; }
+.scent__core { stroke: rgba(255, 246, 222, .9); stroke-width: 1.2; }
+.scent__drops { stroke: #fff6dc; stroke-width: 3.2; stroke-dasharray: 1.5 18; }
+.scent__head { transition: opacity .4s ease; }
+@media (max-width: 720px) {
+  .scent__haze { stroke-width: 18; }
+  .scent__body { stroke-width: 4; }
+}
+
+/* A collection card that has received the perfume */
+.cat::after { transition: border-color .9s var(--ease), box-shadow .9s var(--ease); }
+.cat .cat__media { transition: scale 1.4s var(--ease-out), filter 1s var(--ease); }
+.cat h3, .cat .cat__cta, .cat .cat__num { transition: color .9s var(--ease), text-shadow .9s var(--ease); }
+.cat.is-scented::after { border-color: rgba(212, 182, 124, .8); box-shadow: inset 0 0 90px rgba(212, 168, 90, .22); }
+.cat.is-scented .cat__media { filter: brightness(1.14) saturate(1.12); }
+.cat.is-scented h3 { color: var(--gold-3); text-shadow: 0 0 30px rgba(212, 168, 90, .35); }
+.cat.is-scented .cat__cta, .cat.is-scented .cat__num { color: var(--gold-2); }
