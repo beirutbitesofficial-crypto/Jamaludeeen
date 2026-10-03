@@ -153,6 +153,8 @@
 
   // ── 3. Scroll choreography ────────────────────────────────
   const mm = gsap.matchMedia();
+  let heroPin = null;      // desktop hero pin (the scent trail starts inside it)
+  let trailFx = null;
 
   // Desktop: pin the hero briefly and dolly into the product.
   mm.add('(min-width: 1025px)', () => {
@@ -179,7 +181,8 @@
       .to(els.badge, { opacity: 0, y: 30, duration: .35 }, 0)
       .to(els.visual, { x: toCenter, duration: 1, ease: 'power2.inOut' }, 0)
       .to(els.hero, { scale: 1.16, yPercent: -3, duration: 1, ease: 'power1.inOut' }, 0)
-      .to(els.cap, { yPercent: -55, rotation: -10, duration: .7, ease: 'power2.out' }, .2)
+      // The bottle opens: the cap lifts away so the perfume can escape.
+      .to(els.cap, { yPercent: -150, xPercent: 26, rotation: -26, duration: .55, ease: 'power2.out' }, .12)
       .to(els.women, { xPercent: -70, scale: .9, opacity: .45, duration: 1 }, 0)
       .to(els.unisex, { xPercent: 70, scale: .9, opacity: .45, duration: 1 }, 0)
       .to(els.bloomFront, { yPercent: -38, xPercent: -14, scale: 1.3, duration: 1 }, 0)
@@ -189,7 +192,8 @@
       .to(els.petalsGroup, { scale: 1.3, yPercent: -10, duration: 1 }, 0)
       .to([els.glow, els.aura], { scale: 1.3, duration: 1 }, 0)
       .to(S, { v: 1.55, duration: 1, onUpdate: () => { if (sparks) sparks.spread = S.v; } }, 0);
-    return () => { if (sparks) sparks.spread = 1; };
+    heroPin = tl.scrollTrigger;
+    return () => { heroPin = null; if (sparks) sparks.spread = 1; };
   });
 
   // Tablet & phone: no pinning — light parallax as the hero scrolls away.
@@ -199,14 +203,55 @@
       .to(els.bloomFront, { yPercent: -30, scale: 1.12, duration: 1 }, 0)
       .to(els.bloomBack, { yPercent: 14, duration: 1 }, 0)
       .to(els.hero, { yPercent: -5, scale: 1.05, duration: 1 }, 0)
-      .to(els.cap, { yPercent: -40, rotation: -8, duration: .6 }, .1)
+      .to(els.cap, { yPercent: -120, xPercent: 20, rotation: -22, duration: .35 }, 0)
       .to(els.women, { xPercent: -18, duration: 1 }, 0)
       .to(els.unisex, { xPercent: 18, duration: 1 }, 0)
       .to(els.petalsGroup, { yPercent: -16, duration: 1 }, 0)
       .to(els.backdrop, { yPercent: 10, duration: 1 }, 0);
   });
 
-  // ── 4. Sections ───────────────────────────────────────────
+  // ── 4. Scent trail: the perfume flows from the bottle into each collection ──
+  function trail() {
+    const cats = $$('[data-cat]');
+    const source = $('.bottle--hero .bottle__neck', hero);
+    if (!window.JM?.ScentTrail || !cats.length || !source) return;
+    const section = cats[0].closest('section');
+    const fx = trailFx = new window.JM.ScentTrail({
+      source, targets: cats,
+      onArrive: n => cats.forEach((c, i) => c.classList.toggle('is-scented', i < n)),
+    });
+    const P = { a: 0, b: 0 };
+    const sync = () => { fx.progress = P.a + P.b; };
+    const legs = (leg1, leg2) => {
+      const t1 = gsap.to(P, { a: 1, ease: 'none', onUpdate: sync, scrollTrigger: leg1 });
+      const t2 = gsap.to(P, { b: cats.length - 1, ease: 'none', onUpdate: sync, scrollTrigger: leg2 });
+      return () => { t1.kill(); t2.kill(); P.a = P.b = 0; sync(); };
+    };
+    const tm = gsap.matchMedia();
+    // Desktop: the trail leaves the bottle during the hero pin, falls to "Men",
+    // then the collections pin while it swirls on to "Women" and "Unisex".
+    tm.add('(min-width: 1025px)', () => legs(
+      {
+        // Anchored on the card (not the pinned hero) so the hero pin distance is included.
+        trigger: cats[0], scrub: .8, end: 'center 55%',
+        start: () => (heroPin ? heroPin.start + (heroPin.end - heroPin.start) * .3 : 0),
+      },
+      { trigger: cats[0].parentElement, start: 'center 55%', end: '+=110%', pin: section, scrub: .8, anticipatePin: 1 },
+    ));
+    // Tablet & phone: cards are stacked, so the trail simply flows down from card to card.
+    tm.add('(max-width: 1024px)', () => legs(
+      { trigger: cats[0], start: () => Math.max(0, hero.offsetTop - headerH()), end: 'center 55%', scrub: .6 },
+      { trigger: cats[0], start: 'center 55%', endTrigger: cats[cats.length - 1], end: 'center 55%', scrub: .6 },
+    ));
+    // Only run while the journey (hero → collections) is on screen. Created after the
+    // collections pin so its end accounts for the pinned scroll distance.
+    ScrollTrigger.create({
+      trigger: section, start: 0, end: 'bottom+=300 top',
+      onToggle: self => (self.isActive ? fx.start() : (fx.stop(), fx.el.classList.remove('is-on'))),
+    });
+  }
+
+  // ── 5. Sections ───────────────────────────────────────────
   function sections() {
     // Headings: masked word reveal, eyebrow + link follow.
     $$('[data-head]').forEach(head => {
@@ -236,7 +281,7 @@
       });
       cats.forEach(c => gsap.fromTo($('.cat__media', c), { yPercent: -6 }, {
         yPercent: 6, ease: 'none',
-        scrollTrigger: { trigger: c, start: 'top bottom', end: 'bottom top', scrub: true },
+        scrollTrigger: { trigger: c, start: 'top bottom', end: 'bottom top', scrub: true, pinnedContainer: c.closest('section') },
       }));
     }
 
@@ -283,6 +328,7 @@
   const boot = () => {
     try {
       intro();
+      trail();
       sections();
       if (sparks) { sparks.resize(); setLive(true); }
     } catch (e) {
@@ -298,5 +344,5 @@
 
   window.addEventListener('load', () => ScrollTrigger.refresh());
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => sparks && sparks.resize(), 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (sparks) sparks.resize(); if (trailFx) trailFx.resize(); }, 150); });
 })();
