@@ -1,4 +1,4 @@
-<%- include('partials/header', { title: t.checkout }) %>
+<%- include('partials/header', { title: t.checkout, bodyClass: 'is-checkout' }) %>
 <% const ar = lang === 'ar';
    const money = n => currency === 'USD' ? '$' + Number(n || 0).toFixed(2).replace(/\.00$/, '') : Math.round(n || 0).toLocaleString('en-US') + ' LBP'; %>
 
