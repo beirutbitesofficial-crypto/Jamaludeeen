@@ -24,7 +24,7 @@
           <% items.forEach(item => { %>
           <article class="bag-item">
             <a href="/shop/item/<%= item.id %>" class="bag-item__media">
-              <% if (item.image_path) { %><img src="<%= item.image_path %>" alt="<%= item.name_en %>" referrerpolicy="no-referrer" data-fallback=""/><% } else { %><span class="card__monogram">J</span><% } %>
+              <% if (item.image_path) { %><img src="<%= thumb(item.image_path) %>" loading="lazy" decoding="async" alt="<%= item.name_en %>" referrerpolicy="no-referrer" data-fallback=""/><% } else { %><span class="card__monogram">J</span><% } %>
             </a>
             <div class="bag-item__info">
               <p class="card__house"><bdi><%= item.brand || 'Jamaludeen' %></bdi></p>

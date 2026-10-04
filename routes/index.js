@@ -1,4 +1,5 @@
 const express = require('express');
+const { thumbOf } = require('../helpers/images');
 const router = express.Router();
 const db = require('../database/db');
 const { applyLocalRulesToProducts } = require('../helpers/localProductRules');
@@ -69,7 +70,7 @@ router.get('/api/products', (req, res) => {
     `SELECT id, name_en, brand, category, type, price, price_50ml, price_100ml, in_stock, image_path FROM products WHERE id IN (${placeholders})`
   ).all(...ids);
   const products = applyLocalRulesToProducts(rawProducts, settings);
-  res.json(products);
+  res.json(products.map(p => ({ ...p, thumb_path: thumbOf(p.image_path) })));
 });
 
 module.exports = router;

@@ -62,7 +62,7 @@
           <% items.forEach(item => { %>
           <li>
             <span class="mini-items__media">
-              <% if (item.image_path) { %><img src="<%= item.image_path %>" alt="" referrerpolicy="no-referrer" data-fallback=""/><% } else { %><span class="card__monogram">J</span><% } %>
+              <% if (item.image_path) { %><img src="<%= thumb(item.image_path) %>" loading="lazy" decoding="async" alt="" referrerpolicy="no-referrer" data-fallback=""/><% } else { %><span class="card__monogram">J</span><% } %>
               <i><%= item.qty %></i>
             </span>
             <span class="mini-items__info">

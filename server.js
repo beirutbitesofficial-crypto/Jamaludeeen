@@ -23,6 +23,7 @@ const SQLiteSessionStore = require('./database/sqlite-session-store');
 const { exchangeRate, whatsappNumber, formatMoney } = require('./helpers/pricing');
 const { translator } = require('./helpers/back-office-i18n');
 const { refillPricesUsd, collectionCovers } = require('./helpers/catalog');
+const { thumbOf } = require('./helpers/images');
 const { icon } = require('./helpers/icons');
 
 const app = express();
@@ -50,6 +51,10 @@ app.use('/css', express.static(path.join(publicDir, 'css'), {
 }));
 app.use('/js', express.static(path.join(publicDir, 'js'), {
   setHeaders: res => res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate')
+}));
+// Product photos change rarely: let browsers reuse them for a day, then revalidate.
+app.use('/images', express.static(path.join(publicDir, 'images'), {
+  setHeaders: res => res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
 }));
 app.use(express.static(publicDir));
 
@@ -151,6 +156,7 @@ app.use((req, res, next) => {
   res.locals.a = translator(lang);
   res.locals.refillUsd = refillPricesUsd(settings);
   res.locals.covers = collectionCovers(settings);
+  res.locals.thumb = thumbOf;
   res.locals.icon = icon;
   res.locals.money = formatMoney;
   next();
