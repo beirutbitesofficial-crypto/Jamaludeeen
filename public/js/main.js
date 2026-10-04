@@ -90,8 +90,23 @@ if (pdpPrice) {
     radio.addEventListener('change', () => {
       pdpPrice.textContent = '$' + radio.dataset.price;
       if (unit) unit.textContent = radio.value + ' ml';
+      const barPrice = document.getElementById('buyBarPrice');
+      if (barPrice) barPrice.innerHTML = '$' + radio.dataset.price + ' · <small>' + radio.value + ' ml</small>';
     });
   });
+}
+
+// ── Sticky buy bar: appears on phones once the main "Add to bag" scrolls out of view ──
+const buyBar = document.getElementById('buyBar');
+const mainBuy = document.querySelector('.pdp__buy');
+if (buyBar && mainBuy && 'IntersectionObserver' in window) {
+  new IntersectionObserver(([entry]) => {
+    const show = !entry.isIntersecting;
+    buyBar.classList.toggle('is-on', show);
+    buyBar.setAttribute('aria-hidden', String(!show));
+    buyBar.querySelector('button').tabIndex = show ? 0 : -1;
+    document.body.classList.toggle('has-buybar', show);
+  }, { threshold: 0 }).observe(mainBuy);
 }
 
 // ── Order confirmation → hand over to WhatsApp once ───────

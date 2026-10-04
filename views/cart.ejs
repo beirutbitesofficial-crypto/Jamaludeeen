@@ -1,4 +1,4 @@
-<%- include('partials/header', { title: t.your_cart }) %>
+<%- include('partials/header', { title: t.your_cart, bodyClass: 'is-cart' }) %>
 <% const ar = lang === 'ar';
    const money = n => currency === 'USD' ? '$' + Number(n || 0).toFixed(2).replace(/\.00$/, '') : Math.round(n || 0).toLocaleString('en-US') + ' LBP';
    const itemCount = items.reduce((s, i) => s + i.qty, 0); %>

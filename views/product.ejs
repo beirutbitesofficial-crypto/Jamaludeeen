@@ -1,4 +1,4 @@
-<%- include('partials/header', { title: product.name_en }) %>
+<%- include('partials/header', { title: product.name_en, bodyClass: 'is-pdp' }) %>
 <% const ar = lang === 'ar';
    const pName = ar && product.name_ar ? product.name_ar : product.name_en;
    const catName = product.category === 'men' ? t.men : product.category === 'women' ? t.women : t.unisex;
@@ -48,7 +48,7 @@
         <% } %>
 
         <% if (product.in_stock && product.price) { %>
-        <form action="/cart/add" method="POST" class="pdp__form">
+        <form action="/cart/add" method="POST" class="pdp__form" id="pdpForm">
           <input type="hidden" name="productId" value="<%= product.id %>"/>
           <% if (isLocal) { %>
           <fieldset class="sizes">
@@ -75,6 +75,14 @@
             </button>
           </div>
         </form>
+        <div class="buybar" id="buyBar" aria-hidden="true">
+          <div class="buybar__info">
+            <span><bdi><%= pName %></bdi></span>
+            <% if (isLocal) { %><strong dir="ltr" id="buyBarPrice">$<%= product.price_50ml || refillUsd[50] %> · <small id="buyBarUnit">50 ml</small></strong>
+            <% } else { %><strong class="price-display" data-lbp="<%= product.price %>"><%= product.price.toLocaleString('en-US') %> LBP</strong><% } %>
+          </div>
+          <button type="submit" form="pdpForm" class="btn btn--gold" tabindex="-1"><%= ar ? 'أضف إلى السلة' : 'Add to bag' %></button>
+        </div>
         <% } else { %>
           <div class="pdp__unavailable"><%= product.in_stock ? t.price_not_set : t.out_of_stock %></div>
           <a class="btn btn--line" href="https://wa.me/<%= waNumber %>?text=<%= encodeURIComponent('Hello Jamaludeen, I am interested in ' + product.name_en) %>" target="_blank" rel="noopener"><%= ar ? 'اسألنا على واتساب' : 'Ask us on WhatsApp' %></a>
