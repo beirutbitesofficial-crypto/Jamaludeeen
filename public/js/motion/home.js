@@ -29,6 +29,7 @@
     smoke: $('[data-smoke]', hero),
     hero: $('.bottle--hero', hero),
     heroFloat: $('.bottle--hero .bottle__float', hero),
+    reflect: $('.bottle--hero .bottle__reflect', hero),
     cap: $('.bottle--hero [data-cap]', hero),
     capImg: $('.bottle--hero [data-cap] img', hero),
     women: $('.bottle--women', hero),
@@ -153,8 +154,9 @@
 
   // ── 3. Scroll choreography ────────────────────────────────
   const mm = gsap.matchMedia();
-  let heroPin = null;      // desktop hero pin (the scent trail starts inside it)
-  let trailFx = null;
+  const Pour = { v: 0 };
+  let pour = null;
+  const syncPour = () => { if (pour) pour.pour = Pour.v; };
 
   // Desktop: pin the hero briefly and dolly into the product.
   mm.add('(min-width: 1025px)', () => {
@@ -181,8 +183,11 @@
       .to(els.badge, { opacity: 0, y: 30, duration: .35 }, 0)
       .to(els.visual, { x: toCenter, duration: 1, ease: 'power2.inOut' }, 0)
       .to(els.hero, { scale: 1.16, yPercent: -3, duration: 1, ease: 'power1.inOut' }, 0)
-      // The bottle opens: the cap lifts away so the perfume can escape.
-      .to(els.cap, { yPercent: -150, xPercent: 26, rotation: -26, duration: .55, ease: 'power2.out' }, .12)
+      // The bottle opens (cap flies off), tips over and starts to pour.
+      .to(els.cap, { yPercent: -260, xPercent: 60, rotation: -40, opacity: 0, duration: .4, ease: 'power2.in' }, .08)
+      .to(els.reflect, { opacity: 0, duration: .15 }, .3)
+      .to(els.hero, { rotation: 132, xPercent: -10, duration: .5, ease: 'power2.inOut' }, .32)
+      .to(Pour, { v: 1, duration: .3, onUpdate: syncPour }, .62)
       .to(els.women, { xPercent: -70, scale: .9, opacity: .45, duration: 1 }, 0)
       .to(els.unisex, { xPercent: 70, scale: .9, opacity: .45, duration: 1 }, 0)
       .to(els.bloomFront, { yPercent: -38, xPercent: -14, scale: 1.3, duration: 1 }, 0)
@@ -192,8 +197,7 @@
       .to(els.petalsGroup, { scale: 1.3, yPercent: -10, duration: 1 }, 0)
       .to([els.glow, els.aura], { scale: 1.3, duration: 1 }, 0)
       .to(S, { v: 1.55, duration: 1, onUpdate: () => { if (sparks) sparks.spread = S.v; } }, 0);
-    heroPin = tl.scrollTrigger;
-    return () => { heroPin = null; if (sparks) sparks.spread = 1; };
+    return () => { if (sparks) sparks.spread = 1; };
   });
 
   // Tablet & phone: no pinning — light parallax as the hero scrolls away.
@@ -203,52 +207,42 @@
       .to(els.bloomFront, { yPercent: -30, scale: 1.12, duration: 1 }, 0)
       .to(els.bloomBack, { yPercent: 14, duration: 1 }, 0)
       .to(els.hero, { yPercent: -5, scale: 1.05, duration: 1 }, 0)
-      .to(els.cap, { yPercent: -120, xPercent: 20, rotation: -22, duration: .35 }, 0)
+      .to(els.cap, { yPercent: -260, xPercent: 50, rotation: -40, opacity: 0, duration: .25 }, 0)
+      .to(els.reflect, { opacity: 0, duration: .1 }, .1)
+      .to(els.hero, { rotation: 132, duration: .35, ease: 'power2.inOut' }, .12)
+      .to(Pour, { v: 1, duration: .2, onUpdate: syncPour }, .4)
       .to(els.women, { xPercent: -18, duration: 1 }, 0)
       .to(els.unisex, { xPercent: 18, duration: 1 }, 0)
       .to(els.petalsGroup, { yPercent: -16, duration: 1 }, 0)
       .to(els.backdrop, { yPercent: 10, duration: 1 }, 0);
   });
 
-  // ── 4. Scent trail: the perfume flows from the bottle into each collection ──
-  function trail() {
-    const cats = $$('[data-cat]');
-    const source = $('.bottle--hero .bottle__neck', hero);
-    if (!window.JM?.ScentTrail || !cats.length || !source) return;
-    const section = cats[0].closest('section');
-    const fx = trailFx = new window.JM.ScentTrail({
-      source, targets: cats,
-      onArrive: n => cats.forEach((c, i) => c.classList.toggle('is-scented', i < n)),
-    });
-    const P = { a: 0, b: 0 };
-    const sync = () => { fx.progress = P.a + P.b; };
-    const legs = (leg1, leg2) => {
-      const t1 = gsap.to(P, { a: 1, ease: 'none', onUpdate: sync, scrollTrigger: leg1 });
-      const t2 = gsap.to(P, { b: cats.length - 1, ease: 'none', onUpdate: sync, scrollTrigger: leg2 });
-      return () => { t1.kill(); t2.kill(); P.a = P.b = 0; sync(); };
-    };
-    const tm = gsap.matchMedia();
-    // Desktop: the trail leaves the bottle during the hero pin, falls to "Men",
-    // then the collections pin while it swirls on to "Women" and "Unisex".
-    tm.add('(min-width: 1025px)', () => legs(
-      {
-        // Anchored on the card (not the pinned hero) so the hero pin distance is included.
-        trigger: cats[0], scrub: .8, end: 'center 55%',
-        start: () => (heroPin ? heroPin.start + (heroPin.end - heroPin.start) * .3 : 0),
+  // ── 4. Perfume pour → the footer signature lights up in gold neon ──
+  function perfume() {
+    const word = $('.site-footer__giant');
+    if (!window.JM?.PerfumePour || !word) return;
+    gsap.set(word, { '--fill': '0%' });
+    let fill;
+    pour = new window.JM.PerfumePour({
+      bottle: els.hero,
+      neck: $('.bottle--hero .bottle__neck', hero),
+      target: word,
+      onLand: landed => {
+        if (fill) fill.kill();
+        if (landed) {
+          // The letters fill with perfume, then switch on like a neon sign.
+          fill = gsap.timeline()
+            .to(word, { '--fill': '100%', duration: 1.8, ease: 'power2.inOut' })
+            .add(() => word.classList.add('is-lit'), '-=.25');
+        } else {
+          word.classList.remove('is-lit');
+          fill = gsap.to(word, { '--fill': '0%', duration: .6, ease: 'power2.out' });
+        }
       },
-      { trigger: cats[0].parentElement, start: 'center 55%', end: '+=110%', pin: section, scrub: .8, anticipatePin: 1 },
-    ));
-    // Tablet & phone: cards are stacked, so the trail simply flows down from card to card.
-    tm.add('(max-width: 1024px)', () => legs(
-      { trigger: cats[0], start: () => Math.max(0, hero.offsetTop - headerH()), end: 'center 55%', scrub: .6 },
-      { trigger: cats[0], start: 'center 55%', endTrigger: cats[cats.length - 1], end: 'center 55%', scrub: .6 },
-    ));
-    // Only run while the journey (hero → collections) is on screen. Created after the
-    // collections pin so its end accounts for the pinned scroll distance.
-    ScrollTrigger.create({
-      trigger: section, start: 0, end: 'bottom+=300 top',
-      onToggle: self => (self.isActive ? fx.start() : (fx.stop(), fx.el.classList.remove('is-on'))),
     });
+    syncPour();
+    pour.start();
+    document.addEventListener('visibilitychange', () => (document.hidden ? pour.stop() : pour.start()));
   }
 
   // ── 5. Sections ───────────────────────────────────────────
@@ -281,7 +275,7 @@
       });
       cats.forEach(c => gsap.fromTo($('.cat__media', c), { yPercent: -6 }, {
         yPercent: 6, ease: 'none',
-        scrollTrigger: { trigger: c, start: 'top bottom', end: 'bottom top', scrub: true, pinnedContainer: c.closest('section') },
+        scrollTrigger: { trigger: c, start: 'top bottom', end: 'bottom top', scrub: true },
       }));
     }
 
@@ -328,7 +322,7 @@
   const boot = () => {
     try {
       intro();
-      trail();
+      perfume();
       sections();
       if (sparks) { sparks.resize(); setLive(true); }
     } catch (e) {
@@ -344,5 +338,5 @@
 
   window.addEventListener('load', () => ScrollTrigger.refresh());
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (sparks) sparks.resize(); if (trailFx) trailFx.resize(); }, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (sparks) sparks.resize(); if (pour) pour.resize(); }, 150); });
 })();

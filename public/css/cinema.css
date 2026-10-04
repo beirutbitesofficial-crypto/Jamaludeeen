@@ -155,26 +155,27 @@
 /* ScrollTrigger manages scroll positions on refresh; CSS smooth scrolling fights it. */
 html.cine-ready { scroll-behavior: auto; }
 
-/* ─ Scent trail: perfume ribbon from the bottle to the collections ─ */
-.scent { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
-.scent.is-on { opacity: 1; }
-.scent__svg, .scent__mist { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.scent__svg path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.scent__haze { stroke: rgba(212, 168, 90, .14); stroke-width: 26; }
-.scent__body { stroke: url(#scentGold); stroke-width: 5; opacity: .75; }
-.scent__core { stroke: rgba(255, 246, 222, .9); stroke-width: 1.2; }
-.scent__drops { stroke: #fff6dc; stroke-width: 3.2; stroke-dasharray: 1.5 18; }
-.scent__head { transition: opacity .4s ease; }
-@media (max-width: 720px) {
-  .scent__haze { stroke-width: 18; }
-  .scent__body { stroke-width: 4; }
-}
+/* ─ Perfume pour overlay ─────────────────────────────────── */
+.pour { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; transition: opacity .4s ease; }
 
-/* A collection card that has received the perfume */
-.cat::after { transition: border-color .9s var(--ease), box-shadow .9s var(--ease); }
-.cat .cat__media { transition: scale 1.4s var(--ease-out), filter 1s var(--ease); }
-.cat h3, .cat .cat__cta, .cat .cat__num { transition: color .9s var(--ease), text-shadow .9s var(--ease); }
-.cat.is-scented::after { border-color: rgba(212, 182, 124, .8); box-shadow: inset 0 0 90px rgba(212, 168, 90, .22); }
-.cat.is-scented .cat__media { filter: brightness(1.14) saturate(1.12); }
-.cat.is-scented h3 { color: var(--gold-3); text-shadow: 0 0 30px rgba(212, 168, 90, .35); }
-.cat.is-scented .cat__cta, .cat.is-scented .cat__num { color: var(--gold-2); }
+/* ─ Footer signature: fills with perfume, then lights up in gold neon ─ */
+.is-home .site-footer__giant {
+  --fill: 0%;
+  background-image: linear-gradient(0deg, #b9802c 0%, #f0c46a calc(var(--fill) * .7), #fbe3a6 var(--fill), transparent calc(var(--fill) + 1.5%));
+  -webkit-background-clip: text;
+          background-clip: text;
+  transition: -webkit-text-stroke-color .6s ease, filter .6s ease;
+}
+.is-home .site-footer__giant.is-lit {
+  background-image: linear-gradient(180deg, #fff3d0 0%, #f6d184 45%, #d9a441 100%);
+  -webkit-text-stroke: 1px rgba(255, 236, 190, .95);
+  filter: drop-shadow(0 0 4px rgba(255, 220, 150, .95)) drop-shadow(0 0 18px rgba(232, 180, 90, .75)) drop-shadow(0 0 48px rgba(212, 160, 70, .5));
+  animation: neon-on 1.1s steps(1, end) both, neon-hum 3.2s 1.1s ease-in-out infinite alternate;
+}
+@keyframes neon-on {
+  0% { opacity: .35; } 12% { opacity: 1; } 20% { opacity: .4; } 32% { opacity: 1; } 40% { opacity: .55; } 52%, 100% { opacity: 1; }
+}
+@keyframes neon-hum {
+  from { filter: drop-shadow(0 0 4px rgba(255, 220, 150, .95)) drop-shadow(0 0 18px rgba(232, 180, 90, .75)) drop-shadow(0 0 48px rgba(212, 160, 70, .5)); }
+  to { filter: drop-shadow(0 0 6px rgba(255, 226, 160, 1)) drop-shadow(0 0 26px rgba(236, 186, 96, .85)) drop-shadow(0 0 70px rgba(212, 160, 70, .6)); }
+}
