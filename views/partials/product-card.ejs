@@ -3,7 +3,7 @@
   <div class="card__media-wrap">
     <a href="/shop/item/<%= p.id %>" class="card__media<%= p.type === 'brand' && p.image_path && !p.image_path.includes('/brands/jamaludeen/') ? ' card__media--contain' : '' %>" aria-label="<%= p.name_en %>">
       <% if (p.image_path) { %>
-        <img src="<%= p.image_path %>" alt="<%= p.name_en %>" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-fallback="<%= p.brand || 'Jamaludeen' %>"/>
+        <img src="<%= thumb(p.image_path) %>" alt="<%= p.name_en %>" width="560" height="560" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-fallback="<%= p.brand || 'Jamaludeen' %>"/>
       <% } else { %>
         <div class="card__placeholder">
           <span class="card__monogram">J</span>

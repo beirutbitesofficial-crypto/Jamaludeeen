@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function card(p) {
     const media = p.image_path
-      ? '<img src="' + esc(p.image_path) + '" alt="' + esc(p.name_en) + '" loading="lazy" referrerpolicy="no-referrer" data-fallback="' + esc(p.brand || '') + '"/>'
+      ? '<img src="' + esc(p.thumb_path || p.image_path) + '" alt="' + esc(p.name_en) + '" loading="lazy" referrerpolicy="no-referrer" data-fallback="' + esc(p.brand || '') + '"/>'
       : '<div class="card__placeholder"><span class="card__monogram">J</span><span class="card__ph-name">' + esc(p.name_en) + '</span></div>';
     return '<article class="card is-visible" data-card="' + p.id + '">' +
       '<div class="card__media-wrap"><a href="/shop/item/' + p.id + '" class="card__media">' + media + '</a>' +
