@@ -12,6 +12,8 @@
   const gsap = window.gsap, ScrollTrigger = window.ScrollTrigger;
   if (!hero || !gsap || !ScrollTrigger) { done(); return; }
   gsap.registerPlugin(ScrollTrigger);
+  // Phones: the address bar showing/hiding must not re-measure (and jump) pinned scenes.
+  ScrollTrigger.config({ ignoreMobileResize: true });
 
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
@@ -201,7 +203,7 @@
   });
 
   // Tablet & phone: no pinning — light parallax as the hero scrolls away.
-  mm.add('(max-width: 1024px)', () => {
+  mm.add('(min-width: 721px) and (max-width: 1024px)', () => {
     const st = { trigger: hero, start: 'top top', end: 'bottom top', scrub: .6 };
     gsap.timeline({ defaults: { ease: 'none' }, scrollTrigger: st })
       .to(els.bloomFront, { yPercent: -30, scale: 1.12, duration: 1 }, 0)
@@ -215,6 +217,33 @@
       .to(els.unisex, { xPercent: 18, duration: 1 }, 0)
       .to(els.petalsGroup, { yPercent: -16, duration: 1 }, 0)
       .to(els.backdrop, { yPercent: 10, duration: 1 }, 0);
+  });
+
+  // Phones: the stage is the first thing on screen, so hold it in place briefly
+  // (short pin) while the bottle opens, tips over and pours — then scroll on.
+  mm.add('(max-width: 720px)', () => {
+    gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: {
+        trigger: hero,
+        start: () => 'top top+=' + headerH(),
+        end: '+=65%',
+        pin: true,
+        scrub: .5,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+    })
+      .to(els.cap, { yPercent: -260, xPercent: 50, rotation: -40, opacity: 0, duration: .22, ease: 'power2.in' }, 0)
+      .to(els.reflect, { opacity: 0, duration: .1 }, .1)
+      .to(els.badge, { opacity: 0, y: 20, duration: .2 }, 0)
+      .to(els.hero, { rotation: 132, scale: 1.08, duration: .4, ease: 'power2.inOut' }, .14)
+      .to(els.women, { xPercent: -30, opacity: .5, duration: 1 }, 0)
+      .to(els.unisex, { xPercent: 30, opacity: .5, duration: 1 }, 0)
+      .to(els.bloomFront, { yPercent: -20, scale: 1.1, duration: 1 }, 0)
+      .to(els.bloomBack, { yPercent: 10, duration: 1 }, 0)
+      .to(els.petalsGroup, { yPercent: -12, scale: 1.15, duration: 1 }, 0)
+      .to(Pour, { v: 1, duration: .25, onUpdate: syncPour }, .5);
   });
 
   // ── 4. Perfume pour → the footer signature lights up in gold neon ──
