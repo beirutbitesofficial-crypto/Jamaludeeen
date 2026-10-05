@@ -140,11 +140,9 @@
     if (this.released) {
       const tr = this.target.getBoundingClientRect();
       const anchor = vh * .46;
-      // As the footer word rises into view, the drop descends onto it; it lands at the
-      // very bottom of the page (the furthest anyone can scroll).
-      const maxScroll = document.documentElement.scrollHeight - vh;
-      const topAtMax = tr.top + sy - maxScroll;
-      const k = clamp01((vh - tr.top) / Math.max(1, vh - topAtMax));
+      // As the footer word rises into view the drop descends onto it, landing as soon as
+      // the whole word is visible — reachable on every screen size.
+      const k = clamp01((vh - tr.top) / (tr.height + 24));
       const landY = tr.top + tr.height * .18;
       let y = Math.max(anchor, mouthOnScreen ? mouth.y + 34 : -Infinity);
       y = y + (landY - y) * (k * k);
@@ -154,7 +152,7 @@
       this.lead.x += (tx - this.lead.x) * Math.min(1, dt * (mouthOnScreen ? 6 : .9));
       this.lead.y += (y - this.lead.y) * Math.min(1, dt * 8);
 
-      const landedNow = k > .94;
+      const landedNow = k > .98;
       if (landedNow !== this.landed) {
         if (landedNow) this.splash(this.lead.x, landY);
         this.setLanded(landedNow);
