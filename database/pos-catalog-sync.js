@@ -4,7 +4,7 @@
  * converted with the store exchange rate at the time the sync runs.
  *
  * PRICE_UPDATES: [brand, website product name, USD]
- * ADDITIONS:     [brand, product name, USD] — inserted only when missing.
+ * ADDITIONS:     [brand, product name, USD, Arabic name?] — inserted only when missing.
  */
 
 const PRICE_UPDATES = [
@@ -65,7 +65,42 @@ const ADDITIONS = [
   ['JAMALUDEEN', 'HOME SPRAY MANGO & PAPAYA', 5],
   ['JAMALUDEEN', 'HOME SPRAY MEDINA', 5],
   ['JAMALUDEEN', 'HOME SPRAY WISAL', 5],
+  // Second batch — houses confirmed by web search; anything unconfirmed goes to OTHER.
+  ['LATTAFA', 'MIST FAKHAR LATTAFA PINK', 8],
+  ['LATTAFA', 'MISHLAH', 30],
+  ['LATTAFA', 'MALLOW MADNESS', 30],
+  ['MAISON ALHAMBRA', 'MEGARA', 35],
+  ['FRAGRANCE WORLD', 'MEMORIES', 22],
+  ['ASSAF', 'FRANKEL BLACK ELIXIR', 65],
+  ['ASSAF', 'WILD COLT ELIXIR', 55],
+  ['ASSAF', 'ARROGATE PINK', 55],
+  ['BORN IN FRANCE', 'FLOWER KISS', 22],
+  ['BORN IN FRANCE', 'BARRÓN', 22],
+  ['BORN IN FRANCE', 'IRIS OUD', 22],
+  ['REYANE TRADITION', 'ELSATYS DEDICATION', 24],
+  ['REYANE TRADITION', 'VIVRE ELSATYS', 24],
+  ['OTHER', 'VICTORIUS MEN', 20],
+  ['OTHER', 'VICTORIUS WOMEN', 20],
+  ['OTHER', 'AROMA DIFFUSER WOOD', 25, 'فواحة عطرية خشب'],
+  ['OTHER', 'AROMA DIFFUSER BLACK', 25, 'فواحة عطرية سوداء'],
+  ['OTHER', 'AROMA DIFFUSER SMALL', 15, 'فواحة عطرية صغيرة'],
+  ['OTHER', 'WATERFALL INCENSE BURNER', 12, 'مباخر شلال'],
+  ['OTHER', 'WATERFALL INCENSE BURNER LARGE', 14, 'مباخر شلال كبير'],
+  ['OTHER', 'CHARCOAL BURNER', 12, 'مبخرة الفحم'],
+  ['OTHER', 'CHARCOAL BURNER LARGE', 15, 'مبخرة عالفحم'],
+  ['OTHER', 'GOLD INCENSE BURNER', 10, 'مبخرة ذهبية'],
+  ['OTHER', 'SILVER INCENSE BURNER', 12, 'مبخرة فضية'],
+  ['OTHER', 'CANDLE BURNER', 3, 'مبخرة شمع'],
+  ['OTHER', 'MUSK AL TAHARA SOAP', 3.15, 'صابون مسك الطهارة'],
+  ['OTHER', 'GARDENIA', 1],
+  ['OTHER', 'VIOLET', 1],
+  ['OTHER', 'WISAL', 2],
+  ['OTHER', 'DAMASCUS JASMINE', 2],
+  ['OTHER', 'DOVE', 2],
 ];
+
+// Houses that may not exist yet in the brands table.
+const NEW_BRANDS = { 'ASSAF': 'khaleeji', 'BORN IN FRANCE': 'western', 'REYANE TRADITION': 'western', 'OTHER': 'western' };
 
 function synchronizePosCatalog(db, rate) {
   const toLbp = usd => Math.round(usd * rate / 1000) * 1000;
@@ -82,8 +117,10 @@ function synchronizePosCatalog(db, rate) {
     INSERT INTO products
       (name_en, name_ar, brand, category, type, price, image_path,
        description_en, description_ar, brand_category_id, in_stock, featured)
-    VALUES (?, '', ?, 'unisex', 'brand', ?, NULL, '', '', ?, 1, 0)
+    VALUES (?, ?, ?, 'unisex', 'brand', ?, NULL, '', '', ?, 1, 0)
   `);
+  const insertBrand = db.prepare(`INSERT INTO brands (name, type) VALUES (?, ?)`);
+  const insertCategory = db.prepare(`INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, '', 0)`);
 
   let updated = 0, added = 0;
   const missing = [];
@@ -92,12 +129,17 @@ function synchronizePosCatalog(db, rate) {
       const changes = update.run(toLbp(usd), brand, name).changes;
       if (changes) updated += changes; else missing.push(`${brand} / ${name}`);
     }
-    for (const [brand, name, usd] of ADDITIONS) {
+    for (const [brand, name, usd, nameAr] of ADDITIONS) {
       if (exists.get(brand, name)) continue;
-      const b = brandRow.get(brand);
+      let b = brandRow.get(brand);
+      if (!b && NEW_BRANDS[brand]) {
+        const id = Number(insertBrand.run(brand, NEW_BRANDS[brand]).lastInsertRowid);
+        insertCategory.run(id, brand);
+        b = { id, name: brand };
+      }
       if (!b) { missing.push(`${brand} (brand) / ${name}`); continue; }
       const category = categoryRow.get(b.id);
-      insert.run(name, b.name.trim(), toLbp(usd), category ? category.id : null);
+      insert.run(name, nameAr || '', b.name.trim(), toLbp(usd), category ? category.id : null);
       added++;
     }
   })();
