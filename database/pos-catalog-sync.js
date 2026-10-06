@@ -7,6 +7,8 @@
  * ADDITIONS:     [brand, product name, USD, Arabic name?] — inserted only when missing.
  */
 
+const { getProductImage } = require('./product-images');
+
 const PRICE_UPDATES = [
   ['LATTAFA', '24 QIRAT PURE GOLD', 22],
   ['LATTAFA', '24 QIRAT WHITE GOLD', 22],
@@ -100,6 +102,43 @@ const PRICE_UPDATES = [
   ['TUBBEES', 'JAR SWEET MANGO MELODY', 12],
   ['TUBBEES', 'JAR TIRA-MISS-YOU', 12],
   ['TUBBEES', 'JAR TRES LECHES', 12],
+  // Fourth batch
+  ['FRAGRANCE WORLD', 'TODAY & TOMORROW POUR FEMME', 20],
+  ['FRAGRANCE WORLD', 'JOVAID', 20],
+  ['FRAGRANCE WORLD', 'RENHEIT PARFUM', 20],
+  ['FRAGRANCE WORLD', 'ROSE SEDUCTION SECRET REVEAL CLOUD OF CREAM', 20],
+  ['FRAGRANCE WORLD', 'ROSE SEDUCTION SECRET SUNKISSED', 20],
+  ['TUBBEES', 'TROPICAL ISLAND', 11],
+  ['TUBBEES', 'BUBBLE GUM', 11],
+  ['TUBBEES', 'CANDY POP', 11],
+  ['TUBBEES', 'LYCHEE LUSH', 11],
+  ['TUBBEES', 'MIST LEMON -A- LICIOUS!', 4],
+  ['TUBBEES', 'MIST SWEET MANGO MELODY', 4],
+  ['TUBBEES', 'MIST TIRA-MISS-YOU', 4],
+  ['TUBBEES', 'MIST TRES LECHES', 4],
+  ['AFNAN', 'TURATHI', 49],
+  ['AFNAN', 'KIANNA VIBES', 52],
+  ['AFNAN', 'LYNKED BY AFNAN FOREVER', 54],
+  ['AFNAN', 'RARE REEF', 52],
+  ['AFNAN', 'SOUVENIR BLOOMING BLISS', 54],
+  ['LATTAFA', 'FEMME BLOOM', 20],
+  ['LATTAFA', 'LAIL MALEKI -BLACK', 20],
+  ['LATTAFA', 'LAIL MALEKI MOROCCAN-BLUE', 20],
+  ['LATTAFA', 'MOHRA BLACK', 24],
+  ['LATTAFA', 'MOHRA SILKY ROSE-PINK', 24],
+  ['LATTAFA', 'HAYAATI AL MALIKY- BLUE', 20],
+  ['LATTAFA', 'HAYAATI BLACK', 20],
+  ['LATTAFA', 'HAYAATI FLORENCE-PINK', 20],
+  ['LATTAFA', 'HAYAATI GOLD ELIXIR- WHITE', 20],
+  ['LATTAFA', 'JASOOR BLACK', 30],
+  ['LATTAFA', 'KHALTAAT AL ARABIA ROYAL DELIGHT', 20],
+  ['LATTAFA', 'MAHASEN CRYSTAL VIOLET', 20],
+  ['LATTAFA', 'RAMZ LATTAFA-SILVER', 20],
+  ['LATTAFA PRIDE', 'RIDERS', 20],
+  ['LATTAFA PRIDE', 'SING', 20],
+  ['RIFFS', 'MASCULIN LEATHER', 20],
+  ['DAKKA KADIMA', 'SOAP GOLDEN', 3.15],
+  ['DAKKA KADIMA', 'SOAP MUSK AL ROMMAN', 3.15],
 ];
 
 const ADDITIONS = [
@@ -183,10 +222,79 @@ const ADDITIONS = [
   ['OTHER', 'VANILLA', 2],
   ['OTHER', 'SAFFRON', 1],
   ['OTHER', 'OUD SAFFRON', 1],
+  // Fourth batch
+  ['BORN IN FRANCE', 'LAVA', 22],
+  ['BORN IN FRANCE', 'ÉCLIPSE', 22],
+  ['REYANE TRADITION', 'GENTLE ELSATYS', 24],
+  ['MAISON ALHAMBRA', 'GLACIER FLORA', 26],
+  ['MAISON ALHAMBRA', 'GLACIER HEAVEN', 26],
+  ['MAISON ALHAMBRA', 'JEAN LOWE AZURE', 30],
+  ['RASASI', 'HAWAS KOBRA', 45],
+  ['RASASI', 'HAWAS PINK', 50],
+  ['DAKKA KADIMA', 'SOAP MUSK AL JANNA', 3.15, 'صابون مسك الجنة'],
+  ['LATTAFA', 'DEO KHAMRAH', 2.5],
+  ['LATTAFA', 'DEO MAAHIR', 2.5],
+  ['LATTAFA', 'DEO YARA', 2.5],
+  ['LATTAFA', 'DEO YARA MOI', 2.5],
+  ['LATTAFA', 'DEO YARA TOUS', 2.5],
+  ['JAMALUDEEN', 'HOME SPRAY BLUEBERRY', 5],
+  ['JAMALUDEEN', 'HOME SPRAY BUBBLE GUM', 5],
+  ['JAMALUDEEN', 'HOME SPRAY GHOBAR AL FODDA', 5],
+  ['JAMALUDEEN', 'HOME SPRAY GRAPES & BERRIES', 5],
+  ['JAMALUDEEN', 'HOME SPRAY LOVE DAY', 5],
+  ['JAMALUDEEN', 'HOME SPRAY MAGIC FRUIT', 5],
+  ['JAMALUDEEN', 'HOME SPRAY ROSE', 5],
+  ['OTHER', 'GLAMOUR', 45],
+  ['OTHER', 'CERAMIC DIFFUSER FOR ESSENTIAL OILS', 8],
+  ['OTHER', 'BLUEBERRY', 2],
+  ['OTHER', 'BURNER OUD', 2],
+  ['OTHER', 'GULF', 2],
+  ['OTHER', 'ROSE', 2],
+  ['OTHER', 'ROYAL AMBER', 2],
+  ['OTHER', 'SILVER OUD', 2],
+  ['OTHER', 'STRAWBERRY', 2],
+  ['OTHER', 'TULIP', 2],
+  ['OTHER', 'INCENSE STICKS TULIP', 1],
+  ['OTHER', 'INCENSE STICKS LAVENDER', 1],
+  ['OTHER', 'BIG EYES WOW LASHES 01', 13],
+  ['OTHER', 'BIG EYES WOW LASHES 02', 13],
+  // Brought back at the owner's request (listed in the POS).
+  ['HAMZA AL LABBAN', 'H.L ATHAR', 30],
+  ['HAMZA AL LABBAN', 'H.L CHARM', 30],
+  ['HAMZA AL LABBAN', 'H.L CODE', 30],
+  ['HAMZA AL LABBAN', 'H.L INFINITY', 30],
+  ['HAMZA AL LABBAN', 'H.L INTENSE OCEAN', 30],
+  ['HAMZA AL LABBAN', 'H.L LEGEND', 30],
+  ['HAMZA AL LABBAN', 'H.L MYSTERY', 30],
+  ['HAMZA AL LABBAN', 'H.L ROMANCE', 30],
+  ['HAMZA AL LABBAN', 'H.L ROSA', 30],
+  ['HAMZA AL LABBAN', 'H.L ROSELLA', 30],
+  ['HAMZA AL LABBAN', 'H.L ROYAL OUD', 30],
+  ['HAMZA AL LABBAN', 'H.L SENORITA', 30],
+  ['HAMZA AL LABBAN', 'H.L SIENNA', 30],
+  ['HAMZA AL LABBAN', 'H.L SWEET OUD', 30],
+  ['HAMZA AL LABBAN', 'H.L VANILLA TWILIGHT', 30],
+  ['HAMZA AL LABBAN', 'H.L WARM AMBER', 30],
+  ['HAMZA AL LABBAN', 'H.L WHITE MUSK', 30],
+  ['HAMZA AL LABBAN', 'H.L ZEST', 30],
+  ['MAKEOVER', 'HIGH PERFECTION SKINCARE FOUNDATION', 27],
+  ['MAKEOVER', 'INTENSIVE SKIN SERUM FOUNDATION', 30],
+  ['MAKEOVER', 'KHOL EYE LINER PENCIL', 8],
+  ['MAKEOVER', 'MIST & FIX MAKE-UP FIXER MIST', 20],
+  ['MAKEOVER', 'PRO EYE PALETTE', 20],
+  ['PARTY QUEEN', 'WATER-PROOF LONGLASTING KOHL EYE PENCIL', 7],
+  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:01', 15],
+  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:04', 15],
+  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:05', 15],
+  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:11', 15],
+  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:12', 15],
 ];
 
 // Houses that may not exist yet in the brands table.
-const NEW_BRANDS = { 'ASSAF': 'khaleeji', 'BORN IN FRANCE': 'western', 'REYANE TRADITION': 'western', 'OTHER': 'western' };
+const NEW_BRANDS = {
+  'ASSAF': 'khaleeji', 'BORN IN FRANCE': 'western', 'REYANE TRADITION': 'western', 'OTHER': 'western',
+  'HAMZA AL LABBAN': 'western', 'MAKEOVER': 'western', 'PARTY QUEEN': 'western', 'AUCEACADEMY': 'western',
+};
 
 function synchronizePosCatalog(db, rate) {
   const toLbp = usd => Math.round(usd * rate / 1000) * 1000;
@@ -203,7 +311,7 @@ function synchronizePosCatalog(db, rate) {
     INSERT INTO products
       (name_en, name_ar, brand, category, type, price, image_path,
        description_en, description_ar, brand_category_id, in_stock, featured)
-    VALUES (?, ?, ?, 'unisex', 'brand', ?, NULL, '', '', ?, 1, 0)
+    VALUES (?, ?, ?, 'unisex', 'brand', ?, ?, '', '', ?, 1, 0)
   `);
   const insertBrand = db.prepare(`INSERT INTO brands (name, type) VALUES (?, ?)`);
   const insertCategory = db.prepare(`INSERT INTO brand_categories (brand_id, name_en, name_ar, sort_order) VALUES (?, ?, '', 0)`);
@@ -225,7 +333,7 @@ function synchronizePosCatalog(db, rate) {
       }
       if (!b) { missing.push(`${brand} (brand) / ${name}`); continue; }
       const category = categoryRow.get(b.id);
-      insert.run(name, nameAr || '', b.name.trim(), toLbp(usd), category ? category.id : null);
+      insert.run(name, nameAr || '', b.name.trim(), toLbp(usd), getProductImage(brand, name), category ? category.id : null);
       added++;
     }
   })();
