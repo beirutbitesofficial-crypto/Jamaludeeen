@@ -247,7 +247,7 @@ if (removedBrandsVersion !== REMOVED_BRANDS_VERSION) {
 
 // One-time price corrections and missing items from the shop's POS list (USD → LBP
 // at the same rate the brand catalog was imported with).
-const POS_CATALOG_VERSION = '2026-10-06-v4';
+const POS_CATALOG_VERSION = '2026-10-06-v5';
 const posCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='pos_catalog_version'`).get()?.value;
 if (posCatalogVersion !== POS_CATALOG_VERSION) {
   const { RATE } = require('./import-excel');
