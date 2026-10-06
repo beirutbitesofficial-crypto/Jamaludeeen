@@ -245,6 +245,19 @@ if (removedBrandsVersion !== REMOVED_BRANDS_VERSION) {
   console.log(`Removed discontinued brands: ${removed.brands} brands, ${removed.products} products.`);
 }
 
+// One-time price corrections and missing items from the shop's POS list (USD → LBP
+// at the same rate the brand catalog was imported with).
+const POS_CATALOG_VERSION = '2026-10-06-v1';
+const posCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='pos_catalog_version'`).get()?.value;
+if (posCatalogVersion !== POS_CATALOG_VERSION) {
+  const { RATE } = require('./import-excel');
+  const { synchronizePosCatalog } = require('./pos-catalog-sync');
+  const result = synchronizePosCatalog(db, RATE);
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('pos_catalog_version', ?)`).run(POS_CATALOG_VERSION);
+  console.log(`POS catalog sync: ${result.updated} prices updated, ${result.added} products added.`);
+  if (result.missing.length) console.warn('POS catalog sync — not found: ' + result.missing.join('; '));
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;
