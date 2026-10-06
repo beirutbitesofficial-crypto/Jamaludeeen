@@ -90,7 +90,7 @@ function synchronizeBrandCatalog(db, file = DEFAULT_FILE) {
   return { products: products.length, brands: brandNames.length };
 }
 
-module.exports = { readCatalog, synchronizeBrandCatalog, REMOVED_BRANDS };
+module.exports = { readCatalog, synchronizeBrandCatalog, REMOVED_BRANDS, RATE };
 
 if (require.main === module) {
   const db = require('./db');
