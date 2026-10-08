@@ -286,17 +286,6 @@ const ADDITIONS = [
   ['HAMZA AL LABBAN', 'H.L WARM AMBER', 30],
   ['HAMZA AL LABBAN', 'H.L WHITE MUSK', 30],
   ['HAMZA AL LABBAN', 'H.L ZEST', 30],
-  ['MAKEOVER', 'HIGH PERFECTION SKINCARE FOUNDATION', 27],
-  ['MAKEOVER', 'INTENSIVE SKIN SERUM FOUNDATION', 30],
-  ['MAKEOVER', 'KHOL EYE LINER PENCIL', 8],
-  ['MAKEOVER', 'MIST & FIX MAKE-UP FIXER MIST', 20],
-  ['MAKEOVER', 'PRO EYE PALETTE', 20],
-  ['PARTY QUEEN', 'WATER-PROOF LONGLASTING KOHL EYE PENCIL', 7],
-  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:01', 15],
-  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:04', 15],
-  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:05', 15],
-  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:11', 15],
-  ['AUCEACADEMY', 'MULTIPLEX 3D LIP GLOSS N:12', 15],
   // Fifth batch
   ['LATTAFA', 'FAHAD', 30],
   ['LATTAFA', 'OPULENT DUBAI', 22],
@@ -314,7 +303,7 @@ const ADDITIONS = [
 // Houses that may not exist yet in the brands table.
 const NEW_BRANDS = {
   'ASSAF': 'khaleeji', 'BORN IN FRANCE': 'western', 'REYANE TRADITION': 'western', 'OTHER': 'western',
-  'HAMZA AL LABBAN': 'western', 'MAKEOVER': 'western', 'PARTY QUEEN': 'western', 'AUCEACADEMY': 'western',
+  'HAMZA AL LABBAN': 'western',
 };
 
 function synchronizePosCatalog(db, rate) {
