@@ -258,6 +258,22 @@ if (posCatalogVersion !== POS_CATALOG_VERSION) {
   if (result.missing.length) console.warn('POS catalog sync — not found: ' + result.missing.join('; '));
 }
 
+// One-time removal of the makeup houses (Auceacademy, Makeover, Party Queen).
+// Orders and sales keep their own product names, so history is unaffected.
+const REMOVED_MAKEUP_VERSION = '2026-10-08-v1';
+if (db.prepare(`SELECT value FROM settings WHERE key='removed_makeup_version'`).get()?.value !== REMOVED_MAKEUP_VERSION) {
+  const names = ['AUCEACADEMY', 'MAKEOVER', 'PARTY QUEEN'];
+  const marks = names.map(() => '?').join(',');
+  const removed = db.transaction(() => {
+    const products = db.prepare(`DELETE FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) IN (${marks})`).run(...names).changes;
+    db.prepare(`DELETE FROM brand_categories WHERE brand_id IN (SELECT id FROM brands WHERE UPPER(TRIM(name)) IN (${marks}))`).run(...names);
+    const brands = db.prepare(`DELETE FROM brands WHERE UPPER(TRIM(name)) IN (${marks})`).run(...names).changes;
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('removed_makeup_version', ?)`).run(REMOVED_MAKEUP_VERSION);
+    return { products, brands };
+  })();
+  console.log(`Removed makeup brands: ${removed.brands} brands, ${removed.products} products.`);
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;
