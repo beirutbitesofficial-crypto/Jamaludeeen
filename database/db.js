@@ -274,6 +274,23 @@ if (db.prepare(`SELECT value FROM settings WHERE key='removed_makeup_version'`).
   console.log(`Removed makeup brands: ${removed.brands} brands, ${removed.products} products.`);
 }
 
+// One-time catalog edits: "Born in France" is shown as its house, Parisis Parfum,
+// and Hamza Al Labban is removed. Orders and sales keep their own product names.
+const BRAND_EDITS_VERSION = '2026-10-08-v2';
+if (db.prepare(`SELECT value FROM settings WHERE key='brand_edits_version'`).get()?.value !== BRAND_EDITS_VERSION) {
+  const result = db.transaction(() => {
+    const renamed = db.prepare(`UPDATE products SET brand = 'PARISIS PARFUM', updated_at = CURRENT_TIMESTAMP WHERE type = 'brand' AND UPPER(TRIM(brand)) = 'BORN IN FRANCE'`).run().changes;
+    db.prepare(`UPDATE brand_categories SET name_en = 'PARISIS PARFUM' WHERE UPPER(TRIM(name_en)) = 'BORN IN FRANCE'`).run();
+    db.prepare(`UPDATE brands SET name = 'PARISIS PARFUM' WHERE UPPER(TRIM(name)) = 'BORN IN FRANCE'`).run();
+    const removed = db.prepare(`DELETE FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) = 'HAMZA AL LABBAN'`).run().changes;
+    db.prepare(`DELETE FROM brand_categories WHERE brand_id IN (SELECT id FROM brands WHERE UPPER(TRIM(name)) = 'HAMZA AL LABBAN')`).run();
+    db.prepare(`DELETE FROM brands WHERE UPPER(TRIM(name)) = 'HAMZA AL LABBAN'`).run();
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('brand_edits_version', ?)`).run(BRAND_EDITS_VERSION);
+    return { renamed, removed };
+  })();
+  console.log(`Brand edits: ${result.renamed} products moved to Parisis Parfum, ${result.removed} Hamza Al Labban products removed.`);
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;
