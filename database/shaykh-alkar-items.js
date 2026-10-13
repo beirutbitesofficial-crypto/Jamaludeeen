@@ -37,6 +37,9 @@ const SHAYKH_ALKAR_ITEMS = [
   { name: 'REED DIFFUSER AL SULTAN', name_ar: 'معطر فواح السلطان', image: '/images/brands/shaykh-alkar/reed-diffuser-al-sultan.webp', kind: 'reed' },
   { name: 'REED DIFFUSER POMEGRANATE', name_ar: 'معطر فواح مسك الرمان', image: '/images/brands/shaykh-alkar/reed-diffuser-pomegranate.webp', kind: 'reed' },
   { name: 'REED DIFFUSER TUTTI FRUTTI', name_ar: 'معطر فواح توتي فروتي', image: '/images/brands/shaykh-alkar/reed-diffuser-tutti-frutti.webp', kind: 'reed' },
+  { name: 'REED DIFFUSER JASMINE', name_ar: 'معطر فواح الياسمين الدمشقي', image: '/images/brands/shaykh-alkar/reed-diffuser-jasmine.webp', kind: 'reed' },
+  { name: 'REED DIFFUSER SULTAN MUSK', name_ar: 'معطر فواح المسك السلطاني', image: '/images/brands/shaykh-alkar/reed-diffuser-sultan-musk.webp', kind: 'reed' },
+  { name: 'REED DIFFUSER MUSKMELON', name_ar: 'معطر فواح نسائم الشمام', image: '/images/brands/shaykh-alkar/reed-diffuser-muskmelon.webp', kind: 'reed' },
 ];
 
 module.exports = { SHAYKH_ALKAR_ITEMS };
