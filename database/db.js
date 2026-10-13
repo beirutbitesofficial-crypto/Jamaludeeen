@@ -291,6 +291,32 @@ if (db.prepare(`SELECT value FROM settings WHERE key='brand_edits_version'`).get
   console.log(`Brand edits: ${result.renamed} products moved to Parisis Parfum, ${result.removed} Hamza Al Labban products removed.`);
 }
 
+// One-time revert of the POS price corrections: those products go back to their
+// TAHA.xlsx catalog prices. Items added from the POS keep their own prices.
+const PRICE_REVERT_VERSION = '2026-10-13-v1';
+if (db.prepare(`SELECT value FROM settings WHERE key='price_revert_version'`).get()?.value !== PRICE_REVERT_VERSION) {
+  const { readCatalog } = require('./import-excel');
+  const { PRICE_UPDATES } = require('./pos-catalog-sync');
+  const norm = v => String(v || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const catalog = new Map(readCatalog().map(p => [norm(p.brand) + '|' + norm(p.name), p.price]));
+  const update = db.prepare(`
+    UPDATE products SET price = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE type = 'brand' AND UPPER(TRIM(brand)) = ? AND UPPER(TRIM(name_en)) = ?
+  `);
+  let restored = 0;
+  const missing = [];
+  db.transaction(() => {
+    for (const [brand, name] of PRICE_UPDATES) {
+      const price = catalog.get(norm(brand) + '|' + norm(name));
+      if (price === undefined) { missing.push(`${brand} / ${name}`); continue; }
+      restored += update.run(price, brand, name).changes;
+    }
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('price_revert_version', ?)`).run(PRICE_REVERT_VERSION);
+  })();
+  console.log(`POS price revert: ${restored} products back to catalog prices.`);
+  if (missing.length) console.warn('POS price revert — not in catalog: ' + missing.join('; '));
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;

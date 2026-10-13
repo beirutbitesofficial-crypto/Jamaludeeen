@@ -308,10 +308,10 @@ function synchronizePosCatalog(db, rate) {
   let updated = 0, added = 0;
   const missing = [];
   db.transaction(() => {
-    for (const [brand, name, usd] of PRICE_UPDATES) {
-      const changes = update.run(toLbp(usd), brand, name).changes;
-      if (changes) updated += changes; else missing.push(`${brand} / ${name}`);
-    }
+    // The POS price corrections were withdrawn at the owner's request: existing
+    // products keep their catalog (TAHA.xlsx) prices. PRICE_UPDATES now only lists
+    // which products the one-time revert in db.js restores.
+    void update;
     for (const [brand, name, usd, nameAr] of ADDITIONS) {
       if (exists.get(brand, name)) continue;
       let b = brandRow.get(brand);
