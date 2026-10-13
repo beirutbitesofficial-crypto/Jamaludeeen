@@ -1,4 +1,4 @@
-// Shaykh Alkar pyramid incense range, from the owner's box photos (October 2026).
+// Shaykh Alkar pyramid incense and incense sticks, from the owner's box photos (October 2026).
 // Added once at a default price; the owner sets the real prices from the admin.
 const SHAYKH_ALKAR_ITEMS = [
   { name: 'SILVER OUD', name_ar: 'نسائم عود الفضة', image: '/images/brands/shaykh-alkar/silver-oud.webp' },
@@ -17,6 +17,15 @@ const SHAYKH_ALKAR_ITEMS = [
   { name: 'OUD WOOD', name_ar: 'نسائم خشب العود', image: '/images/brands/shaykh-alkar/oud-wood.webp' },
   { name: 'TULIP', name_ar: 'نسائم التوليب', image: '/images/brands/shaykh-alkar/tulip.webp' },
   { name: 'BURNER OUD', name_ar: 'نسائم عود مبخر', image: '/images/brands/shaykh-alkar/burner-oud.webp' },
+  // Incense sticks (boxes of 10; Tulip Breezes holds 8).
+  { name: 'INCENSE STICKS OUD SAFFRON', name_ar: 'أعواد بخور عود الزعفران', image: '/images/brands/shaykh-alkar/incense-sticks-oud-saffron.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS GARDENIA', name_ar: 'أعواد بخور نسائم غاردينيا', image: '/images/brands/shaykh-alkar/incense-sticks-gardenia.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS SAFFRON', name_ar: 'أعواد بخور نسائم الزعفران', image: '/images/brands/shaykh-alkar/incense-sticks-saffron.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS LAVENDER', name_ar: 'أعواد بخور نسائم اللافندر', image: '/images/brands/shaykh-alkar/incense-sticks-lavender.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS TULIP BREEZES', name_ar: 'أعواد بخور نسائم التوليب (8 أعواد)', image: '/images/brands/shaykh-alkar/incense-sticks-tulip-breezes.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS POMEGRANATE', name_ar: 'أعواد بخور مسك الرمان', image: '/images/brands/shaykh-alkar/incense-sticks-pomegranate.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS VIOLETS', name_ar: 'أعواد بخور البنفسج', image: '/images/brands/shaykh-alkar/incense-sticks-violets.webp', kind: 'sticks' },
+  { name: 'INCENSE STICKS TULIP', name_ar: 'أعواد بخور نسائم التوليب', image: '/images/brands/shaykh-alkar/incense-sticks-tulip.webp', kind: 'sticks' },
 ];
 
 module.exports = { SHAYKH_ALKAR_ITEMS };
