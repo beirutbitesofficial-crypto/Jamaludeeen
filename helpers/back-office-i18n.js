@@ -393,6 +393,16 @@ const STRINGS = {
   delivered_note: ['Profit counts orders once they are delivered.', 'الأرباح تُحسب عند تسليم الطلب.'],
   source_online: ['Website', 'الموقع'],
   source_pos: ['Store', 'المتجر'],
+  // Quick edit
+  quick_edit: ['Quick edit', 'تعديل سريع'],
+  quick_intro: ['Change prices, photos and availability right here — each change saves by itself. Made for the phone.', 'عدّل الأسعار والصور والتوفر من هنا مباشرة — كل تعديل يُحفظ تلقائياً. مصمّم للهاتف.'],
+  without_price: ['Without price', 'بدون سعر'],
+  refill_price_shared: ['Refill perfumes share one price list:', 'عطور التعبئة لها لائحة أسعار واحدة:'],
+  saving: ['Saving…', 'جارٍ الحفظ…'],
+  save_failed: ['Could not save — try again.', 'تعذّر الحفظ — حاول مرة أخرى.'],
+  session_expired: ['Session expired — log in again.', 'انتهت الجلسة — سجّل الدخول من جديد.'],
+  photo_too_big: ['Photo is too large (max 5 MB).', 'الصورة كبيرة جداً (الحد 5 ميغابايت).'],
+  tap_to_change_photo: ['Tap to change the photo', 'اضغط لتغيير الصورة'],
 };
 
 function translator(lang) {

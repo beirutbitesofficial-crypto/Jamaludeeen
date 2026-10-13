@@ -1,0 +1,90 @@
+<%- include('../partials/admin-header', { title: a('quick_edit') }) %>
+<%
+  const qs = o => new URLSearchParams(Object.fromEntries(Object.entries(Object.assign({}, filters, o)).filter(([, v]) => v !== '' && v != null))).toString();
+  const isBrand = filters.section === 'brands';
+  const usd = lbp => lbp ? Math.round(lbp / rate * 100) / 100 : '';
+%>
+<div class="bo-head">
+  <div>
+    <p class="bo-kicker"><%= a('catalog') %></p>
+    <h1><%= a('quick_edit') %></h1>
+    <p><%= a('quick_intro') %></p>
+  </div>
+</div>
+
+<nav class="tabs">
+  <% ['brands','men','women','unisex'].forEach(k => { %>
+  <a href="/admin/quick?section=<%= k %>" class="<%= filters.section === k ? 'is-active' : '' %>"><%= a(k) %><span class="tabs__count num"><%= counts[k] %></span></a>
+  <% }) %>
+</nav>
+
+<% if (isBrand) { %>
+<div class="chips chips--scroll" style="margin-top:14px">
+  <a class="chip <%= !filters.brand ? 'is-active' : '' %>" href="?<%= qs({ brand: '', page: '' }) %>"><%= a('all_brands') %></a>
+  <% brands.forEach(b => { %><a class="chip <%= filters.brand === b.name ? 'is-active' : '' %>" href="?<%= qs({ brand: b.name, page: '' }) %>"><%= b.name %> <small class="num"><%= b.count %></small></a><% }) %>
+</div>
+<% } %>
+
+<form class="toolbar qe-toolbar" method="GET" action="/admin/quick">
+  <input type="hidden" name="section" value="<%= filters.section %>"/>
+  <% if (filters.brand) { %><input type="hidden" name="brand" value="<%= filters.brand %>"/><% } %>
+  <label class="search toolbar__grow"><%- icon('search') %><input type="search" name="q" value="<%= filters.q %>" placeholder="<%= a('search_products') %>" enterkeyhint="search"/></label>
+  <select name="missing" class="input" onchange="this.form.submit()">
+    <option value=""><%= a('all') %></option>
+    <option value="photo" <%= filters.missing === 'photo' ? 'selected' : '' %>><%= a('without_photo') %></option>
+    <% if (isBrand) { %><option value="price" <%= filters.missing === 'price' ? 'selected' : '' %>><%= a('without_price') %></option><% } %>
+  </select>
+</form>
+
+<% if (!isBrand) { %>
+<p class="hint qe-note"><%- icon('coin') %> <%= a('refill_price_shared') %> <span dir="ltr" class="num">$<%= refill[50] %> · $<%= refill[100] %></span> — <a href="/admin/prices"><%= a('edit') %></a></p>
+<% } %>
+
+<p class="muted num qe-count"><%= pagination.total %> <%= a('items') %><% if (isBrand) { %> · <span dir="ltr">1 USD = <%= Number(rate).toLocaleString('en-US') %> LBP</span><% } %></p>
+
+<% if (!products.length) { %>
+<div class="card empty-block"><%- icon('bottle') %><p><%= a('no_results') %></p></div>
+<% } else { %>
+<div class="qe-list" id="quickList" data-rate="<%= rate %>"
+     data-i18n="<%= JSON.stringify({ saving: a('saving'), saved: a('saved'), failed: a('save_failed'), expired: a('session_expired'), photo: a('photo_updated'), tooBig: a('photo_too_big') }) %>">
+  <% products.forEach(p => { %>
+  <article class="qe-item" data-id="<%= p.id %>">
+    <label class="qe-photo" title="<%= a('tap_to_change_photo') %>">
+      <% if (p.image_path) { %><img src="<%= p.image_path %>" alt="" loading="lazy"/><% } else { %><span class="monogram">J</span><% } %>
+      <span class="qe-photo__badge"><%- icon('upload') %></span>
+      <span class="qe-photo__busy"></span>
+      <input type="file" accept="image/*" data-qe-photo/>
+    </label>
+    <div class="qe-main">
+      <div class="qe-title">
+        <small><%= p.brand %></small>
+        <a href="/admin/products/<%= p.id %>/edit"><strong><%= p.name_en %></strong></a>
+        <% if (p.name_ar) { %><span class="qe-ar" dir="rtl"><%= p.name_ar %></span><% } %>
+      </div>
+      <% if (p.type === 'brand') { %>
+      <div class="qe-price">
+        <label class="input-affix qe-usd"><span>$</span><input type="number" inputmode="decimal" step="0.01" min="0" value="<%= usd(p.price) %>" placeholder="0" data-qe-usd dir="ltr" aria-label="<%= a('price') %> USD"/></label>
+        <label class="input-affix qe-lbp"><input type="number" inputmode="numeric" step="1000" min="0" value="<%= p.price != null ? p.price : '' %>" placeholder="<%= a('not_set') %>" data-qe-lbp dir="ltr" aria-label="<%= a('price') %> LBP"/><span>LBP</span></label>
+      </div>
+      <% } %>
+      <div class="qe-foot">
+        <label class="qe-switch"><input type="checkbox" data-qe-stock <%= p.in_stock ? 'checked' : '' %>/><span class="qe-switch__track"></span><span class="qe-switch__label"><%= a('available') %></span></label>
+        <span class="qe-status" aria-live="polite"></span>
+      </div>
+    </div>
+  </article>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (pagination.totalPages > 1) { %>
+<div class="pager">
+  <span class="num"><%= a('page') %> <%= pagination.page %> <%= a('of') %> <%= pagination.totalPages %></span>
+  <span class="pager__links">
+    <% if (pagination.page > 1) { %><a class="btn btn--sm" href="?<%= qs({ page: pagination.page - 1 }) %>"><%= a('prev') %></a><% } %>
+    <% if (pagination.page < pagination.totalPages) { %><a class="btn btn--sm" href="?<%= qs({ page: pagination.page + 1 }) %>"><%= a('next') %></a><% } %>
+  </span>
+</div>
+<% } %>
+<script src="/js/admin-quick.js?v=20261013-1" defer></script>
+<%- include('../partials/admin-footer') %>
