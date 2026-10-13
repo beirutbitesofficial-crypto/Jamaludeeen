@@ -336,7 +336,7 @@ if (db.prepare(`SELECT value FROM settings WHERE key='price_revert_version'`).ge
 // One-time addition of the Shaykh Alkar pyramid incense, incense sticks and reed diffusers. New items
 // take the price of the matching existing listing as a default; the owner edits
 // prices from the admin. Existing items are left untouched.
-const SHAYKH_ALKAR_VERSION = '2026-10-13-v3';
+const SHAYKH_ALKAR_VERSION = '2026-10-13-v4';
 if (db.prepare(`SELECT value FROM settings WHERE key='shaykh_alkar_version'`).get()?.value !== SHAYKH_ALKAR_VERSION) {
   const { SHAYKH_ALKAR_ITEMS } = require('./shaykh-alkar-items');
   const added = db.transaction(() => {
