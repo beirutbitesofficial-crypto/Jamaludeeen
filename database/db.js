@@ -382,6 +382,18 @@ if (db.prepare(`SELECT value FROM settings WHERE key='shaykh_alkar_version'`).ge
   console.log(`Shaykh Alkar: ${added} items added.`);
 }
 
+// One-time additions of new brand items (see database/brand-additions.js).
+const BRAND_ADDITIONS_VERSION = '2026-10-13-v1';
+if (db.prepare(`SELECT value FROM settings WHERE key='brand_additions_version'`).get()?.value !== BRAND_ADDITIONS_VERSION) {
+  const { addBrandItems } = require('./brand-additions');
+  const added = db.transaction(() => {
+    const n = addBrandItems(db);
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('brand_additions_version', ?)`).run(BRAND_ADDITIONS_VERSION);
+    return n;
+  })();
+  console.log(`Brand additions: ${added} items added.`);
+}
+
 // Repair Arabic homepage copy that was stored with broken deployment encoding.
 const ARABIC_COPY_VERSION = '2026-08-05-v1';
 const arabicCopyVersion = db.prepare(`SELECT value FROM settings WHERE key='arabic_copy_version'`).get()?.value;

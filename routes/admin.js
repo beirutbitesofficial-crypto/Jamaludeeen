@@ -303,6 +303,70 @@ router.get('/images', adminAuth, (req, res) => {
   });
 });
 
+// ── Quick edit (phone-friendly: price, photo and availability in one list) ──────
+router.get('/quick', adminAuth, (req, res) => {
+  const section = SECTION_KEYS.includes(req.query.section) ? req.query.section : 'brands';
+  const brand = section === 'brands' ? String(req.query.brand || '') : '';
+  const q = String(req.query.q || '').trim();
+  const missing = ['photo', 'price'].includes(req.query.missing) ? req.query.missing : '';
+  const page = pageOf(req.query.page);
+  const PAGE = 40;
+  const { where, params } = sectionWhere(section, brand);
+  if (q) { where.push('(name_en LIKE ? OR name_ar LIKE ? OR brand LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (missing === 'photo') where.push("COALESCE(image_path, '') = ''");
+  if (missing === 'price' && section === 'brands') where.push('(price IS NULL OR price = 0)');
+  const ws = where.join(' AND ');
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM products WHERE ${ws}`).get(...params).c;
+  const products = db.prepare(`SELECT id, name_en, name_ar, brand, type, price, image_path, in_stock FROM products WHERE ${ws} ORDER BY brand, name_en LIMIT ? OFFSET ?`)
+    .all(...params, PAGE, (page - 1) * PAGE);
+  const settings = getSettings();
+  res.render('admin/quick', {
+    title: tr(req)('quick_edit'),
+    products,
+    counts: sectionCounts(db),
+    brands: brandList(db),
+    refill: refillPricesUsd(settings),
+    rate: exchangeRate(settings),
+    filters: { section, brand, q, missing },
+    pagination: { page, totalPages: Math.ceil(total / PAGE), total },
+  });
+});
+
+const quickProduct = id => db.prepare('SELECT id, type, price, image_path, in_stock FROM products WHERE id = ?').get(parseInt(id, 10));
+
+router.post('/api/products/:id(\\d+)/price', adminAuth, (req, res) => {
+  const product = quickProduct(req.params.id);
+  if (!product) return res.status(404).json({ error: 'not_found' });
+  if (product.type !== 'brand') return res.status(400).json({ error: 'refill_price_is_shared' });
+  const raw = req.body.price;
+  const value = raw === '' || raw == null ? null : Number(raw);
+  if (value !== null && !(Number.isFinite(value) && value >= 0)) return res.status(400).json({ error: 'invalid_price' });
+  const price = value === null ? null : Math.round(value);
+  db.prepare('UPDATE products SET price = ?, updated_at = ? WHERE id = ?').run(price, new Date().toISOString(), product.id);
+  res.json({ ok: true, price });
+});
+
+router.post('/api/products/:id(\\d+)/stock', adminAuth, (req, res) => {
+  const product = quickProduct(req.params.id);
+  if (!product) return res.status(404).json({ error: 'not_found' });
+  const inStock = req.body.in_stock ? 1 : 0;
+  db.prepare('UPDATE products SET in_stock = ?, updated_at = ? WHERE id = ?').run(inStock, new Date().toISOString(), product.id);
+  res.json({ ok: true, in_stock: inStock });
+});
+
+router.post('/api/products/:id(\\d+)/image', adminAuth, (req, res) => {
+  upload.single('image')(req, res, err => {
+    if (err) return res.status(400).json({ error: err.message });
+    const product = quickProduct(req.params.id);
+    if (!product) return res.status(404).json({ error: 'not_found' });
+    if (!req.file) return res.status(400).json({ error: 'no_file' });
+    removeManagedFile(product.image_path);
+    const imagePath = `/uploads/products/${req.file.filename}`;
+    db.prepare('UPDATE products SET image_path = ?, updated_at = ? WHERE id = ?').run(imagePath, new Date().toISOString(), product.id);
+    res.json({ ok: true, image_path: imagePath });
+  });
+});
+
 // ── Orders ──────────────────────────────────────────────────────────────────
 
 router.get('/orders', adminAuth, (req, res) => {
