@@ -245,17 +245,33 @@ if (removedBrandsVersion !== REMOVED_BRANDS_VERSION) {
   console.log(`Removed discontinued brands: ${removed.brands} brands, ${removed.products} products.`);
 }
 
-// One-time price corrections and missing items from the shop's POS list (USD → LBP
-// at the same rate the brand catalog was imported with).
-const POS_CATALOG_VERSION = '2026-10-06-v5';
-const posCatalogVersion = db.prepare(`SELECT value FROM settings WHERE key='pos_catalog_version'`).get()?.value;
-if (posCatalogVersion !== POS_CATALOG_VERSION) {
-  const { RATE } = require('./import-excel');
-  const { synchronizePosCatalog } = require('./pos-catalog-sync');
-  const result = synchronizePosCatalog(db, RATE);
-  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('pos_catalog_version', ?)`).run(POS_CATALOG_VERSION);
-  console.log(`POS catalog sync: ${result.updated} prices updated, ${result.added} products added.`);
-  if (result.missing.length) console.warn('POS catalog sync — not found: ' + result.missing.join('; '));
+// The POS catalog sync (6–8 Oct 2026) is withdrawn at the owner's request: the items it
+// added are removed once, and the houses it created go too when nothing else is
+// listed under them. Prices are restored by the revert below; the owner manages the
+// catalog from the admin from here on.
+const POS_ITEMS_REVERT_VERSION = '2026-10-13-v2';
+if (db.prepare(`SELECT value FROM settings WHERE key='pos_items_revert_version'`).get()?.value !== POS_ITEMS_REVERT_VERSION) {
+  const { ADDITIONS } = require('./pos-catalog-sync');
+  const del = db.prepare(`DELETE FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) = ? AND UPPER(TRIM(name_en)) = ?`);
+  const result = db.transaction(() => {
+    let products = 0;
+    for (const [brand, name] of ADDITIONS) {
+      products += del.run(brand, name).changes;
+      if (brand === 'PARISIS PARFUM') products += del.run('BORN IN FRANCE', name).changes;
+    }
+    let brands = 0;
+    for (const name of ['ASSAF', 'PARISIS PARFUM', 'BORN IN FRANCE', 'REYANE TRADITION', 'OTHER']) {
+      const b = db.prepare(`SELECT id, name FROM brands WHERE UPPER(TRIM(name)) = ?`).get(name);
+      if (!b) continue;
+      const left = db.prepare(`SELECT COUNT(*) AS n FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) = ?`).get(name).n;
+      if (left) continue;
+      db.prepare(`DELETE FROM brand_categories WHERE brand_id = ?`).run(b.id);
+      brands += db.prepare(`DELETE FROM brands WHERE id = ?`).run(b.id).changes;
+    }
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('pos_items_revert_version', ?)`).run(POS_ITEMS_REVERT_VERSION);
+    return { products, brands };
+  })();
+  console.log(`POS catalog revert: ${result.products} added items removed, ${result.brands} brands removed.`);
 }
 
 // One-time removal of the makeup houses (Auceacademy, Makeover, Party Queen).
