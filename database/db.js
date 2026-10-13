@@ -333,10 +333,10 @@ if (db.prepare(`SELECT value FROM settings WHERE key='price_revert_version'`).ge
   if (missing.length) console.warn('POS price revert — not in catalog: ' + missing.join('; '));
 }
 
-// One-time addition of the Shaykh Alkar pyramid incense and incense sticks. New items
+// One-time addition of the Shaykh Alkar pyramid incense, incense sticks and reed diffusers. New items
 // take the price of the matching existing listing as a default; the owner edits
 // prices from the admin. Existing items are left untouched.
-const SHAYKH_ALKAR_VERSION = '2026-10-13-v2';
+const SHAYKH_ALKAR_VERSION = '2026-10-13-v3';
 if (db.prepare(`SELECT value FROM settings WHERE key='shaykh_alkar_version'`).get()?.value !== SHAYKH_ALKAR_VERSION) {
   const { SHAYKH_ALKAR_ITEMS } = require('./shaykh-alkar-items');
   const added = db.transaction(() => {
@@ -347,13 +347,20 @@ if (db.prepare(`SELECT value FROM settings WHERE key='shaykh_alkar_version'`).ge
       brand = { id, name: 'SHAYKH ALKAR' };
     }
     const category = db.prepare(`SELECT id FROM brand_categories WHERE brand_id = ? ORDER BY sort_order, id LIMIT 1`).get(brand.id);
-    // Default prices: pyramid incense follows "PYRAMID INCENSE", sticks follow "INCENSE STICKS".
+    // Default prices follow the matching existing listing: "PYRAMID INCENSE",
+    // "INCENSE STICKS" or "REED DIFFUSER".
     const refPrice = (name, fallback) => {
       const ref = db.prepare(`SELECT price FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) = 'SHAYKH ALKAR' AND UPPER(TRIM(name_en)) = ?`).get(name);
       return ref && ref.price ? ref.price : fallback;
     };
     const conePrice = refPrice('PYRAMID INCENSE', 200000);
     const stickPrice = refPrice('INCENSE STICKS', 100000);
+    const reedPrice = refPrice('REED DIFFUSER', 450000);
+    const kinds = {
+      sticks: [stickPrice, 'Shaykh Alkar scented incense sticks.', 'أعواد بخور معطرة من شيخ الكار.'],
+      reed: [reedPrice, 'Shaykh Alkar reed diffuser.', 'معطر فواح من شيخ الكار.'],
+    };
+    const cone = [conePrice, 'Shaykh Alkar pyramid incense cones. Long lasting fragrance.', 'بخور هرمي من شيخ الكار. رائحة طويلة المدى.'];
     const exists = db.prepare(`SELECT 1 FROM products WHERE type = 'brand' AND UPPER(TRIM(brand)) = 'SHAYKH ALKAR' AND UPPER(TRIM(name_en)) = ?`);
     const insert = db.prepare(`
       INSERT INTO products
@@ -364,10 +371,8 @@ if (db.prepare(`SELECT value FROM settings WHERE key='shaykh_alkar_version'`).ge
     let n = 0;
     for (const item of SHAYKH_ALKAR_ITEMS) {
       if (exists.get(item.name)) continue;
-      const sticks = item.kind === 'sticks';
-      insert.run(item.name, item.name_ar, brand.name.trim(), sticks ? stickPrice : conePrice, item.image,
-        sticks ? 'Shaykh Alkar scented incense sticks.' : 'Shaykh Alkar pyramid incense cones. Long lasting fragrance.',
-        sticks ? 'أعواد بخور معطرة من شيخ الكار.' : 'بخور هرمي من شيخ الكار. رائحة طويلة المدى.',
+      const [price, descEn, descAr] = kinds[item.kind] || cone;
+      insert.run(item.name, item.name_ar, brand.name.trim(), price, item.image, descEn, descAr,
         category ? category.id : null);
       n++;
     }
