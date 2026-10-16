@@ -21,6 +21,7 @@ if (IS_PRODUCTION) {
 const { sessionDbPath, uploadsDir } = require('./database/runtime-paths');
 const SQLiteSessionStore = require('./database/sqlite-session-store');
 const { exchangeRate, whatsappNumber, formatMoney } = require('./helpers/pricing');
+const { isAvailable } = require('./helpers/inventory');
 const { translator } = require('./helpers/back-office-i18n');
 const { refillPricesUsd, collectionCovers } = require('./helpers/catalog');
 const { thumbOf } = require('./helpers/images');
@@ -159,6 +160,7 @@ app.use((req, res, next) => {
   res.locals.thumb = thumbOf;
   res.locals.icon = icon;
   res.locals.money = formatMoney;
+  res.locals.available = isAvailable;
   next();
 });
 

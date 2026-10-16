@@ -535,3 +535,28 @@ h1, h2, h3, h4, p { margin: 0; }
   .qe-toolbar { flex-wrap: wrap; }
   .qe-toolbar .search { flex-basis: 100%; }
 }
+
+/* ─ Stock quantity fields & delete ───────────────────────────────────── */
+.qty-input { width: 100%; min-width: 0; max-width: 140px; height: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.qty-input.is-saving { border-color: var(--gold); opacity: .7; }
+.qty-input.is-out { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.qty-field { display: block; }
+.qty-field__label { display: none; }
+.inline-form { display: inline; }
+.actions { white-space: nowrap; }
+.actions .inline-form .btn { margin-inline-start: 4px; }
+.list-row__actions { display: inline-flex; align-items: center; gap: 6px; }
+.list-row__actions .qty-input { width: 86px; height: 36px; }
+.danger-card { margin-top: 20px; border-color: rgba(176, 68, 58, .25); }
+.danger-card .hint { margin-top: 0; }
+.qe-qty { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; font-size: .84rem; color: var(--muted); }
+.qe-qty .qty-input { max-width: none; height: 44px; font-size: 1rem; }
+.qe-del { margin-inline-start: auto; }
+@media (max-width: 640px) {
+  .table-cards .qty-cell { grid-column: 1; }
+  .qty-field { display: flex; align-items: center; gap: 10px; }
+  .qty-field__label { display: inline; font-size: .8rem; color: var(--muted); }
+  .qty-input { height: 44px; }
+  .table-cards .actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .actions .inline-form .btn { margin: 0; width: 100%; justify-content: center; }
+}

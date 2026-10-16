@@ -11,19 +11,19 @@
           <span class="card__ph-house"><%= p.brand || 'Jamaludeen' %></span>
         </div>
       <% } %>
-      <% if (!p.in_stock) { %><span class="card__tag"><%= t.out_of_stock %></span>
+      <% if (!available(p)) { %><span class="card__tag"><%= t.out_of_stock %></span>
       <% } else if (p.type === 'local') { %><span class="card__tag card__tag--gold"><%= lang === 'ar' ? 'توقيع جمال الدين' : 'Signature' %></span><% } %>
     </a>
     <button class="wish-btn card__wish btn-wishlist" type="button" data-id="<%= p.id %>" aria-label="<%= lang === 'ar' ? 'المفضلة' : 'Save to wishlist' %>">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>
-    <% if (p.in_stock && p.price && p.type !== 'local') { %>
+    <% if (available(p) && p.price && p.type !== 'local') { %>
       <form action="/cart/add" method="POST" class="card__quick">
         <input type="hidden" name="productId" value="<%= p.id %>"/>
         <input type="hidden" name="qty" value="1"/>
         <button type="submit"><%= lang === 'ar' ? 'أضف إلى السلة' : 'Add to bag' %></button>
       </form>
-    <% } else if (p.in_stock && p.type === 'local') { %>
+    <% } else if (available(p) && p.type === 'local') { %>
       <a href="/shop/item/<%= p.id %>" class="card__quick"><span><%= lang === 'ar' ? 'اختر الحجم' : 'Choose size' %></span></a>
     <% } %>
   </div>

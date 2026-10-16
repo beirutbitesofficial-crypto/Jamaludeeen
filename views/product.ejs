@@ -38,7 +38,7 @@
           <% } else { %>
             <span class="pdp__price is-muted"><%= t.price_not_set %></span>
           <% } %>
-          <span class="stock <%= product.in_stock ? 'is-in' : 'is-out' %>"><i></i><%= product.in_stock ? t.in_stock : t.out_of_stock %></span>
+          <span class="stock <%= available(product) ? 'is-in' : 'is-out' %>"><i></i><%= available(product) ? t.in_stock : t.out_of_stock %></span>
         </div>
 
         <% if (product.description_en || product.description_ar) { %>
@@ -47,7 +47,7 @@
         <div class="pdp__desc"><p><%= ar ? 'عطر توقيع جمال الدين المستوحى من ' + product.name_en + '، يُعبّأ عند الطلب بتركيز غني وثبات يدوم.' : 'A Jamaludeen signature inspired by ' + product.name_en + ' — filled to order with a rich concentration and a lasting trail.' %></p></div>
         <% } %>
 
-        <% if (product.in_stock && product.price) { %>
+        <% if (available(product) && product.price) { %>
         <form action="/cart/add" method="POST" class="pdp__form" id="pdpForm">
           <input type="hidden" name="productId" value="<%= product.id %>"/>
           <% if (isLocal) { %>
@@ -84,7 +84,7 @@
           <button type="submit" form="pdpForm" class="btn btn--gold" tabindex="-1"><%= ar ? 'أضف إلى السلة' : 'Add to bag' %></button>
         </div>
         <% } else { %>
-          <div class="pdp__unavailable"><%= product.in_stock ? t.price_not_set : t.out_of_stock %></div>
+          <div class="pdp__unavailable"><%= available(product) ? t.price_not_set : t.out_of_stock %></div>
           <a class="btn btn--line" href="https://wa.me/<%= waNumber %>?text=<%= encodeURIComponent('Hello Jamaludeen, I am interested in ' + product.name_en) %>" target="_blank" rel="noopener"><%= ar ? 'اسألنا على واتساب' : 'Ask us on WhatsApp' %></a>
         <% } %>
 

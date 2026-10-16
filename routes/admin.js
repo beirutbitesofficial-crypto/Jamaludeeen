@@ -59,6 +59,36 @@ function removeManagedFile(urlPath) {
 const back = (req, fallback) => req.get('Referrer') || fallback;
 const pageOf = v => Math.max(1, parseInt(v, 10) || 1);
 
+// Set an item's stock count from the admin. A number turns stock tracking on (the Store
+// System and the website then deduct sales from it); an empty value turns tracking off.
+// The difference is logged as a manual adjustment so the Store System history stays right.
+function setQuantity(id, raw) {
+  const p = db.prepare('SELECT id, stock_qty, track_stock FROM products WHERE id = ?').get(id);
+  if (!p) return null;
+  if (raw === '' || raw == null) {
+    db.prepare('UPDATE products SET track_stock = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+    return { track_stock: 0, stock_qty: p.stock_qty };
+  }
+  const qty = Math.floor(Number(raw));
+  if (!Number.isFinite(qty) || qty < 0) throw new Error('invalid_quantity');
+  const diff = qty - (p.track_stock ? Number(p.stock_qty) || 0 : 0);
+  db.transaction(() => {
+    db.prepare('UPDATE products SET stock_qty = ?, track_stock = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(qty, id);
+    if (diff) db.prepare(`INSERT INTO inventory_movements (product_id, movement_type, quantity, reference_type, note, staff_name)
+                          VALUES (?, 'adjustment', ?, 'admin', 'Quantity set in admin', 'Admin')`).run(id, diff);
+  })();
+  return { track_stock: 1, stock_qty: qty };
+}
+
+// Delete a product for good. Orders and sales keep their own copy of the name and price.
+function deleteProduct(id) {
+  const p = db.prepare('SELECT id, type, brand, category, image_path FROM products WHERE id = ?').get(id);
+  if (!p) return null;
+  db.prepare('DELETE FROM products WHERE id = ?').run(id);
+  removeManagedFile(p.image_path);
+  return p;
+}
+
 // ── Login ───────────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.session.isAdmin) return res.redirect('/admin/dashboard');
@@ -203,6 +233,10 @@ router.post('/products/:id(\\d+)', adminAuth, (req, res) => {
   if (product.type === 'brand') {
     const price = parseFloat(req.body.price);
     cols.price = Number.isFinite(price) && price >= 0 ? price : null;
+    if ('stock_qty' in req.body) {
+      try { setQuantity(id, String(req.body.stock_qty).trim()); }
+      catch (_) { req.flash('error', tr(req)('invalid_quantity')); return res.redirect(`/admin/products/${id}/edit`); }
+    }
   } else {
     cols.brand = String(req.body.house || '').trim() || product.brand;
     if (SECTION_KEYS.includes(req.body.section) && req.body.section !== 'brands') cols.category = req.body.section;
@@ -234,6 +268,15 @@ router.post('/products/:id(\\d+)/delete-image', adminAuth, (req, res) => {
   }
   req.flash('success', tr(req)('photo_removed'));
   res.redirect(`/admin/products/${id}/edit`);
+});
+
+router.post('/products/:id(\\d+)/delete', adminAuth, (req, res) => {
+  const p = deleteProduct(parseInt(req.params.id, 10));
+  if (!p) return res.status(404).render('404', { title: '404' });
+  req.flash('success', tr(req)('product_deleted'));
+  const to = req.body.return_to && String(req.body.return_to).startsWith('/admin/') ? req.body.return_to
+    : p.type === 'brand' ? `/admin/products?section=brands&brand=${encodeURIComponent(p.brand)}` : `/admin/products?section=${p.category}`;
+  res.redirect(to);
 });
 
 // ── Prices ──────────────────────────────────────────────────────────────────
@@ -317,7 +360,7 @@ router.get('/quick', adminAuth, (req, res) => {
   if (missing === 'price' && section === 'brands') where.push('(price IS NULL OR price = 0)');
   const ws = where.join(' AND ');
   const total = db.prepare(`SELECT COUNT(*) AS c FROM products WHERE ${ws}`).get(...params).c;
-  const products = db.prepare(`SELECT id, name_en, name_ar, brand, type, price, image_path, in_stock FROM products WHERE ${ws} ORDER BY brand, name_en LIMIT ? OFFSET ?`)
+  const products = db.prepare(`SELECT id, name_en, name_ar, brand, type, price, image_path, in_stock, stock_qty, track_stock FROM products WHERE ${ws} ORDER BY brand, name_en LIMIT ? OFFSET ?`)
     .all(...params, PAGE, (page - 1) * PAGE);
   const settings = getSettings();
   res.render('admin/quick', {
@@ -352,6 +395,20 @@ router.post('/api/products/:id(\\d+)/stock', adminAuth, (req, res) => {
   const inStock = req.body.in_stock ? 1 : 0;
   db.prepare('UPDATE products SET in_stock = ?, updated_at = ? WHERE id = ?').run(inStock, new Date().toISOString(), product.id);
   res.json({ ok: true, in_stock: inStock });
+});
+
+router.post('/api/products/:id(\\d+)/quantity', adminAuth, (req, res) => {
+  try {
+    const r = setQuantity(parseInt(req.params.id, 10), req.body.quantity === '' || req.body.quantity == null ? '' : req.body.quantity);
+    if (!r) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true, ...r });
+  } catch (_) { res.status(400).json({ error: tr(req)('invalid_quantity') }); }
+});
+
+router.post('/api/products/:id(\\d+)/delete', adminAuth, (req, res) => {
+  const p = deleteProduct(parseInt(req.params.id, 10));
+  if (!p) return res.status(404).json({ error: 'not_found' });
+  res.json({ ok: true });
 });
 
 router.post('/api/products/:id(\\d+)/image', adminAuth, (req, res) => {

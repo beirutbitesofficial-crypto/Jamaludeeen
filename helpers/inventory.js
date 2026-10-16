@@ -41,4 +41,10 @@ function stockLabel(product) {
   return product && product.type === 'local' ? 'ml' : 'units';
 }
 
-module.exports = { normalizeSize, salePrice, saleUnitCost, stockDeduction, stockLabel };
+// Shown as available on the website: switched on, and not a tracked item that has run out.
+function isAvailable(product) {
+  if (!product || !product.in_stock) return false;
+  return !(product.track_stock && num(product.stock_qty) <= 0);
+}
+
+module.exports = { normalizeSize, salePrice, saleUnitCost, stockDeduction, stockLabel, isAvailable };
