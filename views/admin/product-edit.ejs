@@ -38,6 +38,10 @@
         <span class="input-affix"><input type="number" name="price" min="0" step="1000" value="<%= product.price != null ? product.price : '' %>" dir="ltr"/><span>LBP</span></span>
         <small><%= a('price_empty_hint') %><% if (product.price) { %> · ≈ <span dir="ltr"><%= money(product.price / usdRate, 'USD') %></span><% } %></small>
       </label>
+      <label class="field"><span><%= a('quantity') %></span>
+        <input type="number" name="stock_qty" inputmode="numeric" min="0" step="1" value="<%= product.track_stock ? product.stock_qty : '' %>" placeholder="<%= a('not_counted') %>" dir="ltr"/>
+        <small><%= a('qty_hint') %></small>
+      </label>
       <% } else { %>
       <div class="field--row">
         <label class="field"><span><%= a('section') %></span>
@@ -58,4 +62,14 @@
     </div>
   </form>
 </div>
+
+<section class="card danger-card">
+  <div class="card__head"><h2><%- icon('trash') %> <%= a('danger_zone') %></h2></div>
+  <div class="card__body">
+    <p class="hint"><%= a('confirm_delete_product') %></p>
+    <form action="/admin/products/<%= product.id %>/delete" method="POST" data-confirm="<%= a('confirm_delete_product') %> — <%= product.name_en %>">
+      <button class="btn btn--ghost btn--danger" type="submit"><%- icon('trash') %><%= a('delete_product') %></button>
+    </form>
+  </div>
+</section>
 <%- include('../partials/admin-footer') %>

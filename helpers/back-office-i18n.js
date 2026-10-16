@@ -403,6 +403,14 @@ const STRINGS = {
   session_expired: ['Session expired — log in again.', 'انتهت الجلسة — سجّل الدخول من جديد.'],
   photo_too_big: ['Photo is too large (max 5 MB).', 'الصورة كبيرة جداً (الحد 5 ميغابايت).'],
   tap_to_change_photo: ['Tap to change the photo', 'اضغط لتغيير الصورة'],
+  // Delete & quantity
+  qty_hint: ['How many pieces you have. Sales deduct from it; at 0 the item shows "Out of stock". Leave empty to stop counting.', 'كم قطعة عندك. المبيعات تُخصم منها، وعند 0 يظهر المنتج "غير متوفر". اتركها فارغة لإيقاف العدّ.'],
+  not_counted: ['Not counted', 'غير محسوب'],
+  invalid_quantity: ['Quantity must be a whole number, 0 or more.', 'الكمية يجب أن تكون رقماً صحيحاً، 0 أو أكثر.'],
+  delete_product: ['Delete product', 'حذف المنتج'],
+  product_deleted: ['Product deleted.', 'تم حذف المنتج.'],
+  confirm_delete_product: ['Delete this product for good? Past orders and sales keep their record.', 'حذف هذا المنتج نهائياً؟ الطلبات والمبيعات السابقة تبقى محفوظة.'],
+  danger_zone: ['Delete', 'الحذف'],
 };
 
 function translator(lang) {

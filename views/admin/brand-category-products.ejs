@@ -15,10 +15,17 @@
         <% if (p.image_path) { %><img class="thumb" src="<%= p.image_path %>" alt="" loading="lazy"/><% } else { %><span class="thumb thumb--empty">J</span><% } %>
         <span><strong><%= p.name_en %></strong><small dir="ltr"><%= p.price ? money(p.price, 'LBP') : a('not_set') %></small></span>
       </a>
-      <form action="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products/remove" method="POST">
-        <input type="hidden" name="product_id" value="<%= p.id %>"/>
-        <button class="btn btn--sm btn--ghost" type="submit" title="<%= a('remove') %>"><%- icon('x') %></button>
-      </form>
+      <span class="list-row__actions">
+        <input type="number" inputmode="numeric" min="0" step="1" class="input qty-input <%= p.track_stock && p.stock_qty <= 0 ? 'is-out' : '' %>" value="<%= p.track_stock ? p.stock_qty : '' %>" placeholder="—" title="<%= a('qty_hint') %>" data-qty-id="<%= p.id %>" dir="ltr" aria-label="<%= a('quantity') %> · <%= p.name_en %>"/>
+        <form action="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products/remove" method="POST">
+          <input type="hidden" name="product_id" value="<%= p.id %>"/>
+          <button class="btn btn--sm btn--ghost" type="submit" title="<%= a('remove') %>"><%- icon('x') %></button>
+        </form>
+        <form action="/admin/products/<%= p.id %>/delete" method="POST" data-confirm="<%= a('confirm_delete_product') %> — <%= p.name_en %>">
+          <input type="hidden" name="return_to" value="/admin/brands/<%= brand.id %>/categories/<%= category.id %>/products"/>
+          <button class="btn btn--sm btn--ghost btn--danger" type="submit" title="<%= a('delete_product') %>"><%- icon('trash') %></button>
+        </form>
+      </span>
     </div>
     <% }) %>
   </section>

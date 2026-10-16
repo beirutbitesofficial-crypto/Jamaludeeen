@@ -66,10 +66,18 @@
         <label class="input-affix qe-usd"><span>$</span><input type="number" inputmode="decimal" step="0.01" min="0" value="<%= usd(p.price) %>" placeholder="0" data-qe-usd dir="ltr" aria-label="<%= a('price') %> USD"/></label>
         <label class="input-affix qe-lbp"><input type="number" inputmode="numeric" step="1000" min="0" value="<%= p.price != null ? p.price : '' %>" placeholder="<%= a('not_set') %>" data-qe-lbp dir="ltr" aria-label="<%= a('price') %> LBP"/><span>LBP</span></label>
       </div>
+      <label class="qe-qty"><span><%= a('quantity') %></span>
+        <input type="number" inputmode="numeric" min="0" step="1" class="input qty-input <%= p.track_stock && p.stock_qty <= 0 ? 'is-out' : '' %>" value="<%= p.track_stock ? p.stock_qty : '' %>" placeholder="<%= a('not_counted') %>" data-qty-id="<%= p.id %>" dir="ltr"/></label>
       <% } %>
       <div class="qe-foot">
         <label class="qe-switch"><input type="checkbox" data-qe-stock <%= p.in_stock ? 'checked' : '' %>/><span class="qe-switch__track"></span><span class="qe-switch__label"><%= a('available') %></span></label>
         <span class="qe-status" aria-live="polite"></span>
+        <% if (p.type === 'brand') { %>
+        <form action="/admin/products/<%= p.id %>/delete" method="POST" data-confirm="<%= a('confirm_delete_product') %> — <%= p.name_en %>">
+          <input type="hidden" name="return_to" value="/admin/quick?<%= qs({}) %>"/>
+          <button class="btn btn--sm btn--ghost btn--danger qe-del" type="submit" title="<%= a('delete_product') %>" aria-label="<%= a('delete_product') %> · <%= p.name_en %>"><%- icon('trash') %></button>
+        </form>
+        <% } %>
       </div>
     </div>
   </article>

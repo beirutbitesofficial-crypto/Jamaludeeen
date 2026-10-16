@@ -44,9 +44,9 @@
 <section class="card">
   <div class="table-wrap">
     <table class="table table-cards">
-      <thead><tr><th><%= a('product') %></th><th><%= isBrand ? a('brand') : a('original_house') %></th><th><%= a('price') %></th><th><%= a('status') %></th><th></th></tr></thead>
+      <thead><tr><th><%= a('product') %></th><th><%= isBrand ? a('brand') : a('original_house') %></th><th><%= a('price') %></th><% if (isBrand) { %><th style="width:120px"><%= a('quantity') %></th><% } %><th><%= a('status') %></th><th></th></tr></thead>
       <tbody>
-        <% if (!products.length) { %><tr><td colspan="5" class="empty"><%= a('no_results') %></td></tr><% } %>
+        <% if (!products.length) { %><tr><td colspan="<%= isBrand ? 6 : 5 %>" class="empty"><%= a('no_results') %></td></tr><% } %>
         <% products.forEach(p => { %>
         <tr>
           <td>
@@ -61,11 +61,22 @@
             <% } else if (p.price) { %><%= money(p.price, 'LBP') %>
             <% } else { %><span class="muted"><%= a('not_set') %></span><% } %>
           </td>
+          <% if (isBrand) { %>
+          <td class="qty-cell"><label class="qty-field"><span class="qty-field__label"><%= a('quantity') %></span>
+            <input type="number" inputmode="numeric" min="0" step="1" class="input qty-input <%= p.track_stock && p.stock_qty <= 0 ? 'is-out' : '' %>" value="<%= p.track_stock ? p.stock_qty : '' %>" placeholder="—" title="<%= a('qty_hint') %>" data-qty-id="<%= p.id %>" dir="ltr" aria-label="<%= a('quantity') %> · <%= p.name_en %>"/></label></td>
+          <% } %>
           <td>
-            <span class="pill <%= p.in_stock ? 'pill--green' : 'pill--red' %>"><%= p.in_stock ? a('available') : a('unavailable') %></span>
+            <% const avail = available(p); %>
+            <span class="pill <%= avail ? 'pill--green' : 'pill--red' %>"><%= avail ? a('available') : (p.in_stock ? a('out_of_stock') : a('unavailable')) %></span>
             <% if (p.featured) { %><span class="pill pill--gold pill--plain"><%= a('featured') %></span><% } %>
           </td>
-          <td class="actions"><a href="/admin/products/<%= p.id %>/edit" class="btn btn--sm"><%- icon('edit') %><%= a('edit') %></a></td>
+          <td class="actions">
+            <a href="/admin/products/<%= p.id %>/edit" class="btn btn--sm"><%- icon('edit') %><%= a('edit') %></a>
+            <form action="/admin/products/<%= p.id %>/delete" method="POST" data-confirm="<%= a('confirm_delete_product') %> — <%= p.name_en %>" class="inline-form">
+              <input type="hidden" name="return_to" value="/admin/products?<%= qs({}) %>"/>
+              <button class="btn btn--sm btn--ghost btn--danger" type="submit" title="<%= a('delete_product') %>" aria-label="<%= a('delete_product') %> · <%= p.name_en %>"><%- icon('trash') %></button>
+            </form>
+          </td>
         </tr>
         <% }) %>
       </tbody>

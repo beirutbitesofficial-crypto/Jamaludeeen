@@ -28,6 +28,34 @@
   // Auto-submit file inputs: <input type="file" data-autosubmit>
   $$('input[type=file][data-autosubmit]').forEach(i => i.addEventListener('change', () => i.files.length && i.form.submit()));
 
+  // Stock quantity fields that save on their own: <input data-qty-id="123">
+  $$('input[data-qty-id]').forEach(input => {
+    let saved = input.value;
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+    input.addEventListener('change', async () => {
+      if (input.value === saved) return;
+      input.classList.add('is-saving');
+      try {
+        const res = await fetch('/admin/api/products/' + input.dataset.qtyId + '/quantity', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ quantity: input.value.trim() }),
+        });
+        const type = res.headers.get('content-type') || '';
+        if (res.redirected || !type.includes('json')) throw new Error(I18N.expired || 'Session expired');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error');
+        saved = input.value = data.track_stock ? String(data.stock_qty) : '';
+        input.classList.toggle('is-out', data.track_stock && Number(data.stock_qty) <= 0);
+        toast('✓ ' + (I18N.qtySaved || 'Saved'));
+      } catch (err) {
+        input.value = saved;
+        toast(err.message || 'Error');
+        $('#toast')?.classList.add('error'); setTimeout(() => $('#toast')?.classList.remove('error'), 4000);
+      } finally { input.classList.remove('is-saving'); }
+    });
+  });
+
   // Live new-order alerts
   const I18N = window.ADMIN_I18N || {};
   const KEY = 'jm_lastOrderId';
@@ -49,7 +77,7 @@
     const t = $('#toast'); if (!t) return;
     t.textContent = msg; t.classList.add('show'); t.style.pointerEvents = href ? 'auto' : 'none'; t.style.cursor = href ? 'pointer' : '';
     t.onclick = href ? () => { location.href = href; } : null;
-    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 9000);
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), href ? 9000 : 2600);
   }
   function check() {
     fetch('/admin/api/orders/stats', { headers: { accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
