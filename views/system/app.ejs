@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/backoffice.css?v=20261001-2"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261020-1"/>
 </head>
 <body class="sys">
 <%
@@ -202,7 +202,7 @@
       <!-- Customers -->
       <section class="sys-tab" id="tab-customers">
         <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('customers') %></h1></div></div>
-        <div class="grid grid--side" style="grid-template-columns:minmax(0,1fr) 340px">
+        <div class="grid grid--side grid--side-sm">
           <section class="card">
             <div class="toolbar" style="margin:0;padding:14px 16px;border:0;border-bottom:1px solid var(--line);border-radius:0"><label class="search toolbar__grow"><%- icon('search') %><input id="customerSearch" type="search" placeholder="<%= a('search') %>…"/></label></div>
             <div class="table-wrap"><table class="table"><thead><tr><th><%= a('name') %></th><th><%= a('phone') %></th><th><%= a('visits') %></th><th><%= a('spent') %></th></tr></thead><tbody id="customerRows"></tbody></table></div>
@@ -225,7 +225,7 @@
       <section class="sys-tab" id="tab-purchases">
         <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('purchases') %></h1><p><%= a('purchases_intro') %></p></div></div>
         <div class="note" style="margin-bottom:18px"><%- icon('alert') %><span><%= a('purchases_hint') %></span></div>
-        <div class="grid grid--side" style="grid-template-columns:minmax(0,1fr) 340px">
+        <div class="grid grid--side grid--side-sm">
           <section class="card">
             <div class="card__head"><h2><%- icon('truck') %> <%= a('receive_stock') %></h2></div>
             <div class="card__body form">
@@ -256,7 +256,7 @@
       <!-- Expenses -->
       <section class="sys-tab" id="tab-expenses">
         <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('expenses') %></h1><p><%= a('expenses_intro') %></p></div></div>
-        <div class="grid grid--side" style="grid-template-columns:minmax(0,1fr) 340px">
+        <div class="grid grid--side grid--side-sm">
           <section class="card"><div id="expenseList"></div></section>
           <form class="card" id="expenseForm" style="align-self:start">
             <div class="card__head"><h2><%= a('add_expense') %></h2></div>
@@ -300,7 +300,7 @@
       <!-- Team -->
       <section class="sys-tab" id="tab-team">
         <div class="bo-head"><div><p class="bo-kicker"><%= a('store_system') %></p><h1><%= a('team') %></h1><p><%= a('team_intro') %></p></div></div>
-        <div class="grid grid--side" style="grid-template-columns:minmax(0,1fr) 340px">
+        <div class="grid grid--side grid--side-sm">
           <section class="card"><div class="card__head"><h2><%= a('users') %></h2></div><div id="userList"></div></section>
           <form class="card" id="userForm" style="align-self:start">
             <div class="card__head"><h2><%= a('add_user') %></h2></div>
