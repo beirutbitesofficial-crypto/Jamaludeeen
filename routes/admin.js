@@ -8,7 +8,8 @@ const db = require('../database/store-system');
 const { updateOrderStatus, ORDER_STATUSES } = require('../helpers/orders');
 const adminAuth = require('../middleware/adminAuth');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
-const { uploadsDir: persistentUploadsDir } = require('../database/runtime-paths');
+const { uploadsDir: persistentUploadsDir, backupDir } = require('../database/runtime-paths');
+const { backupNow } = require('../database/backup');
 const { translator } = require('../helpers/back-office-i18n');
 const { SECTION_KEYS, refillPricesUsd, sectionWhere, sectionCounts, brandList, collectionCovers } = require('../helpers/catalog');
 const { exchangeRate } = require('../helpers/pricing');
@@ -488,6 +489,14 @@ router.get('/api/orders/stats', adminAuth, (req, res) => {
 });
 
 // ── Settings ────────────────────────────────────────────────────────────────
+// Owner's own copy of the database (products, prices, stock, sales, barcodes).
+router.get('/backup/download', adminAuth, async (req, res, next) => {
+  try {
+    const file = await backupNow(db, backupDir);
+    res.download(file, 'jamaludeen-' + path.basename(file));
+  } catch (e) { next(e); }
+});
+
 router.get('/settings', adminAuth, (req, res) => {
   const settings = getSettings();
   res.render('admin/settings', { title: tr(req)('settings'), settings, rate: exchangeRate(settings) });

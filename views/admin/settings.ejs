@@ -35,5 +35,13 @@
       <button class="btn btn--dark btn--block" type="submit"><%= a('change_password') %></button>
     </div>
   </form>
+
+  <section class="card" style="align-self:start">
+    <div class="card__head"><h2><%- icon('box') %> <%= a('backup_title') %></h2></div>
+    <div class="card__body form">
+      <p class="hint" style="margin-top:0"><%= a('backup_hint') %></p>
+      <a class="btn btn--dark btn--block" href="/admin/backup/download"><%- icon('download') %><%= a('backup_download') %></a>
+    </div>
+  </section>
 </div>
 <%- include('../partials/admin-footer') %>

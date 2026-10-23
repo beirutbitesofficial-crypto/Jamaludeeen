@@ -25,6 +25,8 @@ Optional store variables remain documented in `.env.example`.
 
 Do not place `DATA_DIR`, `BACKUP_DIR`, or `UPLOADS_DIR` inside a deployment/release directory that Hostinger replaces during redeploys.
 
+Safety net: in production, any of these that resolves inside the app folder (e.g. `DATA_DIR=./data`) is moved automatically to `~/jamaludeen-data` (override with `PERSISTENT_ROOT`; opt out with `ALLOW_DATA_IN_APP=1`). On the first boot there, whatever the old in-app folder still holds is copied over. Owners can also download a database copy any time from Admin → Settings → Backup.
+
 ## Data safety
 
 - Main DB: `DATA_DIR/store.db`
