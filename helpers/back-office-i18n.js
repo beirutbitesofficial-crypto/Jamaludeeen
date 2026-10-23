@@ -276,6 +276,7 @@ const STRINGS = {
   sale_note: ['Sale note', 'ملاحظة البيع'],
   usd_approx: ['In USD', 'بالدولار'],
   complete_sale: ['Complete sale', 'إتمام البيع'],
+  install_app: ['Install app', 'ثبّت التطبيق'],
   sale_completed: ['Sale completed', 'تم البيع'],
   choose_size: ['Choose size', 'اختر الحجم'],
   sizes_hint: ['Signature refills come in 50 ml and 100 ml.', 'عطور التعبئة متوفرة بحجم 50 مل و100 مل.'],
