@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex"/>
   <meta name="theme-color" content="#0f0e0c"/>
+  <link rel="manifest" href="/system.webmanifest"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="/icons/system-192.png"/>
   <title><%= title %> · JAMALUDEEN</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/backoffice.css?v=20261020-1"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261023-1"/>
 </head>
 <body class="sys">
 <%
@@ -65,6 +68,7 @@
       <button class="bo-burger" id="boBurger" type="button" aria-label="<%= a('menu') %>"><%- icon('menu') %></button>
       <div class="bo-top__title" id="topTitle"><%= a('store_system') %></div>
       <div class="bo-top__actions">
+        <button class="btn btn--sm install-btn" id="installApp" type="button" hidden title="<%= a('install_app') %>"><%- icon('download') %><span><%= a('install_app') %></span></button>
         <span id="shiftBadge"></span>
         <span class="pill pill--plain num rate-pill" dir="ltr" title="<%= a('exchange_rate') %>">$1 = <span id="rateLabel"><%= Number(systemRate).toLocaleString('en-US') %></span></span>
         <form action="/set-lang" method="POST"><button class="btn btn--sm lang-btn" name="lang" value="<%= a.lang === 'ar' ? 'en' : 'ar' %>" type="submit"><%- icon('globe') %><%= a('language') %></button></form>
@@ -389,5 +393,16 @@
   T: dict,
 }).replace(/</g, '\\u003c') %>;</script>
 <script src="/js/system.js?v=20261001-2"></script>
+<script>
+  // Desktop app: register the worker, then offer an "Install app" button when the browser allows it.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/system-sw.js', { scope: '/system' }).catch(() => {});
+  (function () {
+    const btn = document.getElementById('installApp');
+    let deferred = null;
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.hidden = false; });
+    btn.addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; btn.hidden = true; });
+    window.addEventListener('appinstalled', () => { btn.hidden = true; });
+  })();
+</script>
 </body>
 </html>

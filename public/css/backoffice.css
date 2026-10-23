@@ -579,3 +579,13 @@ h1, h2, h3, h4, p { margin: 0; }
   .form input, .form select, .form textarea { font-size: 16px; }
   .danger-card .btn { width: 100%; justify-content: center; }
 }
+
+/* POS cart on desktop: on short screens (laptops) the whole cart scrolls and
+   "Complete sale" stays pinned at the bottom instead of being cut off. */
+@media (min-width: 981px) {
+  .pos__cart { overflow-y: auto; overscroll-behavior: contain; }
+  .cart-lines { flex: none; max-height: 34vh; }
+  .cart-form { max-height: none; overflow: visible; }
+  .cart-pay { position: sticky; bottom: 0; z-index: 2; background: var(--card); box-shadow: 0 -8px 20px -12px rgba(0,0,0,.2); }
+}
+@media (max-width: 640px) { .install-btn span { display: none; } }
