@@ -589,3 +589,11 @@ h1, h2, h3, h4, p { margin: 0; }
   .cart-pay { position: sticky; bottom: 0; z-index: 2; background: var(--card); box-shadow: 0 -8px 20px -12px rgba(0,0,0,.2); }
 }
 @media (max-width: 640px) { .install-btn span { display: none; } }
+
+/* POS barcode scanning */
+.pos__search { display: flex; gap: 10px; }
+.pos__search .search { flex: 1; min-width: 0; }
+.pos__scan { height: 48px; border-radius: 12px; flex-shrink: 0; }
+.scan-view { margin-top: 12px; border-radius: 12px; overflow: hidden; background: #000; min-height: 240px; }
+.scan-view video { width: 100% !important; display: block; }
+@media (max-width: 640px) { .pos__scan span { display: none; } .pos__scan { width: 48px; padding: 0; justify-content: center; } }

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@400;500;600&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/css/backoffice.css?v=20261023-1"/>
+  <link rel="stylesheet" href="/css/backoffice.css?v=20261023-2"/>
 </head>
 <body class="sys">
 <%
@@ -115,7 +115,8 @@
         <div class="pos">
           <div class="pos__catalog">
             <div class="pos__search">
-              <label class="search"><%- icon('search') %><input id="posSearch" type="search" placeholder="<%= a('scan_hint') %>" autocomplete="off"/></label>
+              <label class="search"><%- icon('search') %><input id="posSearch" type="search" placeholder="<%= a('scan_hint') %>" autocomplete="off" enterkeyhint="search"/></label>
+              <button class="btn pos__scan" id="scanCamera" type="button" title="<%= a('scan_camera') %>" aria-label="<%= a('scan_camera') %>"><%- icon('barcode') %><span><%= a('scan_camera') %></span></button>
             </div>
             <%- sectionTabs('pos') %>
             <div id="posProducts" class="pos-grid"></div>
@@ -380,6 +381,22 @@
     </div>
   </div>
 </div>
+<div class="modal" id="scanModal">
+  <div class="modal__box">
+    <div class="modal__head"><h3><%= a('scan_camera') %></h3><button class="modal__close" data-close><%- icon('x') %></button></div>
+    <div class="modal__body"><p class="hint"><%= a('scan_point') %></p><div id="scanView" class="scan-view"></div></div>
+  </div>
+</div>
+<div class="modal" id="linkModal">
+  <div class="modal__box">
+    <div class="modal__head"><h3><%= a('scan_link_title') %> · <span class="num" dir="ltr" id="linkCode"></span></h3><button class="modal__close" data-close><%- icon('x') %></button></div>
+    <div class="modal__body">
+      <p class="hint"><%= a('scan_link_hint') %></p>
+      <label class="search" style="margin:12px 0"><%- icon('search') %><input id="linkSearch" type="search" placeholder="<%= a('search_products') %>" autocomplete="off"/></label>
+      <div class="mini-results" id="linkResults"></div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="orderModal"><div class="modal__box modal__box--wide"><div class="modal__head"><h3 id="orderTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="orderDetail"></div></div></div>
 <div class="modal" id="saleModal"><div class="modal__box modal__box--wide"><div class="modal__head"><h3 id="saleTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="saleDetail"></div></div></div>
 <div class="modal" id="shiftModal"><div class="modal__box"><div class="modal__head"><h3 id="shiftTitle"></h3><button class="modal__close" data-close><%- icon('x') %></button></div><div class="modal__body" id="shiftModalContent"></div></div></div>
@@ -392,7 +409,7 @@
   lang: a.lang,
   T: dict,
 }).replace(/</g, '\\u003c') %>;</script>
-<script src="/js/system.js?v=20261001-2"></script>
+<script src="/js/system.js?v=20261023-2"></script>
 <script>
   // Desktop app: register the worker, then offer an "Install app" button when the browser allows it.
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/system-sw.js', { scope: '/system' }).catch(() => {});

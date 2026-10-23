@@ -42,7 +42,12 @@
         <input type="number" name="stock_qty" inputmode="numeric" min="0" step="1" value="<%= product.track_stock ? product.stock_qty : '' %>" placeholder="<%= a('not_counted') %>" dir="ltr"/>
         <small><%= a('qty_hint') %></small>
       </label>
-      <% } else { %>
+      <% } %>
+      <label class="field"><span><%= a('barcode') %></span>
+        <input name="barcode" value="<%= product.barcode || '' %>" inputmode="numeric" autocomplete="off" dir="ltr" placeholder="—"/>
+        <small><%= a('barcode_hint') %></small>
+      </label>
+      <% if (!isBrand) { %>
       <div class="field--row">
         <label class="field"><span><%= a('section') %></span>
           <select name="section"><% ['men','women','unisex'].forEach(k => { %><option value="<%= k %>" <%= product.category === k ? 'selected' : '' %>><%= a(k) %></option><% }) %></select>
