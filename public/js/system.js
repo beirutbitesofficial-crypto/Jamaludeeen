@@ -199,11 +199,105 @@
   $('#posSearch')?.addEventListener('keydown', async e => {
     if (e.key !== 'Enter') return;
     e.preventDefault(); clearTimeout(posTimer);
-    posQuery = e.target.value.trim();
-    const list = await loadPos();
-    const exact = list.find(p => p.barcode === posQuery || p.sku === posQuery);
-    if (exact) { addToCart(exact.id); e.target.value = ''; posQuery = ''; }
+    const code = e.target.value.trim();
+    if (!code) return;
+    // A scanner types the code and presses Enter: try it as a barcode first.
+    if (await scanCode(code, /^[0-9A-Za-z-]{4,}$/.test(code) && /\d{4,}/.test(code))) { e.target.value = ''; posQuery = ''; loadPos(); return; }
+    posQuery = code; loadPos();
   });
+
+  // ── Barcode scanning ─────────────────────────────────────────
+  // Returns true when the code was handled (added, or sent to the "new barcode" dialog).
+  async function scanCode(code, offerLink = true) {
+    try {
+      const { product } = await api('/system/api/products/by-code?code=' + encodeURIComponent(code));
+      productCache.set(product.id, product);
+      const before = cart.reduce((n, x) => n + x.quantity, 0);
+      addToCart(product.id);
+      if (cart.reduce((n, x) => n + x.quantity, 0) > before) toast(`✓ ${t('scan_added')}: ${product.name_en}`);
+      return true;
+    } catch (err) {
+      if (err.message !== 'not_found') { toast(err.message, true); return true; }
+      if (!offerLink) return false;
+      if (!isMgr) { toast(`${t('scan_not_found')}: ${code}`, true); return true; }
+      openLink(code);
+      return true;
+    }
+  }
+
+  let linkCode = '', linkTimer;
+  function openLink(code) {
+    linkCode = code;
+    $('#linkCode').textContent = code;
+    $('#linkSearch').value = '';
+    $('#linkResults').innerHTML = '';
+    openModal('linkModal');
+    setTimeout(() => $('#linkSearch').focus(), 50);
+  }
+  $('#linkSearch')?.addEventListener('input', e => {
+    clearTimeout(linkTimer);
+    linkTimer = setTimeout(async () => {
+      const q = e.target.value.trim();
+      if (!q) { $('#linkResults').innerHTML = ''; return; }
+      const d = await api('/system/api/products?' + new URLSearchParams({ q, limit: 20 }));
+      d.products.forEach(p => productCache.set(p.id, p));
+      $('#linkResults').innerHTML = d.products.map(p => `<button type="button" data-link="${p.id}"><span><b>${esc(p.name_en)}</b><br><small class="muted">${esc(p.brand || '')}${p.barcode ? ' · <span dir="ltr">' + esc(p.barcode) + '</span>' : ''}</small></span>${icon('plus')}</button>`).join('') || empty(t('no_results'));
+    }, 200);
+  });
+  $('#linkResults')?.addEventListener('click', async e => {
+    const b = e.target.closest('[data-link]'); if (!b) return;
+    const id = Number(b.dataset.link);
+    try {
+      await api(`/system/api/products/${id}/barcode`, { method: 'POST', body: { barcode: linkCode } });
+      const p = productCache.get(id); if (p) p.barcode = linkCode;
+      closeModal('linkModal');
+      toast('✓ ' + t('scan_linked'));
+      addToCart(id);
+    } catch (err) { toast(err.message, true); }
+  });
+
+  // USB/Bluetooth scanners type fast and end with Enter. Catch that anywhere on the
+  // POS tab, even when the search box isn't focused.
+  let scanBuf = '', scanLast = 0;
+  document.addEventListener('keydown', e => {
+    if (!$('#tab-pos')?.classList.contains('active') || $$('.modal.open').length) return;
+    const el = document.activeElement;
+    if (el && (el.matches('input, textarea, select') || el.isContentEditable)) return;
+    const now = Date.now();
+    if (now - scanLast > 60) scanBuf = '';
+    scanLast = now;
+    if (e.key === 'Enter') {
+      if (scanBuf.length >= 4) { e.preventDefault(); scanCode(scanBuf); }
+      scanBuf = '';
+    } else if (e.key.length === 1) scanBuf += e.key;
+  });
+
+  // Camera scanning (phones, tablets, laptops with a webcam).
+  let camera = null;
+  async function stopCamera() { if (camera) { try { await camera.stop(); } catch (_) {} try { camera.clear(); } catch (_) {} camera = null; } }
+  // The camera library is big, so it loads only the first time the button is used.
+  const loadScanner = () => window.Html5Qrcode ? Promise.resolve() : new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = '/vendor/html5-qrcode.min.js?v=2.3.8'; s.onload = ok; s.onerror = fail;
+    document.head.appendChild(s);
+  });
+  $('#scanCamera')?.addEventListener('click', async () => {
+    try { await loadScanner(); } catch (_) {}
+    if (!window.Html5Qrcode || !navigator.mediaDevices) return toast(t('scan_no_camera'), true);
+    openModal('scanModal');
+    await stopCamera();
+    camera = new Html5Qrcode('scanView', { verbose: false });
+    let done = false;
+    try {
+      await camera.start({ facingMode: 'environment' }, { fps: 10, qrbox: (w, h) => ({ width: Math.min(w * .9, 340), height: Math.min(h * .5, 160) }) }, async text => {
+        if (done) return; done = true;
+        await stopCamera(); closeModal('scanModal');
+        scanCode(String(text).trim());
+      });
+    } catch (err) { console.warn('camera', err); await stopCamera(); closeModal('scanModal'); toast(t('scan_no_camera'), true); }
+  });
+  $('#scanModal')?.addEventListener('click', e => { if (e.target.id === 'scanModal' || e.target.closest('[data-close]')) stopCamera(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') stopCamera(); });
   bindSections('pos', () => { $('#posSearch').value = ''; posQuery = ''; loadPos(); });
 
   // ── Cart ─────────────────────────────────────────────────────

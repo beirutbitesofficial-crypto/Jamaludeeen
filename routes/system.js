@@ -256,6 +256,31 @@ router.get('/api/catalog', requireSystem, (req, res) => {
   res.json({ counts: sectionCounts(db), brands: brandList(db), refill_usd: refillPricesUsd(s), exchange_rate: rateOf(s) });
 });
 
+// Barcode scan: exact barcode or SKU match across every section.
+router.get('/api/products/by-code', requireSystem, (req, res) => {
+  const code = String(req.query.code || '').trim();
+  if (!code) return res.status(400).json({ error: 'Missing code' });
+  const p = db.prepare(`
+    SELECT id,name_en,name_ar,brand,category,type,price,price_50ml,price_100ml,cost_price,cost_50ml,cost_100ml,sku,barcode,stock_qty,low_stock_threshold,track_stock,in_stock,image_path
+    FROM products WHERE barcode = ? OR sku = ? ORDER BY (barcode = ?) DESC LIMIT 1
+  `).get(code, code, code);
+  if (!p) return res.status(404).json({ error: 'not_found' });
+  const product = withPosPrices(p, settings());
+  if (req.systemUser.role === 'cashier') { delete product.cost_price; delete product.cost_50ml; delete product.cost_100ml; }
+  res.json({ product });
+});
+
+// Link a scanned barcode to a product (from the POS "new barcode" dialog).
+router.post('/api/products/:id/barcode', requireManager, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const barcode = String(req.body.barcode || '').trim();
+  if (!barcode) return res.status(400).json({ error: 'Missing barcode' });
+  if (!db.prepare('SELECT 1 FROM products WHERE id=?').get(id)) return res.status(404).json({ error: 'Product not found' });
+  if (db.prepare('SELECT 1 FROM products WHERE barcode=? AND id!=?').get(barcode, id)) return res.status(400).json({ error: 'SKU or barcode is already used.' });
+  db.prepare('UPDATE products SET barcode=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(barcode, id);
+  res.json({ ok: true });
+});
+
 router.post('/api/products/:id/inventory', requireManager, (req, res) => {
   const id = parseInt(req.params.id,10);
   const p = db.prepare('SELECT * FROM products WHERE id=?').get(id);

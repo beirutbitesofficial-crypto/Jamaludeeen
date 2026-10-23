@@ -241,6 +241,13 @@ router.post('/products/:id(\\d+)', adminAuth, (req, res) => {
     cols.brand = String(req.body.house || '').trim() || product.brand;
     if (SECTION_KEYS.includes(req.body.section) && req.body.section !== 'brands') cols.category = req.body.section;
   }
+  if ('barcode' in req.body) {
+    cols.barcode = String(req.body.barcode || '').trim() || null;
+    if (cols.barcode && db.prepare('SELECT 1 FROM products WHERE barcode = ? AND id != ?').get(cols.barcode, id)) {
+      req.flash('error', tr(req)('barcode_taken'));
+      return res.redirect(`/admin/products/${id}/edit`);
+    }
+  }
   const set = Object.keys(cols).map(k => `${k} = ?`).join(', ');
   db.prepare(`UPDATE products SET ${set} WHERE id = ?`).run(...Object.values(cols), id);
   req.flash('success', tr(req)('product_saved'));

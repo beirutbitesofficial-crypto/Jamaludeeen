@@ -69,7 +69,9 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // The Store System may use the camera (same origin only) to scan barcodes.
+  const camera = req.path.startsWith('/system') ? 'camera=(self)' : 'camera=()';
+  res.setHeader('Permissions-Policy', `${camera}, microphone=(), geolocation=()`);
   if (IS_PRODUCTION) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (req.path.startsWith('/admin') || req.path.startsWith('/system')) {
     res.setHeader('Cache-Control', 'no-store');
