@@ -408,6 +408,19 @@ if (arabicCopyVersion !== ARABIC_COPY_VERSION) {
 }
 
 
+// One-time: the store's dollar rate is 1 USD = 90,000 LBP (website, admin and Store System).
+// Runs once, so a rate changed later from Admin > Settings or the Store System is kept.
+const RATE_90K_VERSION = '2026-10-30-v1';
+if (db.prepare(`SELECT value FROM settings WHERE key='rate_90k_version'`).get()?.value !== RATE_90K_VERSION) {
+  db.transaction(() => {
+    const set = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`);
+    set.run('usd_rate', '90000');
+    set.run('system_exchange_rate', '90000');
+    set.run('rate_90k_version', RATE_90K_VERSION);
+  })();
+  console.log('Exchange rate set to 90,000 LBP per USD.');
+}
+
 if (process.env.DISABLE_AUTO_BACKUP !== '1') {
   startBackupSchedule(db, backupDir);
 }
