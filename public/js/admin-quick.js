@@ -3,7 +3,7 @@
 (function () {
   const list = document.getElementById('quickList');
   if (!list) return;
-  const rate = Number(list.dataset.rate) || 89500;
+  const rate = Number(list.dataset.rate) || 90000;
   const t = JSON.parse(list.dataset.i18n || '{}');
 
   function status(item, text, kind) {

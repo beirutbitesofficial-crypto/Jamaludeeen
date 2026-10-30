@@ -2,7 +2,7 @@
 (function () {
   const KEY = 'jm_currency';
   const btn = document.getElementById('currencyToggle');
-  const rate = btn ? parseFloat(btn.dataset.rate) || 89500 : 89500;
+  const rate = btn ? parseFloat(btn.dataset.rate) || 90000 : 90000;
 
   function get() { try { return localStorage.getItem(KEY) === 'USD' ? 'USD' : 'LBP'; } catch (_) { return 'LBP'; } }
   function set(c) { try { localStorage.setItem(KEY, c); } catch (_) {} }

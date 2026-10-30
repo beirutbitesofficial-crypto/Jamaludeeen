@@ -1,8 +1,8 @@
 (() => {
-  const SYS = window.SYS || { user: { role: 'cashier' }, rate: 89500, refill: { 50: 7, 100: 13 }, lang: 'en', T: {} };
+  const SYS = window.SYS || { user: { role: 'cashier' }, rate: 90000, refill: { 50: 7, 100: 13 }, lang: 'en', T: {} };
   const t = k => SYS.T[k] || k;
   const isMgr = ['owner', 'manager'].includes(SYS.user.role);
-  let rate = Number(SYS.rate || 89500);
+  let rate = Number(SYS.rate || 90000);
   let cart = [];
   let payMethod = 'cash_lbp';
   let purchaseCart = [];

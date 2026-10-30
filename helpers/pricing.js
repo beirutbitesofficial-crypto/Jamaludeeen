@@ -2,7 +2,7 @@
 // A cart is shown in USD only when every item is a local refill; otherwise every
 // line is converted to LBP so the subtotal never adds dollars to pounds.
 
-const DEFAULT_RATE = 89500;
+const DEFAULT_RATE = 90000;
 const STORE_WHATSAPP = '96176927146';
 
 function exchangeRate(settings = {}) {

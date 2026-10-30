@@ -74,7 +74,7 @@ db.exec(`
     discount REAL NOT NULL DEFAULT 0,
     total REAL NOT NULL DEFAULT 0,
     payment_method TEXT NOT NULL DEFAULT 'cash_lbp',
-    exchange_rate REAL NOT NULL DEFAULT 89500,
+    exchange_rate REAL NOT NULL DEFAULT 90000,
     tendered_lbp REAL NOT NULL DEFAULT 0,
     tendered_usd REAL NOT NULL DEFAULT 0,
     change_lbp REAL NOT NULL DEFAULT 0,
@@ -122,7 +122,7 @@ db.exec(`
     description TEXT NOT NULL,
     amount_lbp REAL NOT NULL DEFAULT 0,
     amount_usd REAL NOT NULL DEFAULT 0,
-    exchange_rate REAL NOT NULL DEFAULT 89500,
+    exchange_rate REAL NOT NULL DEFAULT 90000,
     shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL,
     staff_name TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -193,7 +193,7 @@ db.exec("UPDATE orders SET currency = CASE WHEN total < 5000 THEN 'USD' ELSE 'LB
 
 const setSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 [
-  ['system_exchange_rate', '89500'],
+  ['system_exchange_rate', '90000'],
   ['system_store_name', 'JAMALUDEEN'],
   ['system_receipt_footer', 'Thank you for shopping with JAMALUDEEN'],
 ].forEach(([key, value]) => setSetting.run(key, value));
