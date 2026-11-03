@@ -47,4 +47,14 @@ function isAvailable(product) {
   return !(product.track_stock && num(product.stock_qty) <= 0);
 }
 
-module.exports = { normalizeSize, salePrice, saleUnitCost, stockDeduction, stockLabel, isAvailable };
+// Counted products at or below their alert level (still for sale while above 0).
+function lowStockItems(db) {
+  return db.prepare(`
+    SELECT id, name_en, brand, type, stock_qty, low_stock_threshold
+    FROM products
+    WHERE track_stock = 1 AND stock_qty <= low_stock_threshold
+    ORDER BY stock_qty, name_en
+  `).all().map(p => ({ id: p.id, name: p.name_en, brand: p.brand, qty: Number(p.stock_qty), alert_at: Number(p.low_stock_threshold), unit: stockLabel(p) }));
+}
+
+module.exports = { normalizeSize, salePrice, saleUnitCost, stockDeduction, stockLabel, isAvailable, lowStockItems };

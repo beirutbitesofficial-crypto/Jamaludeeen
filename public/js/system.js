@@ -206,6 +206,28 @@
     posQuery = code; loadPos();
   });
 
+
+  // ── Low stock alerts ── once per product, again only after it was restocked.
+  const LOW_KEY = 'jm_low_seen_pos';
+  function lowAlerts(items) {
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem(LOW_KEY) || '{}'); } catch (_) {}
+    const now = {}, fresh = [];
+    (items || []).forEach(p => { now[p.id] = 1; if (!seen[p.id]) fresh.push(p); });
+    try { localStorage.setItem(LOW_KEY, JSON.stringify(now)); } catch (_) {}
+    if (!fresh.length) return;
+    const line = p => `${p.name} — ${p.qty <= 0 ? t('low_out') : p.qty + ' ' + (p.unit === 'ml' ? 'ml' : t('low_left'))}`;
+    const text = fresh.slice(0, 3).map(line).join(' · ') + (fresh.length > 3 ? ` +${fresh.length - 3}` : '');
+    toast('⚠ ' + t('low_stock_alert') + ': ' + text);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification(t('low_stock_alert'), { body: fresh.map(line).join('\n'), tag: 'jm-low-stock', icon: '/icons/system-192.png' }); } catch (_) {}
+    }
+  }
+  const checkLowStock = () => api('/system/api/alerts/low-stock').then(d => lowAlerts(d.items)).catch(() => {});
+  setTimeout(checkLowStock, 2500);
+  setInterval(checkLowStock, 60000);
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+
   // ── Barcode scanning ─────────────────────────────────────────
   // Returns true when the code was handled (added, or sent to the "new barcode" dialog).
   async function scanCode(code, offerLink = true) {
@@ -403,6 +425,7 @@
       ['#customerName', '#customerPhone', '#tenderedLbp', '#tenderedUsd', '#saleNotes'].forEach(s => { $(s).value = ''; });
       if ($('#saleDiscount').type !== 'hidden') $('#saleDiscount').value = '0';
       renderCart(); setCart(false); loadPos();
+      setTimeout(checkLowStock, 3400); // after the sale toast
       showSale(r.saleId);
     } catch (e) {
       toast(e.message, true);

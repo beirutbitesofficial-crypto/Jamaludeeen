@@ -86,10 +86,28 @@
     try { await navigator.clipboard.writeText(input.value); } catch (_) { input.select(); document.execCommand('copy'); }
     toast('✓ ' + (I18N.copied || 'Copied'));
   });
+
+  // ── Low stock alerts ── once per product, again only after it was restocked.
+  const LOW_KEY = 'jm_low_seen_admin';
+  function lowAlerts(items) {
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem(LOW_KEY) || '{}'); } catch (_) {}
+    const now = {}, fresh = [];
+    (items || []).forEach(p => { now[p.id] = 1; if (!seen[p.id]) fresh.push(p); });
+    try { localStorage.setItem(LOW_KEY, JSON.stringify(now)); } catch (_) {}
+    if (!fresh.length) return;
+    const line = p => `${p.name} — ${p.qty <= 0 ? (I18N.lowOut || 'out of stock') : p.qty + ' ' + (p.unit === 'ml' ? 'ml' : (I18N.lowLeft || 'left'))}`;
+    const text = fresh.slice(0, 3).map(line).join(' · ') + (fresh.length > 3 ? ` +${fresh.length - 3}` : '');
+    toast('⚠ ' + (I18N.lowStock || 'Low stock') + ': ' + text);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification((I18N.lowStock || 'Low stock'), { body: fresh.map(line).join('\n'), tag: 'jm-low-stock', icon: '/icons/system-192.png' }); } catch (_) {}
+    }
+  }
   function check() {
     fetch('/admin/api/orders/stats', { headers: { accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
       const badge = $('#pendingNavBadge'); if (badge) badge.textContent = d.pending > 0 ? d.pending : '';
+      if (d.low_stock) setTimeout(() => lowAlerts(d.low_stock), 3000);
       $$('[data-pending-count]').forEach(el => { el.textContent = d.pending; });
       const id = d.latest ? d.latest.id : 0;
       if (first) { first = false; if (!lastId) lastId = id; }
