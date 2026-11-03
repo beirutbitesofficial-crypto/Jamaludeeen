@@ -211,6 +211,7 @@ router.get('/products/:id(\\d+)/edit', adminAuth, (req, res) => {
     product,
     brands: brandList(db),
     refill: refillPricesUsd(getSettings()),
+    apiLink: apiLink(req, product.id),
   });
 });
 
@@ -516,6 +517,31 @@ router.post('/settings', adminAuth, (req, res) => {
   })();
   req.flash('success', tr(req)('settings_saved'));
   res.redirect('/admin/settings');
+});
+
+// Per-product link for the delivery app (the key rides in the link so it works as-is).
+function apiLink(req, id) {
+  const key = getSettings().api_key;
+  return key ? `${req.protocol}://${req.get('host')}/api/v1/products/${id}?key=${key}` : null;
+}
+
+// Every product's delivery-app link in one spreadsheet (opens in Excel).
+router.get('/api-links.csv', adminAuth, (req, res) => {
+  if (!getSettings().api_key) return res.redirect('/admin/settings#api');
+  const s = getSettings(), rate = exchangeRate(s), refill = refillPricesUsd(s);
+  const base = `${req.protocol}://${req.get('host')}`;
+  const cell = v => { const t = String(v ?? ''); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const rows = [['id', 'name', 'name_ar', 'brand', 'section', 'price_lbp', 'price_usd', 'stock', 'api_link', 'shop_link']];
+  for (const p of db.prepare('SELECT * FROM products ORDER BY type, brand, name_en').all()) {
+    const local = p.type === 'local';
+    const lbp = local ? `50ml ${Math.round(refill[50] * rate)} / 100ml ${Math.round(refill[100] * rate)}` : (p.price || '');
+    const usd = local ? `50ml ${refill[50]} / 100ml ${refill[100]}` : (p.price ? Math.round(p.price / rate * 100) / 100 : '');
+    rows.push([p.id, p.name_en, p.name_ar, p.brand, local ? p.category : 'brands', lbp, usd,
+      p.track_stock ? p.stock_qty : '', apiLink(req, p.id), `${base}/shop/item/${p.id}`]);
+  }
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', 'attachment; filename="jamaludeen-product-links.csv"');
+  res.send('\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n'));
 });
 
 // API key for /api/v1 (products: name, description, price, stock, photo).

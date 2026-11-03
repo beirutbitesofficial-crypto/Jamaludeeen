@@ -79,6 +79,13 @@
     t.onclick = href ? () => { location.href = href; } : null;
     clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), href ? 9000 : 2600);
   }
+  // Copy buttons: <button data-copy="#inputId">
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    const input = document.querySelector(b.dataset.copy); if (!input) return;
+    try { await navigator.clipboard.writeText(input.value); } catch (_) { input.select(); document.execCommand('copy'); }
+    toast('✓ ' + (I18N.copied || 'Copied'));
+  });
   function check() {
     fetch('/admin/api/orders/stats', { headers: { accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;

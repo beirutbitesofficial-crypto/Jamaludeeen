@@ -69,6 +69,18 @@
   </form>
 </div>
 
+<section class="card" style="margin-top:20px">
+  <div class="card__head"><h2><%- icon('truck') %> <%= a('delivery_link') %></h2></div>
+  <div class="card__body form">
+    <% if (apiLink) { %>
+    <div class="copy-row"><input id="apiLink" value="<%= apiLink %>" readonly dir="ltr" onclick="this.select()"/><button class="btn btn--dark" type="button" data-copy="#apiLink"><%- icon('check') %><%= a('copy') %></button></div>
+    <small class="hint"><%= a('delivery_link_hint') %></small>
+    <% } else { %>
+    <p class="hint" style="margin-top:0"><%= a('delivery_link_off') %> <a href="/admin/settings#api" style="text-decoration:underline"><%= a('settings') %> › API</a></p>
+    <% } %>
+  </div>
+</section>
+
 <section class="card danger-card">
   <div class="card__head"><h2><%- icon('trash') %> <%= a('danger_zone') %></h2></div>
   <div class="card__body">

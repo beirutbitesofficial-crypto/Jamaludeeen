@@ -11,6 +11,12 @@ Go to **Admin › Settings › API** and click **Turn on API (create key)**. The
 
 **New key** replaces the key, and the old one stops working straight away. **Turn off API** disables the API.
 
+## A link for each product
+
+Each **Admin › Edit product** page has a **Delivery app link** card with a **Copy** button. The link already contains the key, for example `https://<site>/api/v1/products/882?key=jm_…`, so it works as it is.
+
+To get every product's link in one go, use **Admin › Settings › API › Download all product links (Excel)**. It downloads a CSV with these columns: id, name, brand, section, price, stock, api_link and shop_link.
+
 ## Authentication
 
 Send the key with every request in one of these ways:
