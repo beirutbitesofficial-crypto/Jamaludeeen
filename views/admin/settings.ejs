@@ -42,7 +42,9 @@
       <p class="hint" style="margin-top:0"><%= a('api_hint') %></p>
       <% if (settings.api_key) { %>
       <label class="field"><span><%= a('api_key') %></span><input value="<%= settings.api_key %>" readonly dir="ltr" onclick="this.select()"/></label>
-      <label class="field"><span><%= a('api_link') %></span><input value="<%= baseUrl %>/api/v1/products" readonly dir="ltr" onclick="this.select()"/><small><%= a('api_header_hint') %></small></label>
+      <label class="field"><span><%= a('api_all_link') %></span>
+        <span class="copy-row"><input id="apiAllLink" value="<%= baseUrl %>/api/v1/products?all=1&key=<%= settings.api_key %>" readonly dir="ltr" onclick="this.select()"/><button class="btn btn--dark" type="button" data-copy="#apiAllLink"><%- icon('check') %><%= a('copy') %></button></span>
+        <small><%= a('api_all_hint') %></small></label>
       <a class="btn btn--block" href="/admin/api-links.csv"><%- icon('download') %><%= a('download_links') %></a>
       <% } %>
       <form action="/admin/api-key" method="POST" <%- settings.api_key ? `data-confirm="${a('api_regen_confirm')}"` : '' %>>

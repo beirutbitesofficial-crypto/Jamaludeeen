@@ -80,10 +80,12 @@ router.get('/products', (req, res) => {
   }
   if (req.query.available === '1') where.push('in_stock = 1 AND NOT (track_stock = 1 AND stock_qty <= 0)');
   if (req.query.updated_since) { where.push('updated_at >= ?'); params.push(String(req.query.updated_since)); }
-  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const ws = where.join(' AND ');
   const total = db.prepare(`SELECT COUNT(*) c FROM products WHERE ${ws}`).get(...params).c;
+  // ?all=1 returns every product in one response (one link for the delivery app).
+  const all = req.query.all === '1' || req.query.limit === 'all';
+  const limit = all ? Math.max(1, total) : Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+  const page = all ? 1 : Math.max(1, parseInt(req.query.page, 10) || 1);
   const rows = db.prepare(`SELECT * FROM products WHERE ${ws} ORDER BY id LIMIT ? OFFSET ?`).all(...params, limit, (page - 1) * limit);
   const s = settings(), b = base(req);
   res.json({ page, limit, total, pages: Math.ceil(total / limit), items: rows.map(p => toItem(p, s, b)) });

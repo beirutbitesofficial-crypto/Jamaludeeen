@@ -11,6 +11,13 @@ Go to **Admin › Settings › API** and click **Turn on API (create key)**. The
 
 **New key** replaces the key, and the old one stops working straight away. **Turn off API** disables the API.
 
+## One link for everything
+
+Admin › Settings › API shows **One link for all products**:
+`https://<site>/api/v1/products?all=1&key=jm_…`
+
+It returns every product in a single response, with no paging. Add `&available=1` to get only the items that can be sold now.
+
 ## A link for each product
 
 Each **Admin › Edit product** page has a **Delivery app link** card with a **Copy** button. The link already contains the key, for example `https://<site>/api/v1/products/882?key=jm_…`, so it works as it is.
@@ -40,6 +47,7 @@ Prefer the header, and keep the key on a server. Anyone who has it can read prod
 | `q` | Search in name and brand |
 | `available=1` | Only items that can be sold now |
 | `updated_since` | Only items changed since this time (`2026-11-01` or an ISO time) |
+| `all=1` | Every matching product in one response (no paging) |
 | `page`, `limit` | Paging. `limit` defaults to 50; the maximum is 200 |
 
 ```json
