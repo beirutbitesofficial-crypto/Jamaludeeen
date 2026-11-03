@@ -180,6 +180,7 @@ app.post('/set-lang', (req, res) => {
 
 // Routes. These imports initialize SQLite/catalog data on first run, so they
 // intentionally come after app.listen().
+app.use('/api/v1', require('./routes/api'));
 app.use('/', require('./routes/index'));
 app.use('/shop', require('./routes/shop'));
 app.use('/collections', require('./routes/collections'));

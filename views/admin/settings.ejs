@@ -36,6 +36,26 @@
     </div>
   </form>
 
+  <section class="card" id="api" style="align-self:start">
+    <div class="card__head"><h2><%- icon('external') %> API</h2></div>
+    <div class="card__body form">
+      <p class="hint" style="margin-top:0"><%= a('api_hint') %></p>
+      <% if (settings.api_key) { %>
+      <label class="field"><span><%= a('api_key') %></span><input value="<%= settings.api_key %>" readonly dir="ltr" onclick="this.select()"/></label>
+      <label class="field"><span><%= a('api_link') %></span><input value="<%= baseUrl %>/api/v1/products" readonly dir="ltr" onclick="this.select()"/><small><%= a('api_header_hint') %></small></label>
+      <% } %>
+      <form action="/admin/api-key" method="POST" <%- settings.api_key ? `data-confirm="${a('api_regen_confirm')}"` : '' %>>
+        <button class="btn btn--dark btn--block" type="submit"><%- icon('check') %><%= settings.api_key ? a('api_regenerate') : a('api_enable') %></button>
+      </form>
+      <% if (settings.api_key) { %>
+      <form action="/admin/api-key" method="POST" data-confirm="<%= a('api_disable_confirm') %>">
+        <input type="hidden" name="action" value="disable"/>
+        <button class="btn btn--sm btn--ghost btn--danger btn--block" type="submit"><%- icon('x') %><%= a('api_disable') %></button>
+      </form>
+      <% } %>
+    </div>
+  </section>
+
   <section class="card" style="align-self:start">
     <div class="card__head"><h2><%- icon('box') %> <%= a('backup_title') %></h2></div>
     <div class="card__body form">

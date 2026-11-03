@@ -499,7 +499,7 @@ router.get('/backup/download', adminAuth, async (req, res, next) => {
 
 router.get('/settings', adminAuth, (req, res) => {
   const settings = getSettings();
-  res.render('admin/settings', { title: tr(req)('settings'), settings, rate: exchangeRate(settings) });
+  res.render('admin/settings', { title: tr(req)('settings'), settings, rate: exchangeRate(settings), baseUrl: `${req.protocol}://${req.get('host')}` });
 });
 
 router.post('/settings', adminAuth, (req, res) => {
@@ -516,6 +516,15 @@ router.post('/settings', adminAuth, (req, res) => {
   })();
   req.flash('success', tr(req)('settings_saved'));
   res.redirect('/admin/settings');
+});
+
+// API key for /api/v1 (products: name, description, price, stock, photo).
+router.post('/api-key', adminAuth, (req, res) => {
+  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+  if (req.body.action === 'disable') upsert.run('api_key', '');
+  else upsert.run('api_key', 'jm_' + require('crypto').randomBytes(24).toString('hex'));
+  req.flash('success', tr(req)('settings_saved'));
+  res.redirect('/admin/settings#api');
 });
 
 router.post('/change-password', adminAuth, (req, res) => {
