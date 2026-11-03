@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../database/store-system');
-const { normalizeSize, salePrice, saleUnitCost, stockDeduction } = require('../helpers/inventory');
+const { normalizeSize, salePrice, saleUnitCost, stockDeduction, lowStockItems } = require('../helpers/inventory');
 const { loginRateLimit, clearLoginAttempts } = require('../middleware/loginRateLimit');
 const { SECTION_KEYS, sectionWhere, sectionCounts, brandList, refillPricesUsd } = require('../helpers/catalog');
 const { exchangeRate: rateOf } = require('../helpers/pricing');
@@ -255,6 +255,9 @@ router.get('/api/catalog', requireSystem, (req, res) => {
   const s = settings();
   res.json({ counts: sectionCounts(db), brands: brandList(db), refill_usd: refillPricesUsd(s), exchange_rate: rateOf(s) });
 });
+
+// Low stock alerts: counted items at or below their alert level.
+router.get('/api/alerts/low-stock', requireSystem, (req, res) => res.json({ items: lowStockItems(db) }));
 
 // Barcode scan: exact barcode or SKU match across every section.
 router.get('/api/products/by-code', requireSystem, (req, res) => {

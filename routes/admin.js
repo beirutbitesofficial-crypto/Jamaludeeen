@@ -13,6 +13,7 @@ const { backupNow } = require('../database/backup');
 const { translator } = require('../helpers/back-office-i18n');
 const { SECTION_KEYS, refillPricesUsd, sectionWhere, sectionCounts, brandList, collectionCovers } = require('../helpers/catalog');
 const { exchangeRate } = require('../helpers/pricing');
+const { lowStockItems } = require('../helpers/inventory');
 
 const tr = req => translator(req.session.lang);
 const IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -403,7 +404,8 @@ router.post('/api/products/:id(\\d+)/stock', adminAuth, (req, res) => {
   if (!product) return res.status(404).json({ error: 'not_found' });
   const inStock = req.body.in_stock ? 1 : 0;
   db.prepare('UPDATE products SET in_stock = ?, updated_at = ? WHERE id = ?').run(inStock, new Date().toISOString(), product.id);
-  res.json({ ok: true, in_stock: inStock });
+  // Counted items with stock stay available (see the trigger in store-system.js).
+  res.json({ ok: true, in_stock: db.prepare('SELECT in_stock FROM products WHERE id = ?').get(product.id).in_stock });
 });
 
 router.post('/api/products/:id(\\d+)/quantity', adminAuth, (req, res) => {
@@ -486,7 +488,7 @@ router.post('/orders/:id(\\d+)/status', adminAuth, (req, res) => {
 router.get('/api/orders/stats', adminAuth, (req, res) => {
   const pending = db.prepare("SELECT COUNT(*) AS c FROM orders WHERE status='pending'").get().c;
   const latest = db.prepare('SELECT id, order_number, customer_name, total, currency FROM orders ORDER BY id DESC LIMIT 1').get();
-  res.json({ pending, latest: latest || null });
+  res.json({ pending, latest: latest || null, low_stock: lowStockItems(db) });
 });
 
 // ── Settings ────────────────────────────────────────────────────────────────

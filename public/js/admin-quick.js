@@ -57,7 +57,8 @@
     const item = box.closest('.qe-item');
     status(item, t.saving, 'busy');
     try {
-      await postJson('/admin/api/products/' + item.dataset.id + '/stock', { in_stock: box.checked });
+      const data = await postJson('/admin/api/products/' + item.dataset.id + '/stock', { in_stock: box.checked });
+      box.checked = !!data.in_stock; // counted items with stock stay available
       status(item, '✓ ' + t.saved.replace(/\.$/, ''), 'ok');
     } catch (err) { box.checked = !box.checked; status(item, err.message || t.failed, 'error'); }
   });

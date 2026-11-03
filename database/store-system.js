@@ -17,6 +17,18 @@ addColumn('products', 'price_100ml REAL');
 addColumn('products', 'cost_50ml REAL');
 addColumn('products', 'cost_100ml REAL');
 
+// A counted product that still has stock is always available for sale. Low stock
+// (at or below the alert level) only raises an alert; the item goes out of stock at 0.
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS trg_products_counted_available
+  AFTER UPDATE OF stock_qty, track_stock, in_stock ON products
+  WHEN NEW.track_stock = 1 AND NEW.stock_qty > 0 AND NEW.in_stock = 0
+  BEGIN
+    UPDATE products SET in_stock = 1 WHERE id = NEW.id;
+  END;
+`);
+db.prepare('UPDATE products SET in_stock = 1 WHERE track_stock = 1 AND stock_qty > 0 AND in_stock = 0').run();
+
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
