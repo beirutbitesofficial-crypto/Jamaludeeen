@@ -43,6 +43,7 @@
       <% if (settings.api_key) { %>
       <label class="field"><span><%= a('api_key') %></span><input value="<%= settings.api_key %>" readonly dir="ltr" onclick="this.select()"/></label>
       <label class="field"><span><%= a('api_link') %></span><input value="<%= baseUrl %>/api/v1/products" readonly dir="ltr" onclick="this.select()"/><small><%= a('api_header_hint') %></small></label>
+      <a class="btn btn--block" href="/admin/api-links.csv"><%- icon('download') %><%= a('download_links') %></a>
       <% } %>
       <form action="/admin/api-key" method="POST" <%- settings.api_key ? `data-confirm="${a('api_regen_confirm')}"` : '' %>>
         <button class="btn btn--dark btn--block" type="submit"><%- icon('check') %><%= settings.api_key ? a('api_regenerate') : a('api_enable') %></button>

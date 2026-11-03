@@ -597,3 +597,6 @@ h1, h2, h3, h4, p { margin: 0; }
 .scan-view { margin-top: 12px; border-radius: 12px; overflow: hidden; background: #000; min-height: 240px; }
 .scan-view video { width: 100% !important; display: block; }
 @media (max-width: 640px) { .pos__scan span { display: none; } .pos__scan { width: 48px; padding: 0; justify-content: center; } }
+
+.copy-row { display: flex; gap: 8px; }
+.copy-row input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 10px; background: #fcfbf8; font-size: .85rem; }
