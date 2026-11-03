@@ -288,6 +288,8 @@ const STRINGS = {
   sku: ['SKU', 'رمز المنتج'],
   barcode: ['Barcode', 'الباركود'],
   barcode_hint: ['Scan the bottle with the scanner while this box is selected, or type the number. Used to sell it by scanning in the Store System.', 'امسح القنينة بالسكانر وهذا الحقل محدد، أو اكتب الرقم. يُستعمل للبيع بالمسح في نظام المتجر.'],
+  api_all_link: ['One link for all products', 'رابط واحد لكل المنتجات'],
+  api_all_hint: ['Give this single link to the delivery app. It always returns every product with its current name, description, price, stock and photo.', 'اعطي هالرابط الواحد لتطبيق الدليفري. بيرجّع دايماً كل المنتجات مع الاسم والوصف والسعر والمخزون والصورة الحاليين.'],
   delivery_link: ['Delivery app link', 'رابط تطبيق الدليفري'],
   delivery_link_hint: ['Give this link to the delivery app. It always shows this item\'s current name, description, price, stock and photo.', 'اعطي هالرابط لتطبيق الدليفري. بيعرض دايماً الاسم والوصف والسعر والمخزون والصورة الحاليين لهالمنتج.'],
   delivery_link_off: ['Turn on the API first to get a link for each product:', 'شغّل الـ API أول لتاخد رابط لكل منتج:'],
