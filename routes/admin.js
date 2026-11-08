@@ -62,15 +62,13 @@ const back = (req, fallback) => req.get('Referrer') || fallback;
 const pageOf = v => Math.max(1, parseInt(v, 10) || 1);
 
 // Set an item's stock count from the admin. A number turns stock tracking on (the Store
-// System and the website then deduct sales from it); an empty value turns tracking off.
-// The difference is logged as a manual adjustment so the Store System history stays right.
+// System and the website then deduct sales from it). An empty value changes nothing, so a
+// cleared box can never hide a saved quantity. The difference is logged as a manual
+// adjustment so the Store System history stays right.
 function setQuantity(id, raw) {
   const p = db.prepare('SELECT id, stock_qty, track_stock FROM products WHERE id = ?').get(id);
   if (!p) return null;
-  if (raw === '' || raw == null) {
-    db.prepare('UPDATE products SET track_stock = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
-    return { track_stock: 0, stock_qty: p.stock_qty };
-  }
+  if (raw === '' || raw == null) return { track_stock: p.track_stock, stock_qty: p.stock_qty };
   const qty = Math.floor(Number(raw));
   if (!Number.isFinite(qty) || qty < 0) throw new Error('invalid_quantity');
   const diff = qty - (p.track_stock ? Number(p.stock_qty) || 0 : 0);

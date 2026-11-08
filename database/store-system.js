@@ -29,6 +29,19 @@ db.exec(`
 `);
 db.prepare('UPDATE products SET in_stock = 1 WHERE track_stock = 1 AND stock_qty > 0 AND in_stock = 0').run();
 
+// One-time repair (owner's request, Nov 2026): items saved with a quantity while stock
+// counting was off had their quantity hidden in the admin ("—") and could not be sold.
+// Count them all; the trigger above then makes each one available again.
+const COUNT_SAVED_STOCK_VERSION = '2026-11-08-v1';
+if (db.prepare(`SELECT value FROM settings WHERE key='count_saved_stock_version'`).get()?.value !== COUNT_SAVED_STOCK_VERSION) {
+  const repaired = db.transaction(() => {
+    const n = db.prepare('UPDATE products SET track_stock = 1, updated_at = CURRENT_TIMESTAMP WHERE track_stock = 0 AND stock_qty > 0').run().changes;
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('count_saved_stock_version', ?)`).run(COUNT_SAVED_STOCK_VERSION);
+    return n;
+  })();
+  console.log(`Saved stock counted again: ${repaired} items.`);
+}
+
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku_unique
