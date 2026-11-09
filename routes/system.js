@@ -290,6 +290,10 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
   if (!p) return res.status(404).json({ error: 'Product not found' });
   const sku = String(req.body.sku || '').trim() || null;
   const barcode = String(req.body.barcode || '').trim() || null;
+  const stockQty = num(req.body.stock_qty, p.stock_qty);
+  // An item with a quantity is always counted: saving with the switch off must not hide
+  // its stock (the admin shows "—" and the item becomes unsellable when it isn't counted).
+  const trackStock = req.body.track_stock || p.track_stock || stockQty > 0 ? 1 : 0;
   try {
     db.prepare(`
       UPDATE products SET sku=?, barcode=?, price=?, price_50ml=?, price_100ml=?, cost_price=?, cost_50ml=?, cost_100ml=?, stock_qty=?,
@@ -304,8 +308,8 @@ router.post('/api/products/:id/inventory', requireManager, (req, res) => {
       Math.max(0,num(req.body.cost_price,p.cost_price)),
       req.body.cost_50ml === '' || req.body.cost_50ml == null ? null : Math.max(0,num(req.body.cost_50ml)),
       req.body.cost_100ml === '' || req.body.cost_100ml == null ? null : Math.max(0,num(req.body.cost_100ml)),
-      num(req.body.stock_qty,p.stock_qty), Math.max(0,num(req.body.low_stock_threshold,p.low_stock_threshold)),
-      req.body.track_stock ? 1 : 0, req.body.in_stock === false ? 0 : 1, id
+      stockQty, Math.max(0,num(req.body.low_stock_threshold,p.low_stock_threshold)),
+      trackStock, req.body.in_stock === false ? 0 : 1, id
     );
   } catch (e) {
     return res.status(400).json({ error: e.message.includes('UNIQUE') ? 'SKU or barcode is already used.' : e.message });

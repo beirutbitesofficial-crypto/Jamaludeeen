@@ -522,6 +522,10 @@
       toast(t('inventory_saved')); closeModal('inventoryModal'); loadInventory();
     } catch (err) { toast(err.message, true); }
   });
+  // Typing a quantity turns counting on, so the saved stock is never hidden.
+  $('#inventoryForm')?.stock_qty?.addEventListener('input', e => {
+    if (Number(e.target.value) > 0) e.target.form.track_stock.checked = true;
+  });
   $('#adjustForm')?.addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target;
     try { await api('/system/api/products/' + f.id.value + '/adjust', { method: 'POST', body: { quantity: f.quantity.value, note: f.note.value } }); toast(t('stock_adjusted')); closeModal('inventoryModal'); loadInventory(); }
